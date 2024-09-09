@@ -35,11 +35,6 @@ var pushCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the .env file to push. uses /.env by default")
-	// pushCmd.Flags().StringVarP(&pushVaultName, "vaultName", "v", "", "name of the keyvault to push to. only needed first time")
-	// pushCmd.Flags().StringVar(&pushVaultType, "vaultType", "keyvault", "type of vault. only keyvault is supported at the moment")
-	// pushCmd.Flags().StringVarP(&pushVaultTenant, "tenant", "t", "", "tenant for the keyvault")
-	// pushCmd.Flags().BoolP("omitcomments", "c", false, "omit comments from the .env file when pushing")
-	// pushCmd.Flags().BoolP("flush", "f", false, "will remove any existing keyvault secrets before pushing.")
 }
 
 func push(cmd *cobra.Command, args []string) {

@@ -222,8 +222,6 @@ func (c *KeyvaultClient) Warmup() error {
 	}
 	c.client = cli
 
-	// c.envNameTag = "envKey"
-
 	return nil
 }
 
