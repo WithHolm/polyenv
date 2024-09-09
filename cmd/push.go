@@ -4,10 +4,11 @@ import (
 	"dotenv-keyvault/internal/tools"
 	"dotenv-keyvault/internal/vaults"
 	"errors"
-	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -33,17 +34,18 @@ var pushCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(pushCmd)
-	pushCmd.Flags().StringVarP(&pushPath, "path", "p", ".env", "path to the .env file to push. uses /.env by default")
-	pushCmd.Flags().StringVarP(&pushVaultName, "vaultName", "v", "", "name of the keyvault to push to. only needed first time")
-	pushCmd.Flags().StringVar(&pushVaultType, "vaultType", "keyvault", "type of vault. only keyvault is supported at the moment")
-	pushCmd.Flags().StringVarP(&pushVaultTenant, "tenant", "t", "", "tenant for the keyvault")
+	pushCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the .env file to push. uses /.env by default")
+	// pushCmd.Flags().StringVarP(&pushVaultName, "vaultName", "v", "", "name of the keyvault to push to. only needed first time")
+	// pushCmd.Flags().StringVar(&pushVaultType, "vaultType", "keyvault", "type of vault. only keyvault is supported at the moment")
+	// pushCmd.Flags().StringVarP(&pushVaultTenant, "tenant", "t", "", "tenant for the keyvault")
 	// pushCmd.Flags().BoolP("omitcomments", "c", false, "omit comments from the .env file when pushing")
 	// pushCmd.Flags().BoolP("flush", "f", false, "will remove any existing keyvault secrets before pushing.")
 }
 
 func push(cmd *cobra.Command, args []string) {
-	fmt.Println("push called")
+	slog.Debug("push called")
 
+	pushPath := Path
 	// mabye no need? good to have tbh..
 	if pushPath == "" {
 		panic("path cannot be empty")
@@ -67,40 +69,9 @@ func push(cmd *cobra.Command, args []string) {
 		panic("failed to stat file: " + err.Error())
 	}
 
-	if pushVaultName != "" {
-		err := tools.CheckDoubleDashS(pushVaultName, "vaultName")
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-
-	if pushVaultTenant != "" {
-		err := tools.CheckDoubleDashS(pushVaultTenant, "tenant")
-		if err != nil {
-			panic(err.Error())
-		}
-	}
-
 	if !tools.VaultOptsExist(pushPath) {
-		if pushVaultName == "" {
-			log.Fatal("--vaultName cannot be empty when pushing for the first time")
-		}
-
-		if pushVaultTenant == "" {
-			log.Fatal("--tenant cannot be empty when pushing for the first time")
-		}
-
-		fmt.Println("no vault options file found, creating one")
-		err := tools.InitVaultFile(pushPath, map[string]string{
-			"VAULT_NAME":   pushVaultName,
-			"VAULT_TYPE":   pushVaultType,
-			"VAULT_TENANT": pushVaultTenant,
-		})
-
-		if err != nil {
-			log.Fatal("failed to create vault options file: " + err.Error())
-			os.Exit(1)
-		}
+		slog.Error("Vault options file not created for env file. please run 'init' before you can re-run 'push'", "path", Path)
+		os.Exit(1)
 	}
 
 	// read opts file
@@ -109,18 +80,30 @@ func push(cmd *cobra.Command, args []string) {
 		log.Fatal("failed to get vault options: " + err.Error())
 		os.Exit(1)
 	}
-	cli, err := vaults.NewVault(vaultOpts["VAULT_TYPE"], vaultOpts["VAULT_NAME"], vaultOpts)
-
+	cli, err := vaults.NewVault(vaultOpts["VAULT_TYPE"], vaultOpts)
+	cli.Warmup()
 	// push dotenv to vault
 	dotenvm, err := godotenv.Read(pushPath)
 	if err != nil {
 		panic("failed to read .env file: " + err.Error())
 	}
+
+	secretCount := len(dotenvm)
+	wg := sync.WaitGroup{}
+	wg.Add(secretCount)
 	for k, v := range dotenvm {
-		fmt.Println("pushing '" + k + "' to vault")
-		err := cli.Push(k, v)
-		if err != nil {
-			panic("failed to push to vault: " + err.Error())
-		}
+		// async push
+		go func(k string, v string) {
+			defer wg.Done()
+			slog.Debug("pushing '" + k + "' to vault")
+			err := cli.Push(k, v)
+			if err != nil {
+				slog.Debug("failed to push" + k + " to vault: " + err.Error())
+				os.Exit(1)
+				// panic("failed to push" + k + " to vault: " + err.Error())
+			}
+		}(k, v)
 	}
+	wg.Wait()
+	slog.Debug("done pushing secrets")
 }

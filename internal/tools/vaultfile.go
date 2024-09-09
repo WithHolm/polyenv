@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"dotenv-keyvault/internal/vaults"
 	"errors"
 	"fmt"
 	"log"
@@ -46,16 +45,17 @@ func GetVaultFile(envfile string) (map[string]string, error) {
 
 // get vault options from .env.vaultopts
 func InitVaultFile(envfile string, opts map[string]string) error {
-	vaultFile := GetVaultOptsPath(envfile)
-	_, err := os.Stat(vaultFile)
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		_, err := vaults.NewVault(opts["VAULT_TYPE"], opts["VAULT_NAME"], opts)
-		if err != nil {
-			return fmt.Errorf("failed to initialize vault: %s", err)
-		}
+	// vaultFile := GetVaultOptsPath(envfile)
+	// _, err := os.Stat(vaultFile)
+	// if err != nil && errors.Is(err, os.ErrNotExist) {
 
-		makeVaultFile(vaultFile, opts)
-	}
+	// 	_, err := vaults.NewVault(opts["VAULT_TYPE"], opts["VAULT_NAME"], opts)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to initialize vault: %s", err)
+	// 	}
+
+	// 	makeVaultFile(vaultFile, opts)
+	// }
 	return nil
 }
 
