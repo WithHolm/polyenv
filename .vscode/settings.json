@@ -13,5 +13,8 @@
     "[github-actions-workflow]": {
         
         "editor.tabSize": 2
+    },
+    "files.associations": {
+        "*.yml": "github-actions-workflow"
     }
 }
