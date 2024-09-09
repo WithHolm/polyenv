@@ -16,8 +16,8 @@ jobs:
         uses: thatisuday/go-cross-build@v1.0.2
         with:
           platforms: "linux/amd64, linux/ppc64le, darwin/amd64, darwin/arm64, windows/amd64"
-          package: "cmd/godotenv"
-          name: "godotenv"
+          package: "main.go"
+          name: "dotenv-myvault"
           compress: "true"
           dest: "dist"
       # - name: Publish Binaries
