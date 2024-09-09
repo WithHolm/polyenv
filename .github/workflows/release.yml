@@ -1,7 +1,7 @@
-on:
-  push:
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+on: [push]
+  # push:
+  #   tags:
+  #     - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 name: Upload Release Assets
 
@@ -20,12 +20,12 @@ jobs:
           name: "godotenv"
           compress: "true"
           dest: "dist"
-      - name: Publish Binaries
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: Release ${{ github.ref }}
-          tag: ${{ github.ref }}
-          file: dist/*
-          file_glob: true
-          overwrite: true
+      # - name: Publish Binaries
+      #   uses: svenstaro/upload-release-action@v2
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     release_name: Release ${{ github.ref }}
+      #     tag: ${{ github.ref }}
+      #     file: dist/*
+      #     file_glob: true
+      #     overwrite: true
