@@ -8,11 +8,11 @@ env:
   GO_VERSION: ">=1.22"
   APP_NAME: dotenv-myvault
 
-name: Upload Release Assets
+name: Build and Release
 
 jobs:
   build:
-    name: Upload Release Assets
+    name: Build and Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -55,9 +55,10 @@ jobs:
           cache-name: go-build
         with:
           path: ./build
-          key: mykey
+          key: build-${{matrix.os}}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}
+            build-${{matrix.os}}
+            build-
 
   release:
     needs: build
@@ -69,7 +70,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./build
-          key: mykey
+          key: build-
       - name: list
         shell: pwsh
         run: Get-ChildItem ./build
