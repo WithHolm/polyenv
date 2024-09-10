@@ -3,6 +3,10 @@ on: [push]
   #   tags:
   #     - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
+env:
+  GO_VERSION: ">=1.22"
+  APP_NAME: dotenv-myvault
+
 name: Upload Release Assets
 
 jobs:
@@ -11,7 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ 'linux/amd64', 'linux/ppc64le','darwin/amd64','darwin/arm64','windows/amd64' ]
+        include:
+          - os: linux/amd64
+            goos: linux
+            goarch: amd64
+            asset_name: ${{env.APP_NAME}}-linux-amd64
+          - os: linux/ppc64le
+            goos: linux
+            goarch: ppc64le
+            asset_name: ${{env.APP_NAME}}-linux-ppc64le
+          - os: darwin/amd64
+            goos: darwin
+            goarch: amd64
+            asset_name: ${{env.APP_NAME}}-linux-amd64
+          - os: darwin/arm64
+            goos: darwin
+            goarch: arm64
+            asset_name: ${{env.APP_NAME}}-darwin-arm64
+          - os: windows/amd64
+            goos: windows
+            goarch: amd64
+            asset_name: ${{env.APP_NAME}}-windows-amd64.exe
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,8 +44,14 @@ jobs:
         with:
           go-version: ">=1.22"
       - run: go version
-      - run: go build dotenv-keyvault -o "dest"
-      
+      - name: Build
+        env:
+          GOOS: ${{matrix.goos}}
+          GOARCH: ${{matrix.goarch}}
+        run: go build -o ./build/${{matrix.asset_name}} main.go
+      - name: list
+        shell: pwsh
+        run: Get-ChildItem ./build
       # - name: Generate build files
       #   uses: thatisuday/go-cross-build@v1.0.2
       #   with:
