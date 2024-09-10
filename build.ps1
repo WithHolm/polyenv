@@ -12,15 +12,13 @@ foreach ($platform in $plaforms) {
         $env:GOOS = $platform.split("-")[0]
         $env:GOARCH = $platform.split("-")[1]
         $ext = if ($env:GOOS -eq "windows") { ".exe" } else { "" }
-        mkdir -Force $path/$($platform -replace '')
-
-        go build -o ./build/$($platform -replace '')/dotenv-myvault$ext main.go
+        go build -o "./build/$platform/dotenv-myvault$ext" main.go
     } -ArgumentList $platform, $path
     $jobs += $job
 }
 
-while($jobs.Finished -contains $false) {
-    $nc= $jobs | Where-Object { $_.Finished -eq $false }
+while($jobs.state -contains 'Running') {
+    $nc= $jobs | Where-Object { $_.state -eq 'Running' }
     Write-Host "waiting for $($nc.Count) jobs to finish ($($nc.Name -join ", "))"
     Start-Sleep -Seconds 5
 }
