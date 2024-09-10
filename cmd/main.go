@@ -30,10 +30,33 @@ var rootCmd = &cobra.Command{
 func init() {
 	// add push and pull commands
 	rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: true,
-		Level:     slog.LevelInfo,
-	}))
+
+	opts := &slog.HandlerOptions{
+		// AddSource: true,
+		// Level:     slog.LevelInfo,
+	}
+
+	_, b := os.LookupEnv("SLOG_ADD_SOURCE")
+	if b == true {
+		opts.AddSource = true
+	}
+	s, b := os.LookupEnv("SLOG_LEVEL")
+	if b == true {
+		switch s {
+		case "debug":
+			opts.Level = slog.LevelDebug
+		case "info":
+			opts.Level = slog.LevelInfo
+		case "warn":
+			opts.Level = slog.LevelWarn
+		case "error":
+			opts.Level = slog.LevelError
+		}
+	} else {
+		opts.Level = slog.LevelInfo
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
 	slog.SetDefault(logger)
 }
 

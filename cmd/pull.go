@@ -28,7 +28,7 @@ var PullCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(PullCmd)
 	PullCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the '.env' file to pull. appends '.vaultopts' when searching. Uses /.env by default")
-	PullCmd.Flags().StringVarP(&pullOutput, "out", "o", "env", "where to post the results of the pull. 'env' for directly to env variables, 'file' for .env file")
+	// PullCmd.Flags().StringVarP(&pullOutput, "out", "o", "env", "where to post the results of the pull. 'env' for directly to env variables, 'file' for .env file")
 }
 
 func pull(cmd *cobra.Command, args []string) {
@@ -49,13 +49,13 @@ func pull(cmd *cobra.Command, args []string) {
 
 	}
 
-	if pullOutput != "" {
-		err := tools.CheckDoubleDashS(pullOutput, "out")
-		if err != nil {
-			log.Fatal(err.Error())
-			os.Exit(1)
-		}
-	}
+	// if pullOutput != "" {
+	// 	err := tools.CheckDoubleDashS(pullOutput, "out")
+	// 	if err != nil {
+	// 		log.Fatal(err.Error())
+	// 		os.Exit(1)
+	// 	}
+	// }
 
 	// get absolute path
 	if !filepath.IsAbs(pullPath) {
@@ -89,22 +89,23 @@ func pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if pullOutput == "env" {
-		for k, v := range secrets {
-			log.Println("setting env variable: " + k)
-			err := os.Setenv(k, v)
-			if err != nil {
-				log.Fatal("failed to set env variable: " + err.Error())
-				os.Exit(1)
-			}
-		}
-	}
+	// if pullOutput == "env" {
+	// 	for k, v := range secrets {
+	// 		log.Println("setting env variable: " + k)
+	// 		err := os.Setenv(k, v)
+	// 		if err != nil {
+	// 			log.Fatal("failed to set env variable: " + err.Error())
+	// 			os.Exit(1)
+	// 		}
+	// 	}
+	// }
 
-	if pullOutput == "file" {
-		err := godotenv.Write(secrets, pullPath)
-		if err != nil {
-			log.Fatal("failed to write .env file: " + err.Error())
-			os.Exit(1)
-		}
+	err = godotenv.Write(secrets, pullPath)
+	if err != nil {
+		log.Fatal("failed to write .env file: " + err.Error())
+		os.Exit(1)
 	}
+	slog.Info("done pulling secrets", "path", pullPath, "len", len(secrets))
+	// if pullOutput == "file" {
+	// }
 }

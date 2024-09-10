@@ -1,6 +1,7 @@
-# dotenv-keyvault
+# dotenv-myvault
 
-dotenv-keyvault is a CLI tool that allows you to sync your .env files with Azure Key Vault. It provides an alternative to the standard dotenv-vault, using Azure Key Vault as the backend.
+dotenv-myvault is a CLI tool that allows you to sync your .env files with alternatives to dotenv vault.
+for now only Azure Keyvault is supported, but more will be available in the future.
 
 ## Features
 
@@ -12,7 +13,7 @@ dotenv-keyvault is a CLI tool that allows you to sync your .env files with Azure
 
 ## Installation
 
-(Add installation instructions here)
+check release page [here](https://github.com/WithHolm/dotenv-keyvault/releases) and download the goddamn exe
 
 ## Usage
 
