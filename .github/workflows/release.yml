@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'go.mod'
+          go-version: '>=1.23'
           cache: true
           cache-dependency-path: '**/go.sum'
       - name: download deps
