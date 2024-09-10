@@ -13,7 +13,7 @@ for now only Azure Keyvault is supported, but more will be available in the futu
 
 ## Installation
 
-check release page [here](https://github.com/WithHolm/dotenv-keyvault/releases) and download the goddamn exe
+check release page [here](https://github.com/WithHolm/dotenv-myvault/releases) and download the goddamn exe
 
 ## Usage
 
@@ -22,25 +22,24 @@ check release page [here](https://github.com/WithHolm/dotenv-keyvault/releases) 
 1. Initialize a .env file for syncing:
 
 ```
-dotenv-keyvault init [--path <path-to-env-file>]
+dotenv-myvault init [--path <path-to-env-file>]
 ```
 
 2. Push secrets to Azure Key Vault:
 
 ```
-dotenv-keyvault push [--path <path-to-env-file>]
+dotenv-myvault push [--path <path-to-env-file>]
 ```
 
 3. Pull secrets from Azure Key Vault:
 
 ```
-dotenv-keyvault pull [--path <path-to-env-file>] [--out <env|file>]
+dotenv-myvault pull [--path <path-to-env-file>]
 ```
 
 ### Options
 
 - `--path, -p`: Specify the path to the .env file (default: ".env")
-- `--out, -o`: Specify where to output pulled secrets (env: environment variables, file: .env file)
 
 ## Developer Information
 
@@ -59,7 +58,7 @@ To add support for a new vault type:
 
 1. Create a new package under `internal/vaults/`
 2. Implement the `Vault` interface defined in `internal/vaults/repository.go`
-3. Update the `NewInitVault` and `NewVault` functions in `repository.go` to include the new vault type
+3. Update the `NewInitVault` function in `repository.go` to include the new vault type
 
 ### Key Files
 

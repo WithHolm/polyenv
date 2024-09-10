@@ -2,7 +2,7 @@ package vaults
 
 import (
 	"context"
-	"dotenv-keyvault/internal/vaults/keyvault"
+	"dotenv-myvault/internal/vaults/keyvault"
 	"fmt"
 	"log/slog"
 	"strings"

@@ -1,6 +1,6 @@
 package main
 
-import "dotenv-keyvault/cmd"
+import "dotenv-myvault/cmd"
 
 // var VaultRegistry = make([]string, 0)
 

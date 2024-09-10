@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"dotenv-keyvault/internal/tools"
-	"dotenv-keyvault/internal/vaults"
+	"dotenv-myvault/internal/tools"
+	"dotenv-myvault/internal/vaults"
 	"errors"
 	"log"
 	"log/slog"

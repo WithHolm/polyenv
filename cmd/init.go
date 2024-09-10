@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"dotenv-keyvault/internal/charmselect"
-	"dotenv-keyvault/internal/vaults"
+	"dotenv-myvault/internal/charmselect"
+	"dotenv-myvault/internal/vaults"
 	"log/slog"
 	"os"
 

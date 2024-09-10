@@ -14,7 +14,7 @@
         
         "editor.tabSize": 2
     },
-    "files.associations": {
-        "*.yml": "github-actions-workflow"
-    }
+    // "files.associations": {
+    //     "*.yml": "github-actions-workflow"
+    // }
 }
