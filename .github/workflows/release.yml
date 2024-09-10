@@ -7,6 +7,7 @@ on:
 env:
   GO_VERSION: ">=1.22"
   APP_NAME: dotenv-myvault
+  GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
 
 name: Build and Release
 
@@ -17,14 +18,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Generate build files
-        uses: thatisuday/go-cross-build@v1.0.2
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-            platforms: 'linux/amd64, linux/ppc64le, darwin/amd64, darwin/arm64, windows/amd64'
-            package: main
-            name: dotenv-myvault
-            compress: 'true'
-            dest: 'dist'
+          go-version: 'go.mod'
+          cache: true
+          cache-dependency-path: '**/go.sum'
+      - name: download deps
+        run: make init
+      - name: test
+        run: make test
+      - name: build
+        run: make build-ci
+      
+
+
+      # - name: Generate build files
+      #   uses: thatisuday/go-cross-build@v1.0.2
+      #   with:
+      #       platforms: 'linux/amd64, linux/ppc64le, darwin/amd64, darwin/arm64, windows/amd64'
+      #       package: main
+      #       name: dotenv-myvault
+      #       dest: 'dist'
   #   strategy:
   #     matrix:
   #       include:
