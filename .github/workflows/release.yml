@@ -19,24 +19,14 @@ jobs:
         include:
           - os: linux/amd64
             asset_ext: ""
-            # goos: linux
-            # goarch: amd64
           - os: linux/ppc64le
-            # goos: linux
-            # goarch: ppc64le
             asset_ext: ""
           - os: darwin/amd64
             asset_ext: ""
-            # goos: darwin
-            # goarch: amd64
           - os: darwin/arm64
             asset_ext: ""
-            # goos: darwin
-            # goarch: arm64
           - os: windows/amd64
             asset_ext: ".exe"
-            # goos: windows
-            # goarch: amd64
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,8 +38,6 @@ jobs:
       - name: Build
         env:
           BUILD_OS: ${{matrix.os}}
-          # GOOS: ${{matrix.goos}}
-          # GOARCH: ${{matrix.goarch}}
           ASSET_EXT: ${{matrix.asset_ext}}
         shell: pwsh
         run: |
@@ -60,6 +48,28 @@ jobs:
             $Name = "$Name.$env:ASSET_EXT"
           }
           go build -o ./build/$Name main.go
+      - name: Cache build
+        id: cache-build
+        uses: actions/cache@v3
+        env:
+          cache-name: go-build
+        with:
+          path: ./build
+          key: mykey
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: download build
+        uses: actions/cache@v2
+        with:
+          path: ./build
+          key: mykey
       - name: list
         shell: pwsh
         run: Get-ChildItem ./build
