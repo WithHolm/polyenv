@@ -22,4 +22,6 @@ while($jobs.state -contains 'Running') {
     Write-Host "waiting for $($nc.Count) jobs to finish ($($nc.Name -join ", "))"
     Start-Sleep -Seconds 5
 }
-$jobs | Wait-Job | Receive-Job
+$jobs | Wait-Job | Receive-Job -ea Stop
+
+gci $path -Recurse
