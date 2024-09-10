@@ -20,23 +20,23 @@ jobs:
           - os: linux/amd64
             goos: linux
             goarch: amd64
-            asset_name: ${{env.APP_NAME}}-linux-amd64
+            asset_ext: ""
           - os: linux/ppc64le
             goos: linux
             goarch: ppc64le
-            asset_name: ${{env.APP_NAME}}-linux-ppc64le
+            asset_ext: ""
           - os: darwin/amd64
             goos: darwin
             goarch: amd64
-            asset_name: ${{env.APP_NAME}}-linux-amd64
+            asset_ext: ""
           - os: darwin/arm64
             goos: darwin
             goarch: arm64
-            asset_name: ${{env.APP_NAME}}-darwin-arm64
+            asset_ext: ""
           - os: windows/amd64
             goos: windows
             goarch: amd64
-            asset_name: ${{env.APP_NAME}}-windows-amd64.exe
+            asset_ext: ".exe"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
         env:
           GOOS: ${{matrix.goos}}
           GOARCH: ${{matrix.goarch}}
-        run: go build -o ./build/${{matrix.asset_name}} main.go
+        run: go build -o ./build/${{matrix.asset_name}}${{matrix.asset_ext}} main.go
       - name: list
         shell: pwsh
         run: Get-ChildItem ./build
