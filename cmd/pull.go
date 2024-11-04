@@ -27,7 +27,7 @@ var PullCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(PullCmd)
-	PullCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the '.env' file to pull. appends '.vaultopts' when searching. Uses /.env by default")
+	// PullCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the '.env' file to pull. appends '.vaultopts' when searching. Uses /.env by default")
 	// PullCmd.Flags().StringVarP(&pullOutput, "out", "o", "env", "where to post the results of the pull. 'env' for directly to env variables, 'file' for .env file")
 }
 
