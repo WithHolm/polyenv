@@ -10,6 +10,8 @@ import (
 
 var author string
 var Path string //path to the .env file.. used by all commands
+var Debug bool
+var logger *slog.Logger
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -19,50 +21,36 @@ var rootCmd = &cobra.Command{
 		A version of dotenv that uses keyvault as 'vault' instead of the dotenv projects default one. 
 		Requires the user to have active access to the specified keyvault when this command is run".
 	`,
-	// run:
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Set up logger
+		opts := &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}
+		if Debug {
+			opts.Level = slog.LevelDebug
+		}
 
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+		handler := slog.NewTextHandler(os.Stdout, opts)
+		logger = slog.New(handler)
+		slog.Info("debug logging enabled", "debug", Debug)
+		slog.SetDefault(logger)
+	},
 }
 
 // TODO: SLOG INIT THING HERE
 func init() {
 	// add push and pull commands
 	rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
+	rootCmd.PersistentFlags().StringVarP(&Path, "path", "p", ".env", "Path to the .env file")
+	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug logging")
 
-	opts := &slog.HandlerOptions{
-		// AddSource: true,
-		// Level:     slog.LevelInfo,
-	}
-
-	_, b := os.LookupEnv("SLOG_ADD_SOURCE")
-	if b == true {
-		opts.AddSource = true
-	}
-	s, b := os.LookupEnv("SLOG_LEVEL")
-	if b == true {
-		switch s {
-		case "debug":
-			opts.Level = slog.LevelDebug
-		case "info":
-			opts.Level = slog.LevelInfo
-		case "warn":
-			opts.Level = slog.LevelWarn
-		case "error":
-			opts.Level = slog.LevelError
-		}
-	} else {
-		opts.Level = slog.LevelInfo
-	}
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
-	slog.SetDefault(logger)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	// tools.InitSlog(Debug)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
