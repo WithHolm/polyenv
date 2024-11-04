@@ -27,6 +27,7 @@ type Wizard struct {
 	Resource            GraphQueryItem
 	ResGraphItems       []GraphQueryItem
 	ResGraphChannel     chan []GraphQueryItem
+	IncludeCertAndKeys  bool
 }
 
 var (
@@ -68,23 +69,16 @@ func (g GraphQueryItem) InTenant(t Tenant) bool {
 
 // region Helpers
 
+// create a map of all the settings that we need to write to the .env.vaultopts file. this is what is returned by the wizard
 func (w *Wizard) GetWizardMap() map[string]string {
 	return map[string]string{
-		"NAME":         w.Resource.Name,
-		"TENANT":       w.Tenant.Id,
-		"URI":          w.Resource.VaultUri,
-		"STYLE":        "nocomments", // TODO: make this a setting. supported to be if i want to support comments in env settings.. mabye?
-		"ENV_NAME_TAG": "dotenvKey",
+		"NAME":                w.Resource.Name,
+		"TENANT":              w.Tenant.Id,
+		"URI":                 w.Resource.VaultUri,
+		"STYLE":               "nocomments", // TODO: make this a setting. supported to be if i want to support comments in env settings.. mabye?
+		"ENV_NAME_TAG":        "dotenvKey",
+		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", w.IncludeCertAndKeys),
 	}
-}
-
-func (w *Wizard) GetSubscriptionLookup() map[string]string {
-	// w.SubcriptionMap = make(map[string]string)
-	ret := make(map[string]string)
-	for _, s := range w.Subscriptions {
-		ret[s.Id] = s.DisplayName
-	}
-	return ret
 }
 
 // region Helpers
@@ -178,13 +172,9 @@ func (w *Wizard) StartGetSubscriptions() {
 			defer SubscriptionWG.Done()
 			subscriptions, err := w.taskGetSubscriptions(t)
 			if err != nil {
-				//TODO add logging here
 				slog.Warn("failed to get subscriptions for tenant", "tenant", t.DisplayName)
-				//im just gonna ignore this error for now..
-				// return
 			}
 			chn <- subscriptions
-			// w.Subscriptions = subscriptions
 		}(w, t, chn)
 	}
 
@@ -230,15 +220,16 @@ func (w *Wizard) taskGetSubscriptions(tenant Tenant) ([]Subscription, error) {
 // endregion Subscriptions
 
 // region Keyvaults
-
 func (wiz *Wizard) AnswerKeyvault(answer string) error {
+	// find vault in list of vaults, -1 if none is found
 	i := slices.IndexFunc(wiz.ResGraphItems, func(g GraphQueryItem) bool {
 		return g.Name == answer
 	})
-	if i >= 0 {
+	if i != -1 {
 		wiz.Resource = wiz.ResGraphItems[i]
 		return nil
 	}
+
 	return fmt.Errorf("failed to find user selected vault %s in list of vaults", answer)
 }
 
@@ -277,6 +268,7 @@ func (wiz *Wizard) StartGetKeyvaults() {
 	wiz.ResGraphChannel = chn
 }
 
+// TODO: refactor?
 // task to get actual keyvaults. used by StartGetVaults as goroutine -> Warmup
 func (wiz *Wizard) taskGetKeyvaults(tenant Tenant) ([]GraphQueryItem, error) {
 	ctx := context.Background()
@@ -291,10 +283,12 @@ func (wiz *Wizard) taskGetKeyvaults(tenant Tenant) ([]GraphQueryItem, error) {
 		return nil, fmt.Errorf("failed to create client factory: %v", err)
 	}
 	client := clientFactory.NewClient()
+
+	//TODO: make this a stuct or something?
 	projections := []string{"name", "resourceGroup", "subscriptionId", "tenantId", "location", "vaultUri = properties.vaultUri"}
 	query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults'|project %s", strings.Join(projections, ","))
-	// query := "resources| where type == 'microsoft.keyvault/vaults'|project Name=name,ResourceGroup=resourceGroup,SubscriptionId=subscriptionId,TenantId=tenantId"
 	slog.Debug("query to run", "value", query)
+
 	// get first page. this will also tell us if there are more pages
 	res, err := client.Resources(ctx, armresourcegraph.QueryRequest{
 		Query: to.Ptr(query),
@@ -338,15 +332,7 @@ func (wiz *Wizard) taskGetKeyvaults(tenant Tenant) ([]GraphQueryItem, error) {
 		}
 	}
 
-	// for _, v := range items {
-	// 	q := VaultWizardSelection{
-	// 		Key:         fmt.Sprintf("%s/%s", v.ResourceGroup, v.Name),
-	// 		Description: v.SubscriptionID,
-	// 	}
-	// 	ret.Questions = append(ret.Questions, q)
-	// }
 	slog.Debug("got keyvaults from tenant", "tenant", tenant.DisplayName, "len", len(ret))
-
 	return ret, nil
 }
 
