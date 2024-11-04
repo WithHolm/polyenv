@@ -70,32 +70,6 @@ func (c *KeyvaultClient) setTenant(tenant string) error {
 	return nil
 }
 
-// // init initializes the keyvault client
-// func (c *KeyvaultClient) Init() error {
-
-// 	if c.tenant == "" {
-// 		return fmt.Errorf("tenant cannot be empty")
-// 	}
-
-// 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-// 		TenantID: c.tenant,
-// 	})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// url := fmt.Sprintf("https://%s.vault.azure.net", c.name)
-// 	cli, err := azsecrets.NewClient(c.uri, cred, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	c.client = cli
-
-// 	// c.envNameTag = "envKey"
-
-// 	return nil
-// }
-
 func ConvertToKeyvaultName(value string) string {
 	value = strings.ToLower(value)
 	value = strings.ReplaceAll(value, " ", "-")
@@ -248,11 +222,9 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 			k := <-c.wizHelper.SubscriptionChannel
 			c.wizHelper.Subscriptions = append(c.wizHelper.Subscriptions, k...)
 		}
-		// c.wizHelper.Subscriptions = <-c.wizHelper.SubscriptionChannel
 
 		slog.Info("tenants:", "count", len(c.wizHelper.Tenants))
 		slog.Info("subscriptions:", "count", len(c.wizHelper.Subscriptions))
-		// fmt.Println(tools.ToIndentedJson(c.wizHelper.Subscriptions))
 
 		slog.Debug("starting keyvaults")
 		c.wizHelper.StartGetKeyvaults()
@@ -295,6 +267,21 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 			Title:     "What vault do you want to use?",
 			Questions: q,
 			Callback:  c.wizHelper.AnswerKeyvault,
+		}
+	case 3:
+		return VaultWizardCard{
+			Title: "Do you just want secrets or do you also want keys and certificates (if applicable)?",
+			Questions: []VaultWizardSelection{
+				{
+					Key:         "secrets",
+					Description: "Only secrets",
+				},
+				{
+					Key:         "all",
+					Description: "Secrets, Keys and Certificates",
+				},
+			},
+			Callback: c.wizHelper.AnswerKeyvault,
 		}
 	}
 
