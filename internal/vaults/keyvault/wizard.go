@@ -27,7 +27,7 @@ type Wizard struct {
 	Resource            GraphQueryItem
 	ResGraphItems       []GraphQueryItem
 	ResGraphChannel     chan []GraphQueryItem
-	IncludeCertAndKeys  bool
+	IncludeCert         bool
 }
 
 var (
@@ -77,11 +77,11 @@ func (w *Wizard) GetWizardMap() map[string]string {
 		"URI":                 w.Resource.VaultUri,
 		"STYLE":               "nocomments", // TODO: make this a setting. supported to be if i want to support comments in env settings.. mabye?
 		"ENV_NAME_TAG":        "dotenvKey",
-		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", w.IncludeCertAndKeys),
+		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", w.IncludeCert),
 	}
 }
 
-// region Helpers
+// endregion Helpers
 
 // region Tenants
 // start job to grab tenants. used by wizard warmup.
@@ -100,7 +100,7 @@ func (wiz *Wizard) StartGetTenants() {
 	wiz.TenantChannel = chn
 }
 
-// sets selected tenant
+// sets tenant object from id
 func (w *Wizard) AnswerTenant(tenantId string) error {
 	for _, t := range w.Tenants {
 		if t.Id == tenantId {
@@ -118,10 +118,12 @@ func taskGetTenants() (ret []Tenant, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
 	}
+
 	clientFactory, err := armsubscriptions.NewClientFactory(cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client factory: %v", err)
 	}
+
 	pager := clientFactory.NewTenantsClient().NewListPager(nil)
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
@@ -257,12 +259,10 @@ func (wiz *Wizard) StartGetKeyvaults() {
 			defer ResGraphWG.Done()
 			keyvaults, err := w.taskGetKeyvaults(t)
 			if err != nil {
-				//TODO add logging here
 				slog.Debug("failed to get keyvaults", "tenant", t.DisplayName, "error:", err.Error())
 				return
 			}
 			chn <- keyvaults
-			// w.ResGraphItems = append(w.ResGraphItems, keyvaults...)
 		}(wiz, t, chn)
 	}
 	wiz.ResGraphChannel = chn

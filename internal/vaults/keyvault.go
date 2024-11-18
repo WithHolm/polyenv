@@ -2,9 +2,11 @@ package vaults
 
 import (
 	"context"
+	"dotenv-myvault/internal/tools"
 	"dotenv-myvault/internal/vaults/keyvault"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -12,22 +14,25 @@ import (
 )
 
 type KeyvaultClient struct {
-	name       string //name of the keyvault
-	tenant     string //tenant of the keyvault
-	envNameTag string //name of the tag that contains the env key
-	uri        string //uri of the keyvault
-	style      string //style of storage
-	client     *azsecrets.Client
-	cred       *azidentity.DefaultAzureCredential
-	wizHelper  keyvault.Wizard
+	name        string //name of the keyvault
+	tenant      string //tenant of the keyvault
+	envNameTag  string //name of the tag that contains the env key
+	uri         string //uri of the keyvault
+	style       string //style of storage
+	includeCert bool   //include keys and certificates
+	client      *azsecrets.Client
+	cred        *azidentity.DefaultAzureCredential
+	wizHelper   keyvault.Wizard
 }
 
+// set attributes for the client. used by repository init
 func (c *KeyvaultClient) SetOptions(options map[string]string) error {
 	c.envNameTag = options["ENV_NAME_TAG"]
 	c.uri = options["URI"]
 	c.name = options["NAME"]
 	c.tenant = options["TENANT"]
 	c.style = options["STYLE"]
+	c.includeCert = options["INCLUDE_CERTANDKEYS"] == "true"
 
 	if c.envNameTag == "" {
 		return fmt.Errorf("env name tag cannot be empty")
@@ -47,12 +52,13 @@ func (c *KeyvaultClient) SetOptions(options map[string]string) error {
 
 func (c *KeyvaultClient) GetOptions() map[string]string {
 	return map[string]string{
-		"VAULT_TYPE":   "keyvault",
-		"NAME":         c.name,
-		"TENANT":       c.tenant,
-		"URI":          c.uri,
-		"STYLE":        c.style,
-		"ENV_NAME_TAG": c.envNameTag,
+		"VAULT_TYPE":          "keyvault",
+		"NAME":                c.name,
+		"TENANT":              c.tenant,
+		"URI":                 c.uri,
+		"STYLE":               c.style,
+		"ENV_NAME_TAG":        c.envNameTag,
+		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", c.includeCert),
 	}
 }
 
@@ -70,12 +76,15 @@ func (c *KeyvaultClient) setTenant(tenant string) error {
 	return nil
 }
 
+// Converts a string to keyvault name
 func ConvertToKeyvaultName(value string) string {
 	value = strings.ToLower(value)
-	value = strings.ReplaceAll(value, " ", "-")
-	value = strings.ReplaceAll(value, ":", "-")
-	value = strings.ReplaceAll(value, "_", "-")
-	return value
+	re := regexp.MustCompile(`[^a-zA-Z0-9-]`)
+	result := re.ReplaceAllStringFunc(value, func(r string) string {
+
+		return "-"
+	})
+	return result
 }
 
 // Push pushes a single secret to keyvault
@@ -98,7 +107,7 @@ func (c *KeyvaultClient) Push(name string, value string) error {
 	return nil
 }
 
-// Pull pulls all secrets from keyvault
+// Pull  all secrets from keyvault
 func (c *KeyvaultClient) Pull() (map[string]string, error) {
 	out := make(map[string]string)
 
@@ -113,19 +122,19 @@ func (c *KeyvaultClient) Pull() (map[string]string, error) {
 		}
 		// for each secret on page
 		for _, secret := range page.Value {
+			slog.Debug(tools.ToIndentedJson(secret))
 
 			if *secret.Attributes.Enabled == false {
-				slog.Debug("secret is not enabled, skipping")
+				slog.Debug("secret is not enabled, skipping", "secret", secret.ID.Name())
 				continue
 			}
 
 			val, err := c.client.GetSecret(context.Background(), secret.ID.Name(), secret.ID.Version(), nil)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read secret: %s", err)
+				return nil, fmt.Errorf("failed to read secret %s: %s", secret.ID.Name(), err)
 			}
 
 			// try to get val from tags, else just use secret name
-			// n := val.Secret.Tags[c.envNameTag]
 			var n string
 			if val.Secret.Tags[c.envNameTag] == nil {
 				slog.Debug("no env key found in tags, using secret name")
@@ -189,7 +198,6 @@ func (c *KeyvaultClient) Warmup() error {
 		return err
 	}
 
-	// url := fmt.Sprintf("https://%s.vault.azure.net", c.name)
 	cli, err := azsecrets.NewClient(c.uri, cred, nil)
 	if err != nil {
 		return err
@@ -213,6 +221,7 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 	slog.Debug("wizard current:", "index", c.wizHelper.Current)
 	switch c.wizHelper.Current {
 	case 1:
+		// select tenant
 		slog.Info("waiting for tenants")
 		c.wizHelper.Tenants = <-c.wizHelper.TenantChannel
 		c.wizHelper.StartGetSubscriptions()
@@ -246,6 +255,7 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 			Callback:  c.wizHelper.AnswerTenant,
 		}
 	case 2:
+		// select keyvault
 		for i := 0; i < c.wizHelper.Tenantcount; i++ {
 			slog.Debug("waiting for resource graph channel", "index", i)
 			k := <-c.wizHelper.ResGraphChannel
@@ -270,18 +280,25 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 		}
 	case 3:
 		return VaultWizardCard{
-			Title: "Do you just want secrets or do you also want keys and certificates (if applicable)?",
+			Title: "Some services also uses secrets to save certificates. do you want to include these (also handles items with contentType 'x-pkcs12')?",
 			Questions: []VaultWizardSelection{
 				{
 					Key:         "secrets",
-					Description: "Only secrets",
+					Description: "Only secrets (exclude items with 'x-pkcs12' contentType)",
 				},
 				{
 					Key:         "all",
-					Description: "Secrets, Keys and Certificates",
+					Description: "Secrets and Certificates (includes items with 'x-pkcs12' contentType)",
 				},
 			},
-			Callback: c.wizHelper.AnswerKeyvault,
+			Callback: func(s string) error {
+				if s == "secrets" {
+					c.wizHelper.IncludeCert = false
+				} else {
+					c.wizHelper.IncludeCert = true
+				}
+				return nil
+			},
 		}
 	}
 
