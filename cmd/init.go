@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"dotenv-myvault/internal/charmselect"
-	"dotenv-myvault/internal/vaults"
 	"log/slog"
 	"os"
+
+	"github.com/withholm/dotenv-myvault/internal/charmselect"
+	"github.com/withholm/dotenv-myvault/internal/vaults"
 
 	"github.com/spf13/cobra"
 )

@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"dotenv-myvault/internal/tools"
-	"dotenv-myvault/internal/vaults"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/withholm/dotenv-myvault/internal/tools"
+	"github.com/withholm/dotenv-myvault/internal/vaults"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
