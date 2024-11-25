@@ -1,13 +1,10 @@
+name: Test Changed Files
+
 on:
-  pull_request_target: 
-    types: [ready_for_review,opened,reopened,synchronize]
-    branches: [main]
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main ]
-env:
-  GO_VERSION: ">=1.22"
-  APP_NAME: dotenv-myvault
-  GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
 
 jobs:
   test:
@@ -15,36 +12,47 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # This is important to get all history for diff
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
 
-      - name: Get changed files
+      - name: Get changed test files
         id: changed-files
         run: |
-          # Get list of changed .go files
-          CHANGED_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD | grep '\.go$' || true)
-          echo "Changed files: $CHANGED_FILES"
-          
-          # Create list of packages to test
-          TEST_PACKAGES=""
-          for file in $CHANGED_FILES; do
-            if [[ $file == *_test.go ]] || [[ $file == *.go ]]; then
-              dir=$(dirname $file)
-              TEST_PACKAGES="$TEST_PACKAGES ./$dir"
-            fi
-          done
-          TEST_PACKAGES=$(echo "$TEST_PACKAGES" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-          echo "Packages to test: $TEST_PACKAGES"
-          echo "packages=$TEST_PACKAGES" >> $GITHUB_OUTPUT
+          # Get list of changed test files
+          CHANGED_TEST_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD | grep '_test\.go$' || true)
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_TEST_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Run tests on changed files
+      - name: Generate test matrix
+        id: generate-matrix
         run: |
-          if [ "${{ steps.changed-files.outputs.packages }}" != "" ]; then
-            go test -v ${{ steps.changed-files.outputs.packages }}
-          else
-            echo "No Go files changed"
-          fi
+          TESTS=$(cat << EOF | jq -R -s -c 'split("\n")[:-1]'
+          ${{ steps.changed-files.outputs.changed_files }}
+          EOF
+          )
+          echo "matrix=$TESTS" >> $GITHUB_OUTPUT
+
+  run-tests:
+    needs: test
+    if: ${{ fromJson(needs.test.outputs.matrix).matrix != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        testfile: ${{ fromJson(needs.test.outputs.matrix).matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Run test ${{ matrix.testfile }}
+        run: |
+          dir=$(dirname ${{ matrix.testfile }})
+          go test -v ./$dir -run $(basename ${{ matrix.testfile }} _test.go)
