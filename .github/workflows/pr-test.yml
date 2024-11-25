@@ -16,47 +16,47 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Get changed test files
+      - name: Get changed files
         id: changed-files
-        run: |
-          # Get list of changed test files
-          CHANGED_TEST_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD | grep '\.go$' | while read file; do
-            if [[ $file == *_test.go ]]; then
-              echo $file
-            else
-              dir=$(dirname $file)
-              find $dir -name "*_test.go" || true
-            fi
-          done | sort -u)
-          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_TEST_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Generate test matrix
-        id: generate-matrix
-        run: |
-          TESTS=$(cat << EOF | jq -R -s -c 'split("\n")[:-1]'
-          ${{ steps.changed-files.outputs.changed_files }}
-          EOF
-          )
-          echo "matrix=$TESTS" >> $GITHUB_OUTPUT
-
-  run_tests:
-    needs: get_changed_files
-    if: ${{ fromJson(needs.test.outputs.matrix).matrix != '[]' }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        testfile: ${{ fromJson(needs.test.outputs.matrix).matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: tj-actions/changed-files@v45
         with:
-          go-version: '1.21'
+          files: |
+            **/*_test.go
+            **/*.go
 
-      - name: Run test ${{ matrix.testfile }}
+      - name: List all changed files markdown files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          dir=$(dirname ${{ matrix.testfile }})
-          go test -v ./$dir -run $(basename ${{ matrix.testfile }} _test.go)
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+          done
+  #     - name: Generate test matrix
+  #       id: generate-matrix
+  #       run: |
+  #         TESTS=$(cat << EOF | jq -R -s -c 'split("\n")[:-1]'
+  #         ${{ steps.changed-files.outputs.changed_files }}
+  #         EOF
+  #         )
+  #         echo "matrix=$TESTS" >> $GITHUB_OUTPUT
+
+  # run_tests:
+  #   needs: get_changed_files
+  #   if: ${{ fromJson(needs.test.outputs.matrix).matrix != '[]' }}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       testfile: ${{ fromJson(needs.test.outputs.matrix).matrix }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+      
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v4
+  #       with:
+  #         go-version: '1.21'
+
+  #     - name: Run test ${{ matrix.testfile }}
+  #       run: |
+  #         dir=$(dirname ${{ matrix.testfile }})
+  #         go test -v ./$dir -run $(basename ${{ matrix.testfile }} _test.go)
