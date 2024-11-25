@@ -50,14 +50,6 @@ func pull(cmd *cobra.Command, args []string) {
 
 	}
 
-	// if pullOutput != "" {
-	// 	err := tools.CheckDoubleDashS(pullOutput, "out")
-	// 	if err != nil {
-	// 		log.Fatal(err.Error())
-	// 		os.Exit(1)
-	// 	}
-	// }
-
 	// get absolute path
 	if !filepath.IsAbs(pullPath) {
 		// path is absolute
