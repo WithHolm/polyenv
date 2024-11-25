@@ -14,10 +14,10 @@ init:
 	@go mod download
 
 build-ci: init
-	@pwsh ./build.ps1 -targetOS $(target_os) -path $(target_folder)
+	@pwsh ./.github/script/build.ps1 -targetOS $(target_os) -path $(target_folder)
 
 test: init
-	@go test
+	@go test ./...
 
 build: init 
 	@echo "building for $(OS) -> $(target_path)"
