@@ -56,6 +56,7 @@ func push(cmd *cobra.Command, args []string) {
 		}
 		pushPath = _path
 	}
+	// check if path exists
 
 	// check if path exists
 	_, err := os.Stat(pushPath)
