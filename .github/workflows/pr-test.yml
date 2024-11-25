@@ -22,9 +22,11 @@ jobs:
           files: |
             **/*_test.go
             **/*.go
+          matrix: true
 
       - name: List all changed files
-        run: echo '${{ steps.changed-files.outputs.all_changed_files }}'
+        run: |
+          echo '${{ steps.changed-files.outputs.all_changed_files }}'
 
   run_tests:
     needs: [changed-files]
