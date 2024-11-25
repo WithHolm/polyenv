@@ -1,11 +1,12 @@
 package vaults
 
 import (
-	"dotenv-myvault/internal/tools"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/withholm/dotenv-myvault/internal/tools"
 )
 
 type Vault interface {
