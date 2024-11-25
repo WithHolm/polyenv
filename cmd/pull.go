@@ -75,6 +75,10 @@ func pull(cmd *cobra.Command, args []string) {
 
 	// connect and pull
 	cli, err := vaults.NewVault(vaultOpts["VAULT_TYPE"], vaultOpts)
+	if err != nil {
+		log.Fatal("failed to create vault: " + err.Error())
+		os.Exit(1)
+	}
 	secrets, err := cli.Pull()
 	if err != nil {
 		log.Fatal("failed to pull secrets: " + err.Error())
