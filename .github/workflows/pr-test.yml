@@ -1,10 +1,7 @@
 name: Test Changed Files
 
 on:
-  pull_request:
-    branches: [ main ]
-  push:
-    paths: [ '*.go' ]
+  [push]
 
 jobs:
   get-changed-files:
@@ -23,7 +20,14 @@ jobs:
         id: changed-files
         run: |
           # Get list of changed test files
-          CHANGED_TEST_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD | grep '_test\.go$' || true)
+          CHANGED_TEST_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD | grep '\.go$' | while read file; do
+            if [[ $file == *_test.go ]]; then
+              echo $file
+            else
+              dir=$(dirname $file)
+              find $dir -name "*_test.go" || true
+            fi
+          done | sort -u)
           echo "changed_files<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGED_TEST_FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

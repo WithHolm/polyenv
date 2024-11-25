@@ -77,4 +77,5 @@ func initialize(cmd *cobra.Command, args []string) {
 	vaults.SaveVault(vault, Path)
 
 	slog.Debug("done")
+
 }
