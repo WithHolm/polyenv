@@ -47,7 +47,7 @@ func push(cmd *cobra.Command, args []string) {
 		panic("path cannot be empty")
 	}
 
-	// get absolute path
+	// get absolute path yes
 	if !filepath.IsAbs(pushPath) {
 		// path is absolute
 		_path, err := filepath.Abs(pushPath)
