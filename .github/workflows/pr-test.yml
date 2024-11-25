@@ -11,6 +11,8 @@ env:
 jobs:
   changed-files:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
       - uses: actions/checkout@v4
         with:
