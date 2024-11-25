@@ -34,7 +34,7 @@ jobs:
   run_tests:
     needs: [changed-files]
     runs-on: ubuntu-latest
-    if: ${{ needs.changed-files.outputs.any_changed == 'true' }}
+    if: ${{ needs.changed-files.outputs.changed == 'true' }}
     strategy:
       matrix:
         files: ${{ fromJSON(needs.changed-files.outputs.matrix) }}
