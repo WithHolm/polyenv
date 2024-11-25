@@ -1,4 +1,4 @@
-module dotenv-myvault
+module github.com/withholm/dotenv-myvault
 
 go 1.23
 

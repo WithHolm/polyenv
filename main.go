@@ -1,6 +1,6 @@
 package main
 
-import "dotenv-myvault/cmd"
+import "github.com/withholm/dotenv-myvault/cmd"
 
 // var VaultRegistry = make([]string, 0)
 
