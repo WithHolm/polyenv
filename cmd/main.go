@@ -39,7 +39,7 @@ var rootCmd = &cobra.Command{
 
 // TODO: SLOG INIT THING HERE
 func init() {
-	// add push and pull commands
+	// add push and pull commands..
 	rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
 	rootCmd.PersistentFlags().StringVarP(&Path, "path", "p", ".env", "Path to the .env file")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug logging")
