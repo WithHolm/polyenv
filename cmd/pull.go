@@ -59,7 +59,7 @@ func pull(cmd *cobra.Command, args []string) {
 		}
 		pullPath = _path
 	}
-	// check if opts file exists
+	// check if opts file exists..
 	if !tools.VaultOptsExist(pullPath) {
 		optfile := tools.GetVaultOptsPath(pullPath)
 		log.Fatal("no vault options file found: ", optfile)
