@@ -2,12 +2,13 @@ package vaults
 
 import (
 	"context"
-	"dotenv-myvault/internal/tools"
-	"dotenv-myvault/internal/vaults/keyvault"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
+
+	"github.com/withholm/dotenv-myvault/internal/tools"
+	"github.com/withholm/dotenv-myvault/internal/vaults/keyvault"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
@@ -21,60 +22,60 @@ type KeyvaultClient struct {
 	style       string //style of storage
 	includeCert bool   //include keys and certificates
 	client      *azsecrets.Client
-	cred        *azidentity.DefaultAzureCredential
-	wizHelper   keyvault.Wizard
+	// cred        *azidentity.DefaultAzureCredential
+	wizHelper keyvault.Wizard
 }
 
 // set attributes for the client. used by repository init
-func (c *KeyvaultClient) SetOptions(options map[string]string) error {
-	c.envNameTag = options["ENV_NAME_TAG"]
-	c.uri = options["URI"]
-	c.name = options["NAME"]
-	c.tenant = options["TENANT"]
-	c.style = options["STYLE"]
-	c.includeCert = options["INCLUDE_CERTANDKEYS"] == "true"
+func (cli *KeyvaultClient) SetOptions(options map[string]string) error {
+	cli.envNameTag = options["ENV_NAME_TAG"]
+	cli.uri = options["URI"]
+	cli.name = options["NAME"]
+	cli.tenant = options["TENANT"]
+	cli.style = options["STYLE"]
+	cli.includeCert = options["INCLUDE_CERTANDKEYS"] == "true"
 
-	if c.envNameTag == "" {
+	if cli.envNameTag == "" {
 		return fmt.Errorf("env name tag cannot be empty")
 	}
-	if c.uri == "" {
+	if cli.uri == "" {
 		return fmt.Errorf("uri for keyvault cannot be empty")
 	}
-	if c.name == "" {
+	if cli.name == "" {
 		return fmt.Errorf("name of keyvault cannot be empty")
 	}
-	if c.tenant == "" {
+	if cli.tenant == "" {
 		return fmt.Errorf("tenant for keyvault cannot be empty")
 	}
 
 	return nil
 }
 
-func (c *KeyvaultClient) GetOptions() map[string]string {
+func (cli *KeyvaultClient) GetOptions() map[string]string {
 	return map[string]string{
 		"VAULT_TYPE":          "keyvault",
-		"NAME":                c.name,
-		"TENANT":              c.tenant,
-		"URI":                 c.uri,
-		"STYLE":               c.style,
-		"ENV_NAME_TAG":        c.envNameTag,
-		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", c.includeCert),
+		"NAME":                cli.name,
+		"TENANT":              cli.tenant,
+		"URI":                 cli.uri,
+		"STYLE":               cli.style,
+		"ENV_NAME_TAG":        cli.envNameTag,
+		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", cli.includeCert),
 	}
 }
 
-func (c *KeyvaultClient) setTenant(tenant string) error {
-	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		TenantID: tenant,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set tenant: %s", err)
-	}
+// func (cli *KeyvaultClient) setTenant(tenant string) error {
+// 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
+// 		TenantID: tenant,
+// 	})
+// 	if err != nil {
+// 		return fmt.Errorf("failed to set tenant: %s", err)
+// 	}
 
-	c.cred = cred
-	c.tenant = tenant
+// 	// cli.cred = cred
+// 	cli.tenant = tenant
 
-	return nil
-}
+// 	return nil
+// }
 
 // Converts a string to keyvault name
 func ConvertToKeyvaultName(value string) string {
@@ -88,18 +89,18 @@ func ConvertToKeyvaultName(value string) string {
 }
 
 // Push pushes a single secret to keyvault
-func (c *KeyvaultClient) Push(name string, value string) error {
+func (cli *KeyvaultClient) Push(name string, value string) error {
 
 	contentType := "text/plain"
 	secretparam := azsecrets.SetSecretParameters{
 		Value:       &value,
 		ContentType: &contentType,
 		Tags: map[string]*string{
-			c.envNameTag: &name,
+			cli.envNameTag: &name,
 		},
 	}
 	sName := ConvertToKeyvaultName(name)
-	_, err := c.client.SetSecret(context.Background(), sName, secretparam, nil)
+	_, err := cli.client.SetSecret(context.Background(), sName, secretparam, nil)
 	if err != nil {
 		return fmt.Errorf("failed to push secret: %s", err)
 	}
@@ -108,12 +109,12 @@ func (c *KeyvaultClient) Push(name string, value string) error {
 }
 
 // Pull  all secrets from keyvault
-func (c *KeyvaultClient) Pull() (map[string]string, error) {
+func (cli *KeyvaultClient) Pull() (map[string]string, error) {
 	out := make(map[string]string)
 
 	//list all secrets in vault
 	opts := azsecrets.ListSecretPropertiesOptions{}
-	pager := c.client.NewListSecretPropertiesPager(&opts)
+	pager := cli.client.NewListSecretPropertiesPager(&opts)
 
 	for pager.More() {
 		page, err := pager.NextPage(context.TODO())
@@ -124,23 +125,23 @@ func (c *KeyvaultClient) Pull() (map[string]string, error) {
 		for _, secret := range page.Value {
 			slog.Debug(tools.ToIndentedJson(secret))
 
-			if *secret.Attributes.Enabled == false {
+			if !*secret.Attributes.Enabled {
 				slog.Debug("secret is not enabled, skipping", "secret", secret.ID.Name())
 				continue
 			}
 
-			val, err := c.client.GetSecret(context.Background(), secret.ID.Name(), secret.ID.Version(), nil)
+			val, err := cli.client.GetSecret(context.Background(), secret.ID.Name(), secret.ID.Version(), nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read secret %s: %s", secret.ID.Name(), err)
 			}
 
 			// try to get val from tags, else just use secret name
 			var n string
-			if val.Secret.Tags[c.envNameTag] == nil {
+			if val.Secret.Tags[cli.envNameTag] == nil {
 				slog.Debug("no env key found in tags, using secret name")
 				n = secret.ID.Name()
 			} else {
-				n = *val.Secret.Tags[c.envNameTag]
+				n = *val.Secret.Tags[cli.envNameTag]
 			}
 			out[n] = *val.Secret.Value
 		}
@@ -151,8 +152,8 @@ func (c *KeyvaultClient) Pull() (map[string]string, error) {
 
 // region flush
 // Flush flushes a single secret from keyvault
-func (c *KeyvaultClient) Flush(key string) error {
-	_, err := c.client.DeleteSecret(context.Background(), key, nil)
+func (cli *KeyvaultClient) Flush(key string) error {
+	_, err := cli.client.DeleteSecret(context.Background(), key, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete secret: %s", err)
 	}
@@ -182,64 +183,64 @@ func (c *KeyvaultClient) FlushAll() error {
 
 // endregion flush
 
-func (c *KeyvaultClient) Opsie() error {
-	return fmt.Errorf("not implemented, yet..")
+func (cli *KeyvaultClient) Opsie() error {
+	return fmt.Errorf("not implemented yet")
 }
 
-func (c *KeyvaultClient) Warmup() error {
-	if c.tenant == "" {
+func (cli *KeyvaultClient) Warmup() error {
+	if cli.tenant == "" {
 		return fmt.Errorf("tenant cannot be empty")
 	}
 
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		TenantID: c.tenant,
+		TenantID: cli.tenant,
 	})
 	if err != nil {
 		return err
 	}
 
-	cli, err := azsecrets.NewClient(c.uri, cred, nil)
+	newCli, err := azsecrets.NewClient(cli.uri, cred, nil)
 	if err != nil {
 		return err
 	}
-	c.client = cli
+	cli.client = newCli
 
 	return nil
 }
 
 // WizardWarmup is used to get questions for the wizard
-func (c *KeyvaultClient) WizardWarmup() {
-	c.wizHelper = keyvault.Wizard{}
-	c.wizHelper.StartGetTenants()
+func (cli *KeyvaultClient) WizardWarmup() {
+	cli.wizHelper = keyvault.Wizard{}
+	cli.wizHelper.StartGetTenants()
 
 }
 
 // return next question for wizard. will block if wizard is not warmed up
 // this will also receive all channels from tenant, subscription and keyvaults receives
-func (c *KeyvaultClient) WizardNext() VaultWizardCard {
-	c.wizHelper.Current++
-	slog.Debug("wizard current:", "index", c.wizHelper.Current)
-	switch c.wizHelper.Current {
+func (cli *KeyvaultClient) WizardNext() VaultWizardCard {
+	cli.wizHelper.Current++
+	slog.Debug("wizard current:", "index", cli.wizHelper.Current)
+	switch cli.wizHelper.Current {
 	case 1:
 		// select tenant
 		slog.Info("waiting for tenants")
-		c.wizHelper.Tenants = <-c.wizHelper.TenantChannel
-		c.wizHelper.StartGetSubscriptions()
+		cli.wizHelper.Tenants = <-cli.wizHelper.TenantChannel
+		cli.wizHelper.StartGetSubscriptions()
 		slog.Info("waiting for subscriptions")
-		for i := 0; i < len(c.wizHelper.Tenants); i++ {
+		for i := 0; i < len(cli.wizHelper.Tenants); i++ {
 			slog.Debug("waiting for subscription lookup channel", "index", i)
-			k := <-c.wizHelper.SubscriptionChannel
-			c.wizHelper.Subscriptions = append(c.wizHelper.Subscriptions, k...)
+			k := <-cli.wizHelper.SubscriptionChannel
+			cli.wizHelper.Subscriptions = append(cli.wizHelper.Subscriptions, k...)
 		}
 
-		slog.Info("tenants:", "count", len(c.wizHelper.Tenants))
-		slog.Info("subscriptions:", "count", len(c.wizHelper.Subscriptions))
+		slog.Info("tenants:", "count", len(cli.wizHelper.Tenants))
+		slog.Info("subscriptions:", "count", len(cli.wizHelper.Subscriptions))
 
 		slog.Debug("starting keyvaults")
-		c.wizHelper.StartGetKeyvaults()
+		cli.wizHelper.StartGetKeyvaults()
 		q := make([]VaultWizardSelection, 0)
-		for _, t := range c.wizHelper.Tenants {
-			if !c.wizHelper.TenantHasSub(t) {
+		for _, t := range cli.wizHelper.Tenants {
+			if !cli.wizHelper.TenantHasSub(t) {
 				continue
 			}
 
@@ -252,31 +253,31 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 		return VaultWizardCard{
 			Title:     "What tenant do you want to use?",
 			Questions: q,
-			Callback:  c.wizHelper.AnswerTenant,
+			Callback:  cli.wizHelper.AnswerTenant,
 		}
 	case 2:
 		// select keyvault
-		for i := 0; i < c.wizHelper.Tenantcount; i++ {
+		for i := 0; i < cli.wizHelper.Tenantcount; i++ {
 			slog.Debug("waiting for resource graph channel", "index", i)
-			k := <-c.wizHelper.ResGraphChannel
-			c.wizHelper.ResGraphItems = append(c.wizHelper.ResGraphItems, k...)
+			k := <-cli.wizHelper.ResGraphChannel
+			cli.wizHelper.ResGraphItems = append(cli.wizHelper.ResGraphItems, k...)
 		}
 
 		q := make([]VaultWizardSelection, 0)
-		for _, item := range c.wizHelper.ResGraphItems {
-			if !item.InTenant(c.wizHelper.Tenant) {
+		for _, item := range cli.wizHelper.ResGraphItems {
+			if !item.InTenant(cli.wizHelper.Tenant) {
 				continue
 			}
 			q = append(q, VaultWizardSelection{
 				Key:         item.Name,
-				Description: fmt.Sprintf("%s(%s)", c.wizHelper.GetSubName(item.SubscriptionId), item.SubscriptionId),
+				Description: fmt.Sprintf("%s(%s)", cli.wizHelper.GetSubName(item.SubscriptionId), item.SubscriptionId),
 			})
 		}
 
 		return VaultWizardCard{
 			Title:     "What vault do you want to use?",
 			Questions: q,
-			Callback:  c.wizHelper.AnswerKeyvault,
+			Callback:  cli.wizHelper.AnswerKeyvault,
 		}
 	case 3:
 		return VaultWizardCard{
@@ -293,9 +294,9 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 			},
 			Callback: func(s string) error {
 				if s == "secrets" {
-					c.wizHelper.IncludeCert = false
+					cli.wizHelper.IncludeCert = false
 				} else {
-					c.wizHelper.IncludeCert = true
+					cli.wizHelper.IncludeCert = true
 				}
 				return nil
 			},
@@ -306,7 +307,7 @@ func (c *KeyvaultClient) WizardNext() VaultWizardCard {
 }
 
 // cleanup after wizard is done
-func (c *KeyvaultClient) WizardComplete() map[string]string {
-	ret := c.wizHelper.GetWizardMap()
+func (cli *KeyvaultClient) WizardComplete() map[string]string {
+	ret := cli.wizHelper.GetWizardMap()
 	return ret
 }
