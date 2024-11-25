@@ -27,6 +27,7 @@ jobs:
       - name: List all changed files
         run: |
           echo '${{ steps.changed-files.outputs.all_changed_files }}'
+          echo '${{ steps.changed-files.outputs.matrix }}'
 
   run_tests:
     needs: [changed-files]
