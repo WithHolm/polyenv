@@ -47,7 +47,6 @@ func pull(cmd *cobra.Command, args []string) {
 			log.Fatal("--path cannot be set to the vault options file")
 			os.Exit(1)
 		}
-
 	}
 
 	// get absolute path
