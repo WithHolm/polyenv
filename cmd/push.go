@@ -42,7 +42,7 @@ func push(cmd *cobra.Command, args []string) {
 	slog.Debug("push called")
 
 	pushPath := Path
-	// mabye no need? good to have tbh..
+	// mabye no need? good to have tbh
 	if pushPath == "" {
 		panic("path cannot be empty")
 	}
