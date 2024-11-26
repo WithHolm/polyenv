@@ -25,6 +25,7 @@ jobs:
           files: |
             **/*_test.go
             **/*.go
+            **/*.mod
           matrix: true
       - name: Get unique directories
         id: unique-directories
@@ -54,5 +55,5 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Run test ${{ matrix.packages }}
         run: |
-          echo "running test for ${{ matrix.packages }})"
+          echo "running test for ${{ matrix.packages }}"
           go test -v ./${{ matrix.packages }}
