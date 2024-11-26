@@ -27,6 +27,9 @@ jobs:
             **/*.go
             **/*.mod
           matrix: true
+      - name: List all changed files
+        run: |
+          echo '${{ steps.changed-files.outputs.all_changed_files }}'
       - name: Get unique directories
         id: unique-directories
         run: |
