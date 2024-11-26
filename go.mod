@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.2.3
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/joho/godotenv v1.5.1
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.8.0
 )
 
 require (
