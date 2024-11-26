@@ -22,7 +22,7 @@ func ToIndentedJson(data any) string {
 }
 
 // check if v is part of argName. if you meant --argument, but wrote -argument, the value coming from cobra would be "rgument"
-// example: if argName is "argument", v should not be "rgument"
+// example: if argName is "argument", v should not be "rgument"..
 func CheckDoubleDashS(v string, argName string) error {
 	// ex "argument" would be "rgument"
 	if v == argName[1:] {

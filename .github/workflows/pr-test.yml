@@ -49,4 +49,5 @@ jobs:
       - name: Run test ${{ matrix.files }}
         run: |
           dir=$(dirname ${{ matrix.files }})
+          echo "running test for $dir"
           go test -v ./$dir -run $(basename ${{ matrix.files }} _test.go)
