@@ -9,7 +9,7 @@ env:
   GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
 
 jobs:
-  changed-files:
+  changed-packages:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.unique-directories.outputs.directories }}
@@ -39,15 +39,14 @@ jobs:
       - name: List all changed directories
         run: |
           echo '${{ steps.unique-directories.outputs.directories }}'
-
-  run_tests:
-    needs: [changed-files]
+  run_package_tests:
+    needs: [changed-packages]
     runs-on: ubuntu-latest
     # if: false
-    if: ${{ needs.changed-files.outputs.changed == 'true' }}
+    if: ${{ needs.changed-packages.outputs.changed == 'true' }}
     strategy:
       matrix:
-        packages: ${{ fromJSON(needs.changed-files.outputs.matrix) }}
+        packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
       fail-fast: false
       max-parallel: 4
     steps:
@@ -58,5 +57,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Run test ${{ matrix.packages }}
         run: |
-          echo "running test for ${{ matrix.packages }}"
-          go test -v ./${{ matrix.packages }}
+          dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
+          echo "running test for $dir"
+          go test -v ./$dir

@@ -144,7 +144,7 @@ func (m model) Run() []item {
 	}
 	k, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	if err != nil {
-		slog.Debug("Error running selection '", m.Title, "':", err)
+		slog.Debug("Error running selection", m.Title, err)
 		os.Exit(1)
 	}
 	out := make([]item, 0)
