@@ -1,10 +1,11 @@
 name: Test Changed Files
 
 on:
-  [push]
+  pull_request_target: 
+    types: [opened, synchronize, reopened]
 
 env:
-  GO_VERSION: ">=1.22"
+  GO_VERSION: ">=1.23"
   APP_NAME: dotenv-myvault
   GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
 

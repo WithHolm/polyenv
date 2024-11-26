@@ -4,9 +4,7 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 env:
-  GO_VERSION: ">=1.22"
-  APP_NAME: dotenv-myvault
-  GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
+  Variables: .github/variables/common.env
 
 name: Build and Release
 
@@ -17,18 +15,31 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: import env variables
+        run: |
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ ! "$line" =~ ^# ]] && [[ ! -z "$line" ]]; then
+              echo "$line" >> $GITHUB_ENV
+            fi
+          done < ".github\variables\.env.common"
+      - name: get go version from mod
+        run: |
+          GO_VERSION=$(grep -E '^go [0-9.]+$' go.mod | cut -d ' ' -f 2)
+          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '>=1.23'
+          go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: '**/go.sum'
-      - name: download deps
+      - name: download-dependencies
         run: make init
-      - name: test
+      - name: go-test
         run: make test
-      - name: build
+      - name: build-executable
+        shell: pwsh
         run: make build-ci
+          
       
 
 
