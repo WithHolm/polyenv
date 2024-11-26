@@ -12,7 +12,7 @@ jobs:
   changed-files:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.changed-files.outputs.all_changed_files }}
+      matrix: ${{ steps.unique-directories.outputs.directories }}
       changed: ${{ steps.changed-files.outputs.any_changed }}
     steps:
       - uses: actions/checkout@v4
@@ -26,18 +26,24 @@ jobs:
             **/*_test.go
             **/*.go
           matrix: true
-
-      - name: List all changed files
+      - name: Get unique directories
+        id: unique-directories
         run: |
-          echo '${{ steps.changed-files.outputs.all_changed_files }}'
+          DIRS=$(echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          echo "unique directories: $DIRS"
+          echo "directories=$DIRS" >> $GITHUB_OUTPUT
+      - name: List all changed directories
+        run: |
+          echo '${{ steps.unique-directories.outputs.directories }}'
 
   run_tests:
     needs: [changed-files]
     runs-on: ubuntu-latest
+    # if: false
     if: ${{ needs.changed-files.outputs.changed == 'true' }}
     strategy:
       matrix:
-        files: ${{ fromJSON(needs.changed-files.outputs.matrix) }}
+        packages: ${{ fromJSON(needs.changed-files.outputs.matrix) }}
       fail-fast: false
       max-parallel: 4
     steps:
@@ -46,8 +52,7 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: Run test ${{ matrix.files }}
+      - name: Run test ${{ matrix.packages }}
         run: |
-          dir=$(dirname ${{ matrix.files }})
-          echo "running test for $dir"
-          go test -v ./$dir -run $(basename ${{ matrix.files }} _test.go)
+          echo "running test for ${{ matrix.packages }})"
+          go test -v ./${{ matrix.packages }}

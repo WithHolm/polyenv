@@ -18,7 +18,7 @@ func ToIndentedJson(data any) string {
 		panic(fmt.Errorf("failed to indent json: %s", err))
 		// return "", fmt.Errorf("failed to indent json: %s", err)
 	}
-	return string(pretty.Bytes())
+	return pretty.String() // string(pretty.Bytes())
 }
 
 // check if v is part of argName. if you meant --argument, but wrote -argument, the value coming from cobra would be "rgument"
