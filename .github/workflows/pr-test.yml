@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  GO_VERSION: ">=1.23"
   APP_NAME: dotenv-myvault
   GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
 
@@ -55,9 +54,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
       - name: Run test ${{ matrix.packages }}
         run: |
           dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
           echo "running test for $dir"
           go test -v ./$dir
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
+          govulncheck ./$dir

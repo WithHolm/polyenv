@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - "v*.*.*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 env:
   Variables: .github/variables/common.env
@@ -10,35 +10,84 @@ name: Build and Release
 
 jobs:
   build:
-    name: Build and Test
+    name: build
+    # strategy:
+    #   matrix:
+    #     os: [windows-amd64,linux-amd64,linux-ppc64le,darwin-amd64,darwin-arm64]
+    #     include:
+    #       - os: windows-amd64
+    #         output: dotenv-myvault.exe
+    #         goos: windows
+    #         goarch: amd64
+    #       - os: linux-amd64
+    #         output: dotenv-myvault
+    #         goos: linux
+    #         goarch: amd64
+    #       - os: linux-ppc64le
+    #         output: dotenv-myvault
+    #         goos: linux
+    #         goarch: ppc64le
+    #       - os: darwin-amd64
+    #         output: dotenv-myvault
+    #         goos: darwin
+    #         goarch: amd64
+    #       - os: darwin-arm64
+    #         output: dotenv-myvault
+    #         goos: darwin
+    #         goarch: arm64
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: import env variables
-        run: |
-          while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ ! "$line" =~ ^# ]] && [[ ! -z "$line" ]]; then
-              echo "$line" >> $GITHUB_ENV
-            fi
-          done < ".github\variables\.env.common"
-      - name: get go version from mod
-        run: |
-          GO_VERSION=$(grep -E '^go [0-9.]+$' go.mod | cut -d ' ' -f 2)
-          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: '**/go.sum'
-      - name: download-dependencies
-        run: make init
-      - name: go-test
-        run: make test
-      - name: build-executable
-        shell: pwsh
-        run: make build-ci
+          go-version-file: 'go.mod'
+          cache: true     
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6     
+        with:
+          args: 
+      # - name: build
+      #   env:
+      #     GOOS: ${{ matrix.goos }}
+      #     GOARCH: ${{ matrix.goarch }}
+      #   run: go build -o ${{ matrix.output }}
+
+      # - name: Upload binary
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: binaries
+      #     path: ${{ matrix.output }}
+      #     retention-days: 5
+
+  # release:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download all artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: binaries
+  #         path: dist
+
+  #     - name: Create Release
+  #       uses: softprops/action-gh-release@v1
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       with:
+  #         files: |
+  #           LICENSE
+  #           dist/*
+  #         prerelease: true
+  #         generate_release_notes: true
+
+      # - name: download-dependencies
+      #   run: make init
+      # - name: go-test
+      #   run: make test
+      # - name: build-executable
+      #   shell: pwsh
+      #   run: make build-ci
           
       
 

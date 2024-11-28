@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+builds:
+  - id: dotenv-myvault 
+    binary: dotenv-myvault
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarm: "7"
+    ldflags: -s -w -X main.Version=v{{ .Version }} -X main.CommitSHA={{ .Commit }}
+archives:
+  - format_overrides:
+      - goos: windows
+        format: zip
+    wrap_in_directory: false
+    files:
+      - LICENSE
+      - docs/*
+      - README.md
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+checksum:
+  name_template: 'checksums.txt'
+source:
+  enabled: true
+git:
+  tag_sort: -version:refname
+# checksum:
+#   name_template: 'checksums.txt'
+
+# nfpms:
+#   - vendor: Withholm
+#     homepage: https://github.com/withholm/dotenv-myvault
+#     maintainer: Philip Meholm <philip@withholm.com>
+#     description: A version of dotenv that uses keyvault as 'vault' instead of the dotenv projects default one.
+#     license: MIT
+    # formats:
+    #   - deb
+    #   - rpm
+    # ldflags:
+    #   - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    # mod_timestamp: "{{.CommitTimestamp}}"
+    # main: ./main.go
