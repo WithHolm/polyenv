@@ -20,8 +20,8 @@ CamelCase for public stuff
 UPPERCASE_SNAKE_CASE for options in vaultopts
 
 ## logging
-use slog for logging.
-keep it simple, only log to info when something is not correct.
+this project uses charm log for "output", but slog for the log cmd
+keep it simple, only log to info when something is not correct. but debug things you feel are needed.
 you can use debug if you need more info.
 ```go
 import "log/slog"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// returns whatever data as json, indented. for readability and debugging
+// // returns whatever data as json, indented. for readability and debugging
 func ToIndentedJson(data any) string {
 	j, err := json.Marshal(data)
 	if err != nil {
@@ -21,11 +21,11 @@ func ToIndentedJson(data any) string {
 	return pretty.String() // string(pretty.Bytes())
 }
 
-// check if v is part of argName. if you meant --argument, but wrote -argument, the value coming from cobra would be "rgument"
+// check if string input is part of argName. if you meant --argument, but wrote -argument, the value coming from cobra would be "rgument"
 // example: if argName is "argument", v should not be "rgument"..
-func CheckDoubleDashS(v string, argName string) error {
+func CheckDoubleDashS(input string, argName string) error {
 	// ex "argument" would be "rgument"
-	if v == argName[1:] {
+	if input == argName[1:] {
 		return fmt.Errorf("argument error: if you are defining %s you have to use double dash. e.g. --%s", argName, argName)
 	}
 	return nil

@@ -1,6 +1,6 @@
-# dotenv-myvault
+# polyenv
 
-dotenv-myvault is a CLI tool that allows you to sync your .env files with alternatives to dotenv vault.
+polyenv is a CLI tool that allows you to sync your .env files with alternatives to dotenv vault.
 for now only Azure Keyvault is supported, but more will be available in the future.
 
 ## Features
@@ -13,7 +13,7 @@ for now only Azure Keyvault is supported, but more will be available in the futu
 
 ## Installation
 
-check release page [here](https://github.com/WithHolm/dotenv-myvault/releases) and download the goddamn exe
+check release page [here](https://github.com/WithHolm/polyenv/releases) to download the goddamn application
 
 ## Usage
 
@@ -22,19 +22,19 @@ check release page [here](https://github.com/WithHolm/dotenv-myvault/releases) a
 1. Initialize a .env file for syncing:
 
 ```
-dotenv-myvault init [--path <path-to-env-file>]
+polyenv init [--path <path-to-env-file>]
 ```
 
 2. Push secrets to Azure Key Vault:
 
 ```
-dotenv-myvault push [--path <path-to-env-file>]
+polyenv push [--path <path-to-env-file>]
 ```
 
 3. Pull secrets from Azure Key Vault:
 
 ```
-dotenv-myvault pull [--path <path-to-env-file>]
+polyenv pull [--path <path-to-env-file>]
 ```
 
 ### Options
@@ -47,7 +47,7 @@ dotenv-myvault pull [--path <path-to-env-file>]
 
 - `cmd/`: Contains the Cobra command implementations
 - `internal/`: Internal packages
-  - `charmselect/`: Custom implementation for interactive selection
+  - `charm/`: Custom implementation for interactive selection
   - `tools/`: Utility functions
   - `vaults/`: Vault implementations (currently Azure Key Vault)
 - `main.go`: Entry point of the application

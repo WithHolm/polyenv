@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/withholm/dotenv-myvault/internal/charmselect"
-	"github.com/withholm/dotenv-myvault/internal/vaults"
-
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
+	"github.com/withholm/polyenv/internal/vaults"
 )
 
 var initCmd = &cobra.Command{
@@ -21,61 +21,83 @@ var initCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-	// initCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the .env file to push. uses /.env by default")
 }
 
 func initialize(cmd *cobra.Command, args []string) {
-	slog.Info("init")
-	secretSelect := charmselect.New()
-	secretSelect.Title = "What secret provider do you want to use?"
-	secretSelect.AddItem("keyvault", "Azure Key Vault")
-	secretSelection := secretSelect.Run()
-
-	vault, err := vaults.NewInitVault(secretSelection[0].Key())
-	if err != nil {
-		slog.Debug("failed to create vault: " + err.Error())
+	slog.Debug("init called", "envfile", Path)
+	var vaultKey string
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a secret provider").
+				Options(
+					vaults.GetVaultsAsOptions()...,
+				).Value(&vaultKey),
+		),
+	)
+	e := form.Run()
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
 		os.Exit(1)
 	}
-	slog.Debug("vault wizard initiated:", "provider", secretSelection[0].Key())
-	vault.WizardWarmup()
-	for {
-		q := vault.WizardNext()
+	slog.Info("selected vault", "vault", vaultKey)
 
-		if q.Title == "" {
-			break
-		}
-
-		chrmSelect := charmselect.New()
-		chrmSelect.Title = q.Title
-		for _, q := range q.Questions {
-			chrmSelect.AddItem(q.Key, q.Description)
-		}
-		selectresult := chrmSelect.Run()
-
-		if len(selectresult) == 0 {
-			slog.Debug("no selection made.. exiting")
-			os.Exit(0)
-		}
-
-		slog.Debug("selected:", "q", q.Title, "key", selectresult[0].Key(), "description", selectresult[0].Description())
-		// call callback function for question
-		q.Callback(selectresult[0].Key())
-	}
-	opts := vault.WizardComplete()
-	err = vault.SetOptions(opts)
+	Vault, err := vaults.NewInitVault(vaultKey)
 	if err != nil {
-		slog.Error("failed to set options for vault: " + err.Error())
+		slog.Error("failed to create vault: " + err.Error())
 		os.Exit(1)
 	}
 
-	err = vault.Warmup()
+	err = Vault.WizardWarmup()
 	if err != nil {
-		slog.Error("failed to warm vault: " + err.Error())
+		slog.Error("failed to warm vault for init: " + err.Error())
 		os.Exit(1)
 	}
 
-	vaults.SaveVault(vault, Path)
+	wizForm := Vault.WizardNext()
+
+	for wizForm != nil {
+		err = wizForm.Run()
+		if err != nil {
+			slog.Error("failed to run wizard: " + err.Error())
+			os.Exit(1)
+		}
+		wizForm = Vault.WizardNext()
+	}
+
+	slog.Info("done setting up vault")
+	_, e = vaults.NewVault(vaultKey, Vault.WizardComplete())
+
+	if e != nil {
+		slog.Error("failed to create vault: " + e.Error())
+		os.Exit(1)
+	}
+
+	//save the vault options
+	vaults.SaveVault(Vault, Path)
+
+	//ask if they want to pull imidiately
+	// var pull bool
+	// form = huh.NewForm(
+	// 	huh.NewGroup(
+	// 		huh.NewConfirm().
+	// 			Title("Do you want to pull all secrets from the vault?").
+	// 			DescriptionFunc(func() string {
+	// 				//if there is a file on path, ask to confirm..
+	// 				if f, err := os.Stat(Path); err == nil && f.Size() > 0 {
+	// 					return "This will overwrite any existing .env files"
+	// 				}
+	// 				return ""
+	// 			}, nil).
+	// 			Affirmative("Yes, yank it daddy").
+	// 			Negative("No, I'll do it later").
+	// 			Value(&pull),
+	// 	),
+	// )
+	// form.Run()
+	// if pull {
+	// 	Vault.Pull()
+	// }
 
 	slog.Debug("done")
-
 }
