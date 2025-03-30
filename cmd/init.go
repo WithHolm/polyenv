@@ -76,28 +76,14 @@ func initialize(cmd *cobra.Command, args []string) {
 	//save the vault options
 	vaults.SaveVault(Vault, Path)
 
-	//ask if they want to pull imidiately
-	// var pull bool
-	// form = huh.NewForm(
-	// 	huh.NewGroup(
-	// 		huh.NewConfirm().
-	// 			Title("Do you want to pull all secrets from the vault?").
-	// 			DescriptionFunc(func() string {
-	// 				//if there is a file on path, ask to confirm..
-	// 				if f, err := os.Stat(Path); err == nil && f.Size() > 0 {
-	// 					return "This will overwrite any existing .env files"
-	// 				}
-	// 				return ""
-	// 			}, nil).
-	// 			Affirmative("Yes, yank it daddy").
-	// 			Negative("No, I'll do it later").
-	// 			Value(&pull),
-	// 	),
-	// )
-	// form.Run()
-	// if pull {
-	// 	Vault.Pull()
-	// }
-
-	slog.Debug("done")
+	//TODO: fix this
+	fmt.Print("to pull secrets, run one of the following commands:\n")
+	fmt.Printf("pull, output to terminal\n")
+	fmt.Printf("\tpolyenv pull --path %s --out term\n", Path)
+	fmt.Printf("pull, output to terminal as json\n")
+	fmt.Printf("\tpolyenv pull --path %s --out termjson\n", Path)
+	fmt.Printf("pull, output to %s:\n", Path)
+	fmt.Printf("\tpolyenv pull --path %s --out file\n", Path)
+	fmt.Printf("if output is not specified, it will default to terminal\n")
+	slog.Warn("PRETTY PLEASE. add your dotenv file to .gitignore if you are going to pull to file!")
 }

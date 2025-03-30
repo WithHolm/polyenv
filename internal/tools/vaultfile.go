@@ -16,7 +16,7 @@ func GetVaultOptsPath(envfile string) string {
 		return envfile
 	}
 
-	return envfile + ".vaultopts"
+	return envfile + ".polyenv"
 }
 
 func TestVaultFileExists(envfile string) bool {

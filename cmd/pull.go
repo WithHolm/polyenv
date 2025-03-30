@@ -20,13 +20,13 @@ type PullOutputType string
 
 const (
 	file         PullOutputType = "file"
-	terminal     PullOutputType = "terminal"
-	terminaljson PullOutputType = "terminaljson"
+	terminal     PullOutputType = "term"
+	terminaljson PullOutputType = "termjson"
 )
 
 var pullPath string
 var pullOutput string
-var pullOutputType = file
+var pullOutputType = terminal
 var allPullOutputTypes = []PullOutputType{file, terminal, terminaljson}
 
 var PullCmd = &cobra.Command{
@@ -40,13 +40,14 @@ var PullCmd = &cobra.Command{
 }
 
 func init() {
-	PullCmd.Flags().VarP(&pullOutputType, "out", "o", "where to post the results of the pull. 'terminal' for directly to terminal, 'file' for .env file")
+	PullCmd.Flags().VarP(&pullOutputType, "out", "o", "where to post the results of the pull. file|term|termjson")
 	rootCmd.AddCommand(PullCmd)
 }
 
 // execute envault pull
 func pull(cmd *cobra.Command, args []string) {
-	// slog.Debug("pull called", "args", args)
+	slog.Debug("pull called", "args", args)
+
 	pullPath = Path
 	if pullPath != "" {
 		err := tools.CheckDoubleDashS(pullPath, "path")
