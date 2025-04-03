@@ -4,4 +4,6 @@
 !.env.project
 !.env.vaultopts
 !.env.vault
-/build
+/dist
+local.env
+local.env.polyenv

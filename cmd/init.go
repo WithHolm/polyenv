@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/withholm/dotenv-myvault/internal/charmselect"
-	"github.com/withholm/dotenv-myvault/internal/vaults"
-
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/list"
 	"github.com/spf13/cobra"
+	"github.com/withholm/polyenv/internal/vaults"
 )
 
 var initCmd = &cobra.Command{
@@ -21,61 +23,100 @@ var initCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-	// initCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the .env file to push. uses /.env by default")
 }
 
 func initialize(cmd *cobra.Command, args []string) {
-	slog.Info("init")
-	secretSelect := charmselect.New()
-	secretSelect.Title = "What secret provider do you want to use?"
-	secretSelect.AddItem("keyvault", "Azure Key Vault")
-	secretSelection := secretSelect.Run()
-
-	vault, err := vaults.NewInitVault(secretSelection[0].Key())
-	if err != nil {
-		slog.Debug("failed to create vault: " + err.Error())
+	slog.Debug("init called", "envfile", Path)
+	var vaultKey string
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a secret provider").
+				Options(
+					vaults.GetVaultsAsHuhOptions()...,
+				).Value(&vaultKey),
+		),
+	)
+	e := form.Run()
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
 		os.Exit(1)
 	}
-	slog.Debug("vault wizard initiated:", "provider", secretSelection[0].Key())
-	vault.WizardWarmup()
-	for {
-		q := vault.WizardNext()
+	// slog.Info("selected vault", "vault", vaultKey)
 
-		if q.Title == "" {
-			break
-		}
-
-		chrmSelect := charmselect.New()
-		chrmSelect.Title = q.Title
-		for _, q := range q.Questions {
-			chrmSelect.AddItem(q.Key, q.Description)
-		}
-		selectresult := chrmSelect.Run()
-
-		if len(selectresult) == 0 {
-			slog.Debug("no selection made.. exiting")
-			os.Exit(0)
-		}
-
-		slog.Debug("selected:", "q", q.Title, "key", selectresult[0].Key(), "description", selectresult[0].Description())
-		// call callback function for question
-		q.Callback(selectresult[0].Key())
-	}
-	opts := vault.WizardComplete()
-	err = vault.SetOptions(opts)
+	Vault, err := vaults.NewInitVault(vaultKey)
 	if err != nil {
-		slog.Error("failed to set options for vault: " + err.Error())
+		slog.Error("failed to create vault: " + err.Error())
 		os.Exit(1)
 	}
 
-	err = vault.Warmup()
+	// Wiz := Vault.NewVaultWizard()
+
+	err = Vault.NewWizardWarmup()
 	if err != nil {
-		slog.Error("failed to warm vault: " + err.Error())
+		slog.Error("failed to warm vault for init: " + err.Error())
 		os.Exit(1)
 	}
 
-	vaults.SaveVault(vault, Path)
+	wizForm := Vault.NewWizardNext()
 
-	slog.Debug("done")
+	for wizForm != nil {
+		err = wizForm.Run()
+		if err != nil {
+			slog.Error("failed to run wizard: " + err.Error())
+			os.Exit(1)
+		}
+		wizForm = Vault.NewWizardNext()
+	}
 
+	VaultOpts := Vault.NewWizardComplete()
+	// Vault.ValidateConfig(VaultOpts)
+
+	// slog.Info("done setting up vault")
+	err = Vault.ValidateConfig(VaultOpts)
+	if err != nil {
+		slog.Error("failed to validate vault '" + Vault.DisplayName() + "' options: " + err.Error())
+		os.Exit(1)
+	}
+
+	err = vaults.WriteFile(Path, VaultOpts)
+	if err != nil {
+		slog.Error("failed to write vault options: " + err.Error())
+		os.Exit(1)
+	}
+
+	//save the vault options
+	// vaults.SaveVault(Vault, Path)
+	happy := true
+	huh.NewForm(huh.NewGroup(
+		huh.NewConfirm().
+			Title("Warning").
+			Description("PRETTY PLEASE. add your dotenv file to .gitignore if you are going to pull to file!").
+			Affirmative("Yes, I understand").
+			Negative("No, i dont care about security!").Value(&happy),
+	)).Run()
+
+	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1).Bold(true)
+	commandStyle := lipgloss.NewStyle().MarginRight(1).Italic(true)
+	list := list.New(
+		"pull, output to terminal",
+		list.New(fmt.Sprintf("polyenv pull --path %s --out term", Path)).ItemStyle(commandStyle),
+		"pull, output to terminal as json",
+		list.New(fmt.Sprintf("polyenv pull --path %s --out termjson", Path)).ItemStyle(commandStyle),
+		fmt.Sprintf("pull, output to %s", Path),
+		list.New(fmt.Sprintf("polyenv pull --path %s --out file", Path)).ItemStyle(commandStyle),
+		"if output is not specified, it will default to terminal",
+	).Enumerator(list.Dash).ItemStyle(itemStyle)
+	fmt.Print(list)
+
+	//TODO: fix this
+	// fmt.Print("to pull secrets, run one of the following commands:\n")
+	// fmt.Printf("pull, output to terminal\n")
+	// fmt.Printf("\tpolyenv pull --path %s --out term\n", Path)
+	// fmt.Printf("pull, output to terminal as json\n")
+	// fmt.Printf("\tpolyenv pull --path %s --out termjson\n", Path)
+	// fmt.Printf("pull, output to %s:\n", Path)
+	// fmt.Printf("\tpolyenv pull --path %s --out file\n", Path)
+	// fmt.Printf("if output is not specified, it will default to terminal\n")
+	// slog.Warn("PRETTY PLEASE. add your dotenv file to .gitignore if you are going to pull to file!")
 }

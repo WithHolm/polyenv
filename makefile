@@ -1,5 +1,5 @@
 
-app_name=dotenv-myvault
+app_name=polyenv
 target_folder=./build
 target_os=windows-amd64,linux-amd64,linux-ppc64le,darwin-amd64,darwin-arm64
 target_path=$(target_folder)/$(app_name)
@@ -19,6 +19,5 @@ build-ci: init
 test: init
 	@go test ./...
 
-build: init 
-	@echo "building for $(OS) -> $(target_path)"
-	@go build -o $(target_path) main.go
+build: init
+	@goreleaser release --clean --snapshot
