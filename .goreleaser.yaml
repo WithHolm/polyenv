@@ -41,19 +41,3 @@ source:
   enabled: true
 git:
   tag_sort: -version:refname
-# checksum:
-#   name_template: 'checksums.txt'
-
-# nfpms:
-#   - vendor: Withholm
-#     homepage: https://github.com/withholm/polyenv
-#     maintainer: Philip Meholm <philip@withholm.com>
-#     description: A version of dotenv that uses keyvault as 'vault' instead of the dotenv projects default one.
-#     license: MIT
-# formats:
-#   - deb
-#   - rpm
-# ldflags:
-#   - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-# mod_timestamp: "{{.CommitTimestamp}}"
-# main: ./main.go

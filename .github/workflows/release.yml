@@ -24,6 +24,10 @@ jobs:
       - name: Run GoReleaser
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          distribution: goreleaser
+          args: release --clean
 
       - name: Publish Binaries
         id: upload-release-asset
