@@ -20,5 +20,4 @@ test: init
 	@go test ./...
 
 build: init
-	@echo "building for $(OS) -> $(target_path)"
-	@go build -o $(target_path) main.go
+	@goreleaser release --clean --snapshot

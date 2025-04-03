@@ -71,3 +71,19 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+// set path
+func setPathOrArg(args []string) {
+	if len(args) >= 1 && Path != "" {
+		slog.Error("Both --path and positional arguments are set. Please use only one of the two.")
+		os.Exit(1)
+	} else if len(args) == 1 && Path == "" {
+		slog.Debug("using positional argument as path", "path", args[0])
+		Path = args[0]
+	}
+
+	if Path == "" {
+		slog.Error("no path set. please set --path or positional argument")
+		os.Exit(1)
+	}
+}

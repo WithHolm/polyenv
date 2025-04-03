@@ -11,30 +11,6 @@ name: Build and Release
 jobs:
   build:
     name: build
-    # strategy:
-    #   matrix:
-    #     os: [windows-amd64,linux-amd64,linux-ppc64le,darwin-amd64,darwin-arm64]
-    #     include:
-    #       - os: windows-amd64
-    #         output: polyenv.exe
-    #         goos: windows
-    #         goarch: amd64
-    #       - os: linux-amd64
-    #         output: polyenv
-    #         goos: linux
-    #         goarch: amd64
-    #       - os: linux-ppc64le
-    #         output: polyenv
-    #         goos: linux
-    #         goarch: ppc64le
-    #       - os: darwin-amd64
-    #         output: polyenv
-    #         goos: darwin
-    #         goarch: amd64
-    #       - os: darwin-arm64
-    #         output: polyenv
-    #         goos: darwin
-    #         goarch: arm64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,143 +20,19 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
+
       - name: Run GoReleaser
+        id: goreleaser
         uses: goreleaser/goreleaser-action@v6
-      # - name: build
-      #   env:
-      #     GOOS: ${{ matrix.goos }}
-      #     GOARCH: ${{ matrix.goarch }}
-      #   run: go build -o ${{ matrix.output }}
 
-      # - name: Upload binary
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: binaries
-      #     path: ${{ matrix.output }}
-      #     retention-days: 5
-
-  # release:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Download all artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: binaries
-  #         path: dist
-
-  #     - name: Create Release
-  #       uses: softprops/action-gh-release@v1
-  #       if: startsWith(github.ref, 'refs/tags/')
-  #       with:
-  #         files: |
-  #           LICENSE
-  #           dist/*
-  #         prerelease: true
-  #         generate_release_notes: true
-
-  # - name: download-dependencies
-  #   run: make init
-  # - name: go-test
-  #   run: make test
-  # - name: build-executable
-  #   shell: pwsh
-  #   run: make build-ci
-
-  # - name: Generate build files
-  #   uses: thatisuday/go-cross-build@v1.0.2
-  #   with:
-  #       platforms: 'linux/amd64, linux/ppc64le, darwin/amd64, darwin/arm64, windows/amd64'
-  #       package: main
-  #       name: polyenv
-  #       dest: 'dist'
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - os: linux/amd64
-  #           asset_ext: ""
-  #         - os: linux/ppc64le
-  #           asset_ext: ""
-  #         - os: darwin/amd64
-  #           asset_ext: ""
-  #         - os: darwin/arm64
-  #           asset_ext: ""
-  #         - os: windows/amd64
-  #           asset_ext: ".exe"
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: ">=1.22"
-  #     - run: go version
-  #     - name: Build
-  #       env:
-  #         BUILD_OS: ${{matrix.os}}
-  #         ASSET_EXT: ${{matrix.asset_ext}}
-  #       shell: pwsh
-  #       run: |
-  #         $env:GOOS = $env:BUILD_OS.split("/")[0]
-  #         $env:GOARCH = $env:BUILD_OS.split("/")[1]
-  #         $Name = "$env:GOOS-$env:GOARCH"
-  #         if($env:ASSET_EXT -ne ""){
-  #           $Name = "$Name.$env:ASSET_EXT"
-  #         }
-  #         go build -o ./build/$Name main.go
-  #         echo "$env:BUILD_OS" >> $env:GITHUB_OUTPUT
-  #     - name: Upload Artifact
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: polyenv-${{steps.build.outputs.job}}
-  #         path: ./build
-  #         if-no-files-found: error
-  #         retention-days: 1
-  #     # - name: Cache build
-  #     #   id: cache-build
-  #     #   uses: actions/cache@v3
-  #     #   env:
-  #     #     cache-name: go-build
-  #     #   with:
-  #     #     path: ./build
-  #     #     key: build-${{matrix.os}}
-  #     #     restore-keys: |
-  #     #       build-${{matrix.os}}
-  #     #       build-
-
-  # release:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-  #     - name: download artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: polyenv-${{steps.build.outputs.job}}
-  #         path: ./build/
-  #     # - name: download build
-  #     #   uses: actions/cache@v2
-  #     #   with:
-  #     #     path: ./build
-  #     #     key: build-
-  #     - name: list
-  #       shell: pwsh
-  #       run: Get-ChildItem ./build
-  # - name: Generate build files
-  #   uses: thatisuday/go-cross-build@v1.0.2
-  #   with:
-  #     platforms: "linux/amd64, linux/ppc64le, darwin/amd64, darwin/arm64, windows/amd64"
-  #     package: "main.go"
-  #     name: "polyenv"
-  #     compress: "true"
-  #     dest: "dist"
-  # - name: Publish Binaries
-  #   uses: svenstaro/upload-release-action@v2
-  #   with:
-  #     repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #     release_name: Release ${{ github.ref }}
-  #     tag: ${{ github.ref }}
-  #     file: dist/*
-  #     file_glob: true
-  #     overwrite: true
+      - name: Publish Binaries
+        id: upload-release-asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          release_name: Release ${{ github.ref }}
+          tag: ${{ github.ref }}
+          file: dist/*
+          file_glob: true
+          overwrite: true
+          draft: true
