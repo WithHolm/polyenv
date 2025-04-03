@@ -22,9 +22,11 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Run GoReleaser
+      - name: Build
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           version: latest
           distribution: goreleaser
