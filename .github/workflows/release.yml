@@ -30,7 +30,7 @@ jobs:
         with:
           version: latest
           distribution: goreleaser
-          args: release --clean
+          args: release --clean --debug
 
       - name: Publish Binaries
         id: upload-release-asset
