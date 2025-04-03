@@ -2,8 +2,8 @@
 
 version: 2
 builds:
-  - id: dotenv-myvault 
-    binary: dotenv-myvault
+  - id: polyenv
+    binary: polyenv
     goos:
       - linux
       - windows
@@ -36,7 +36,7 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 source:
   enabled: true
 git:
@@ -46,14 +46,14 @@ git:
 
 # nfpms:
 #   - vendor: Withholm
-#     homepage: https://github.com/withholm/dotenv-myvault
+#     homepage: https://github.com/withholm/polyenv
 #     maintainer: Philip Meholm <philip@withholm.com>
 #     description: A version of dotenv that uses keyvault as 'vault' instead of the dotenv projects default one.
 #     license: MIT
-    # formats:
-    #   - deb
-    #   - rpm
-    # ldflags:
-    #   - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-    # mod_timestamp: "{{.CommitTimestamp}}"
-    # main: ./main.go
+# formats:
+#   - deb
+#   - rpm
+# ldflags:
+#   - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+# mod_timestamp: "{{.CommitTimestamp}}"
+# main: ./main.go

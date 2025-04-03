@@ -1,12 +1,12 @@
 name: Test Changed Files
 
 on:
-  pull_request_target: 
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 env:
-  APP_NAME: dotenv-myvault
-  GO_PLATFORMS: 'linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64'
+  APP_NAME: polyenv
+  GO_PLATFORMS: "linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64"
 
 jobs:
   changed-packages:
@@ -65,3 +65,21 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
           govulncheck ./$dir
+  pr_summary:
+    runs-on: ubuntu-latest
+    name: PR Summarizer
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Summarize PR with AI
+        uses: behrouz-rad/ai-pr-summarizer@v1
+        with:
+          llm-model: "deepseek-coder-v2:latest"
+          prompt-file: ./.github/ollama_assets/prompt2.txt
+          models-file: ./.github/ollama_assets/models.txt
+          version-file: ./.github/ollama_assets/version.txt
+          context-window: 4096
+          upload-changes: true
+          fail-on-error: true
+          token: ${{ secrets.GITHUB_TOKEN }}

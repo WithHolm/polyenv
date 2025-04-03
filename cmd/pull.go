@@ -1,40 +1,54 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/withholm/dotenv-myvault/internal/tools"
-	"github.com/withholm/dotenv-myvault/internal/vaults"
+	"github.com/withholm/polyenv/internal/tools"
+	"github.com/withholm/polyenv/internal/vaults"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
+type PullOutputType string
+
+const (
+	file         PullOutputType = "file"
+	terminal     PullOutputType = "term"
+	terminaljson PullOutputType = "termjson"
+)
+
 var pullPath string
 var pullOutput string
+var pullOutputType = terminal
+var allPullOutputTypes = []PullOutputType{file, terminal, terminaljson}
 
 var PullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "pull all secrets from keyvault",
 	Long: `
-		pull all secrets from keyvault. 
-		Any pull will also override existing .env file. 
+		pull all secrets from keyvault.
+		Any pull will also override existing .env file.
 	`,
 	Run: pull,
 }
 
 func init() {
+	PullCmd.Flags().VarP(&pullOutputType, "out", "o", "where to post the results of the pull. file|term|termjson")
 	rootCmd.AddCommand(PullCmd)
-	// PullCmd.Flags().StringVarP(&Path, "path", "p", ".env", "path to the '.env' file to pull. appends '.vaultopts' when searching. Uses /.env by default")
-	// PullCmd.Flags().StringVarP(&pullOutput, "out", "o", "env", "where to post the results of the pull. 'env' for directly to env variables, 'file' for .env file")
 }
 
+// execute envault pull
 func pull(cmd *cobra.Command, args []string) {
-	slog.Debug("pull called")
-	pullPath := Path
+	slog.Debug("pull called", "args", args)
+
+	pullPath = Path
 	if pullPath != "" {
 		err := tools.CheckDoubleDashS(pullPath, "path")
 		if err != nil {
@@ -59,6 +73,8 @@ func pull(cmd *cobra.Command, args []string) {
 		}
 		pullPath = _path
 	}
+	slog.Debug("pull path", "path", pullPath)
+
 	// check if opts file exists..
 	if !tools.VaultOptsExist(pullPath) {
 		optfile := tools.GetVaultOptsPath(pullPath)
@@ -73,35 +89,80 @@ func pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// connect and pull
+	// Init vault using config
 	cli, err := vaults.NewVault(vaultOpts["VAULT_TYPE"], vaultOpts)
 	if err != nil {
 		log.Fatal("failed to create vault: " + err.Error())
 		os.Exit(1)
 	}
+	// Pull secrets
 	secrets, err := cli.Pull()
 	if err != nil {
 		log.Fatal("failed to pull secrets: " + err.Error())
 		os.Exit(1)
 	}
 
-	// if pullOutput == "env" {
-	// 	for k, v := range secrets {
-	// 		log.Println("setting env variable: " + k)
-	// 		err := os.Setenv(k, v)
-	// 		if err != nil {
-	// 			log.Fatal("failed to set env variable: " + err.Error())
-	// 			os.Exit(1)
-	// 		}
-	// 	}
-	// }
-
-	err = godotenv.Write(secrets, pullPath)
+	err = outputSecrets(secrets, pullOutputType)
 	if err != nil {
-		log.Fatal("failed to write .env file: " + err.Error())
+		log.Fatal("failed to output secrets: " + err.Error())
 		os.Exit(1)
 	}
-	slog.Info("done pulling secrets", "path", pullPath, "len", len(secrets))
-	// if pullOutput == "file" {
-	// }
+
+	slog.Debug("done pulling secrets", "path", pullPath, "len", len(secrets))
+}
+
+func outputSecrets(secrets map[string]string, outputType PullOutputType) error {
+	switch outputType {
+	case terminal:
+		for key, value := range secrets {
+			fmt.Println(key + "=" + value)
+		}
+	case terminaljson:
+		json, err := json.Marshal(secrets)
+		if err != nil {
+			return fmt.Errorf("failed to marshal json: %s", err)
+		}
+		fmt.Println(string(json))
+	case file:
+		//make file if it doesnt exist
+		if _, err := os.Stat(pullPath); os.IsNotExist(err) {
+			slog.Debug(fmt.Sprintf("creating .env file at %s", pullPath))
+			err := os.WriteFile(pullPath, []byte{}, 0644)
+			if err != nil {
+				return fmt.Errorf("failed to create .env file: %s", err)
+			}
+		}
+
+		err := godotenv.Write(secrets, pullPath)
+		if err != nil {
+			return fmt.Errorf("failed to write .env file: %s", err)
+		}
+	}
+	return nil
+}
+
+// outputs type as string
+func (out *PullOutputType) String() string {
+	return string(*out)
+}
+
+// sets output type
+func (out *PullOutputType) Set(value string) error {
+	var errmgs = make([]string, 0)
+	for _, typ := range allPullOutputTypes {
+		if typ == PullOutputType(value) {
+			*out = PullOutputType(value)
+			return nil
+		}
+		// append error message, if none is found
+		errmgs = append(errmgs, string(typ))
+	}
+
+	//return error if not found
+	return fmt.Errorf("invalid output type: %s, must be %s", value, strings.Join(errmgs, ", "))
+}
+
+// returns output type
+func (out *PullOutputType) Type() string {
+	return "outputType"
 }

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/withholm/dotenv-myvault/internal/tools"
-	"github.com/withholm/dotenv-myvault/internal/vaults"
+	"github.com/withholm/polyenv/internal/tools"
+	"github.com/withholm/polyenv/internal/vaults"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -26,7 +26,7 @@ var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "push the current .env file to keyvault",
 	Long: `
-		push the current .env file to keyvault. 
+		push the current .env file to keyvault.
 		Any push will also override existing keyvault secrets, however it will not delete any secrets that are not in the .env file.
 		Will add a .env.vaultopts file to the current directory, so later you can push and pull from the same vault without having to specify the options again.
 	`,

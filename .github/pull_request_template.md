@@ -1,14 +1,21 @@
+# Pull Request
+
+<!-- First of all, THANK YOU for the contribution. i really appreciate any amount of help you can give to the project :) -->
+
 ## Description
-<!-- Describe your changes -->
+
+<!-- Please provide a general summary of your changes. just the general summary. Used for the changelog :) -->
 
 ## Type of change
+
 - [ ] Bug fix
+- [ ] QOL change
 - [ ] New feature
 - [ ] Breaking change
 
 ## Where
+
 - [ ] Cli
-- [ ] Wizard
 - [ ] Vault
 
 ## Documentation
@@ -20,5 +27,6 @@
 <!-- Describe how you tested your changes..this is optional -->
 
 ## Checklist
+
 - [ ] My code follows the style guidelines
 - [ ] I have added tests
