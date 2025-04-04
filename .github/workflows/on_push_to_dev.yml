@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Build
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: latest
+          distribution: goreleaser
+          args: release --clean --snapshot
+      
+      # upload all in dist
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: polyenv-dev
+          path: dist/*

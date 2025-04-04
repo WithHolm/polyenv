@@ -1,12 +1,16 @@
 on:
   push:
+    branches: [ "main" ]
     tags:
       - "v*.*.*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 env:
-  Variables: .github/variables/common.env
+  goreleaser_version: ~> v2
+  goreleaser_dist: goreleaser
+#   Variables: .github/variables/common.env
 
 name: Build and Release
+
 
 jobs:
   build:
@@ -21,18 +25,22 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Run GoReleaser
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
+          install-only: true
+
+      - name: Build and release
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
-
-      - name: Publish Binaries
-        id: upload-release-asset
-        uses: svenstaro/upload-release-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          release_name: Release ${{ github.ref }}
-          tag: ${{ github.ref }}
-          file: dist/*
-          file_glob: true
-          overwrite: true
-          draft: true
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
+          args: release --clean --verbose --draft
+
+
+

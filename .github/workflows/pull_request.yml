@@ -65,21 +65,21 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
           govulncheck ./$dir
-  pr_summary:
-    runs-on: ubuntu-latest
-    name: PR Summarizer
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  # pr_summary:
+  #   runs-on: ubuntu-latest
+  #   name: PR Summarizer
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
 
-      - name: Summarize PR with AI
-        uses: behrouz-rad/ai-pr-summarizer@v1
-        with:
-          llm-model: "deepseek-coder-v2:latest"
-          prompt-file: ./.github/ollama_assets/prompt2.txt
-          models-file: ./.github/ollama_assets/models.txt
-          version-file: ./.github/ollama_assets/version.txt
-          context-window: 4096
-          upload-changes: true
-          fail-on-error: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Summarize PR with AI
+  #       uses: behrouz-rad/ai-pr-summarizer@v1
+  #       with:
+  #         llm-model: "deepseek-coder-v2:latest"
+  #         prompt-file: ./.github/ollama_assets/prompt2.txt
+  #         models-file: ./.github/ollama_assets/models.txt
+  #         version-file: ./.github/ollama_assets/version.txt
+  #         context-window: 4096
+  #         upload-changes: true
+  #         fail-on-error: true
+  #         token: ${{ secrets.GITHUB_TOKEN }}
