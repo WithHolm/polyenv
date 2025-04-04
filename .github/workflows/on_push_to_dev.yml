@@ -27,10 +27,26 @@ jobs:
           version: latest
           distribution: goreleaser
           args: release --clean --snapshot
-      
-      # upload all in dist
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Grab dev release version from metadata
+        run: |
+          version=$(jq -r '.version' ./dist/metadata.json)
+          echo "verson:$version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+      - name: Create prelease
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          name: polyenv-dev
-          path: dist/*
+          tag_name: dev
+          release_name: Dev Release ${{ steps.create_release.outputs.version }}
+          body: |
+            THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
+          draft: true
+          prerelease: true
+      # upload all in dist
+      # - name: Upload Artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: polyenv-dev
+      #     path: dist/*
