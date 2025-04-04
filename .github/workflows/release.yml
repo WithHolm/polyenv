@@ -4,10 +4,13 @@ on:
     tags:
       - "v*.*.*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
-# env:
+env:
+  goreleaser_version: ~> v2
+  goreleaser_dist: goreleaser
 #   Variables: .github/variables/common.env
 
 name: Build and Release
+
 
 jobs:
   build:
@@ -22,14 +25,21 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Build
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
+          install-only: true
+
+      - name: Build and release
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          version: latest
-          distribution: goreleasergo
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
           args: release --clean --verbose --draft
 
 
