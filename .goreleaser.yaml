@@ -1,6 +1,9 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 
 version: 2
+before:
+  hooks:
+    - go mod tidy
 builds:
   - id: polyenv
     binary: polyenv
@@ -37,7 +40,14 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
 checksum:
   name_template: "checksums.txt"
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
 source:
   enabled: true
-git:
-  tag_sort: -version:refname
+changelog:
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
