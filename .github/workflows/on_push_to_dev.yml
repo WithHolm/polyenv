@@ -1,12 +1,12 @@
 name: Build
 
-on:
-  push:
-    branches:
-      - dev
+on: 
+  push: 
+    branches: kokok
 
 jobs:
   build:
+    if: false
     name: build
     runs-on: ubuntu-latest
     steps:
