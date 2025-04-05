@@ -15,16 +15,17 @@ permissions:
 
 jobs:
   build:
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - run: |
-          tag=$(git tag | grep -E '^v' | sort -rV | head -n 1)
+          tag=$(git tag -l v* | sort -rV | head -n 1)
           if [ -z "$tag" ]; then
             tag="v0.0.0"
           fi
-          git push origin $tag
+          git tag -l 
         id: tag
       # - name: Tag commit
       #   uses: tvdias/github-tagger@v0.0.2
