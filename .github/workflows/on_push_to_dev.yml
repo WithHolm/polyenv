@@ -18,7 +18,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Build
+      - name: Build and release
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
         env:
@@ -26,7 +26,7 @@ jobs:
         with:
           version: latest
           distribution: goreleaser
-          args: release --clean --snapshot --config .goreleaser.dev.yaml
+          args: release --clean --config .goreleaser.dev.yaml
       # - name: Grab dev release version from metadata
       #   run: |
       #     version=$(jq -r '.version' ./dist/metadata.json)
