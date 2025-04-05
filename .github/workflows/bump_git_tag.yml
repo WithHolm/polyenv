@@ -20,6 +20,7 @@ jobs:
           if [ -z "$tag" ]; then
             tag="v0.0.0"
           fi
+          echo "tag=$tag"
           echo "tag=$tag" >> $GITHUB_OUTPUT
         id: tag
       - name: Tag commit
