@@ -16,11 +16,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - run: |
-          $tag = git tag|?{$_ -like "v*"}|sort|select -first 1
-          if (!$tag){
-            $tag = "v0.0.0"
-          }
-          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          tag=$(git tag | grep -E '^v' | sort -rV | head -n 1)
+          if [ -z "$tag" ]; then
+            tag="v0.0.0"
+          fi
+          echo "tag=$tag" >> $GITHUB_OUTPUT
         id: tag
       - name: Tag commit
         uses: tvdias/github-tagger@v0.0.2
