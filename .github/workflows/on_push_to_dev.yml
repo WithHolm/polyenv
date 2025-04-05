@@ -2,22 +2,30 @@ name: Build
 
 on: 
   push: 
-    branches: kokok
+    branches: dev
 
 jobs:
-  build:
-    if: false
+  build-dev:
     name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      - run: |
+          tag=$(git tag | grep -E '^v' | sort -rV | head -n 1)
+          if [ -z "$tag" ]; then
+            tag="v0.0.0"
+          fi
+          git tag $tag -f
+        id: tag
+        name: Push version tag to current commit
+      - run: |
+          git tag -l
+          git describe --tags
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
           cache: true
-
       - name: Build and release
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
@@ -26,7 +34,7 @@ jobs:
         with:
           version: latest
           distribution: goreleaser
-          args: release --clean --config .goreleaser.dev.yaml
+          args: release --clean --config .goreleaser.dev.yaml --draft
       # - name: Grab dev release version from metadata
       #   run: |
       #     version=$(jq -r '.version' ./dist/metadata.json)
