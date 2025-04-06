@@ -54,7 +54,7 @@ jobs:
         env:
           DEV_TAG: ${{ env.dev_tag }}
         run: |
-          git tag $DEV_TAG
+          git tag $DEV_TAG -f
           git push origin $DEV_TAG
       # - name: Describe Tags
       #   run: |
