@@ -11,31 +11,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          # git tag -l v*|sort -rV| head -n 1
           tag=$(git tag -l v*| sort -rV | head -n 1)
-          if [ -z "$tag" ]; then
-            echo "yooo"
-          fi
-          echo $tag
-          git tag $tag -f
+          git tag -l v*
+          # if [ -z "$tag" ]; then
+          #   echo "yooo"
+          # fi
+          # echo $tag
+          # git tag $tag -f
         id: tag
         name: Push version tag to current commit
-      - run: |
-          git log -1 --decorate=short
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-          cache: true
-      - name: Build and release
-        id: goreleaser
-        uses: goreleaser/goreleaser-action@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          version: latest
-          distribution: goreleaser
-          args: release --clean --config .goreleaser.dev.yaml --draft
+      # - run: |
+      #     git log -1 --decorate=short
+      # - name: Set up Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version-file: "go.mod"
+      #     cache: true
+      # - name: Build and release
+      #   id: goreleaser
+      #   uses: goreleaser/goreleaser-action@v6
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     version: latest
+      #     distribution: goreleaser
+      #     args: release --clean --config .goreleaser.dev.yaml --draft
       # - name: Grab dev release version from metadata
       #   run: |
       #     version=$(jq -r '.version' ./dist/metadata.json)
