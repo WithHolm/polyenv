@@ -16,17 +16,17 @@ jobs:
         run: |
           git fetch --all --tags
     
-          - name: Get the latest v tag from main
-          id: tag
-          run: |
-            latest_main_tag=$(git tag --list 'v*' --sort=-v:refname --merged main | head -n 1)
-            echo "Latest main tag: $latest_main_tag"
-            
-            if [ -z "$latest_main_tag" ]; then
-              echo "latest_main_tag=v0.0.0" >> $GITHUB_ENV
-            else
-              echo "latest_main_tag=$latest_main_tag" >> $GITHUB_ENV
-            fi
+      - name: Get the latest v tag from main
+        id: tag
+        run: |
+          latest_main_tag=$(git tag --list 'v*' --sort=-v:refname --merged main | head -n 1)
+          echo "Latest main tag: $latest_main_tag"
+          
+          if [ -z "$latest_main_tag" ]; then
+            echo "latest_main_tag=v0.0.0" >> $GITHUB_ENV
+          else
+            echo "latest_main_tag=$latest_main_tag" >> $GITHUB_ENV
+          fi
   
       - name: Calculate new dev tag
         id: version
