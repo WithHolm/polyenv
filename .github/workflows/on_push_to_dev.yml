@@ -10,16 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: nimblehq/branch-tag-action@v1
-        id: extract
-
-      # Use the output/env from the `extract` step
-      - name: Print the values
+      
+      - name: Describe Tags
         run: |
-          echo "The branch tag is ${{ steps.extract.outputs.branch_tag }}"
-          echo "or ${{ env.BRANCH_TAG }}"
+          git fetch --prune --unshallow
+          latest_tag=$(git describe --tags --abbrev=0 HEAD~)
+          echo "Latest Tag: $latest_tag"
+      # - uses: nimblehq/branch-tag-action@v1
+      #   id: extract
+
+      # # Use the output/env from the `extract` step
+      # - name: Print the values
+      #   run: |
+      #     echo "The branch tag isa ${{ steps.extract.outputs.branch_tag }}"
+      #     echo "or ${{ env.BRANCH_TAG }}"
       # - run: |
       #     tag=$(git tag -l v*| sort -rV | head -n 1)
       #     echo $(git tag -l)
