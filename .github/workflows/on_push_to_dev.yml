@@ -21,6 +21,7 @@ jobs:
       - name: Fetch all branches and tags
         run: |
           git fetch origin main --tags
+          git tag
     
       # - name: Get the latest v tag from main
       #   id: tag
