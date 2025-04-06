@@ -12,17 +12,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: |
-          tag=$(git tag -l v*| sort -rV | head -n 1)
-          echo $(git tag -l)
-          echo what..
-          # if [ -z "$tag" ]; then
-          #   echo "yooo"
-          # fi
-          # echo $tag
-          # git tag $tag -f
-        id: tag
-        name: Push version tag to current commit
+      - uses: nimblehq/branch-tag-action@v1
+        id: extract
+
+      # Use the output/env from the `extract` step
+      - name: Print the values
+        run: |
+          echo "The branch tag is ${{ steps.extract.outputs.branch_tag }}"
+          echo "or ${{ env.BRANCH_TAG }}"
+      # - run: |
+      #     tag=$(git tag -l v*| sort -rV | head -n 1)
+      #     echo $(git tag -l)
+      #     echo what..
+      #     # if [ -z "$tag" ]; then
+      #     #   echo "yooo"
+      #     # fi
+      #     # echo $tag
+      #     # git tag $tag -f
+      #   id: tag
+      #   name: Push version tag to current commit
       # - run: |
       #     git log -1 --decorate=short
       # - name: Set up Go
