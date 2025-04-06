@@ -20,7 +20,7 @@ jobs:
 
       - name: Fetch all branches and tags
         run: |
-          git fetch --all --tags
+          git fetch origin +refs/heads/main:refs/remotes/origin/main --tags
     
       - name: Get the latest v tag from main
         id: tag
