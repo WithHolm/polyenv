@@ -2,8 +2,8 @@
 
 version: 2
 project_name: polyenv
-env:
-  - version=v{{ incpatch .Version }}
+# env:
+  # - version=v{{ incpatch .Version }}
 before:
   hooks:
     - go mod tidy
@@ -24,7 +24,7 @@ builds:
         goarch: arm64
       - goos: windows
         goarm: "7"
-    ldflags: -s -w -X main.Version={{ .Env.version }} -X main.CommitSHA={{ .Commit }}
+    ldflags: -s -w -X main.Version=v{{ incpatch .Version }} -X main.CommitSHA={{ .Commit }}
 archives:
   - format_overrides:
       - goos: windows
@@ -36,7 +36,7 @@ archives:
       - README.md
     name_template: >-
       {{ .ProjectName }}_
-      {{- .Env.version }}_
+      v{{ incpatch .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -44,7 +44,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  version_template: "{{ .Env.version }}-dev"
+  version_template: "v{{ incpatch .Version }}-dev"
 source:
   enabled: true
 release:

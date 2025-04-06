@@ -11,16 +11,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          tag=$(git tag | grep -E '^v' | sort -rV | head -n 1)
+          # git tag -l v*|sort -rV| head -n 1
+          tag=$(git tag -l v*| sort -rV | head -n 1)
           if [ -z "$tag" ]; then
-            tag="v0.0.0"
+            echo "yooo"
           fi
+          echo $tag
           git tag $tag -f
         id: tag
         name: Push version tag to current commit
       - run: |
-          git tag -l
-          git describe --tags
+          git log -1 --decorate=short
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
