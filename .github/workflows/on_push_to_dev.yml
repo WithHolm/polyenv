@@ -4,7 +4,7 @@ on:
   push: 
     branches: 
       - dev
-      
+
 permissions:
   contents: write
 
@@ -34,6 +34,7 @@ jobs:
       - name: Calculate new dev tag
         id: version
         run: |
+          echo "current version: ${{ env.latest_main_tag }}"
           version=${{ env.latest_main_tag }}
           IFS='.' read -r -a version_parts <<< "${version#v}"
           major=${version_parts[0]}
@@ -47,6 +48,7 @@ jobs:
           new_patch=$((patch + 1))
           dev_tag="v${major}.${minor}.${new_patch}-dev"
           echo "dev_tag=$dev_tag" >> $GITHUB_ENV
+          echo "dev_tag:$dev_tag"
 
       - name: Create a new tag for the dev build
         env:
