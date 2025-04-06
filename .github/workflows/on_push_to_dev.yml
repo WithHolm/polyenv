@@ -22,43 +22,47 @@ jobs:
         run: |
           git fetch origin main --tags
     
-      - name: Get the latest v tag from main
-        id: tag
-        run: |
-          latest_main_tag=$(git tag --sort=-v:refname --merged origin/main | grep '^v' | head -n 1)
-          echo "Latest main tag: $latest_main_tag"
+      # - name: Get the latest v tag from main
+      #   id: tag
+      #   run: |
+      #     latest_main_tag=$(git tag --sort=-v:refname --merged origin/main | grep '^v' | head -n 1)
+      #     echo "Latest main tag: $latest_main_tag"
           
-          if [ -z "$latest_main_tag" ]; then
-            echo "latest_main_tag=v0.0.0" >> $GITHUB_ENV
-          else
-            echo "latest_main_tag=$latest_main_tag" >> $GITHUB_ENV
-          fi
+      #     if [ -z "$latest_main_tag" ]; then
+      #       echo "latest_main_tag=v0.0.0" >> $GITHUB_ENV
+      #     else
+      #       echo "latest_main_tag=$latest_main_tag" >> $GITHUB_ENV
+      #     fi
   
-      - name: Calculate new dev tag
-        id: version
-        run: |
-          echo "current version: ${{ env.latest_main_tag }}"
-          version=${{ env.latest_main_tag }}
-          IFS='.' read -r -a version_parts <<< "${version#v}"
-          major=${version_parts[0]}
-          minor=${version_parts[1]}
-          patch=${version_parts[2]}
+      # - name: Calculate new dev tag
+      #   id: version
+      #   run: |
+      #     echo "current version: ${{ env.latest_main_tag }}"
+      #     version=${{ env.latest_main_tag }}
+      #     IFS='.' read -r -a version_parts <<< "${version#v}"
+      #     major=${version_parts[0]}
+      #     minor=${version_parts[1]}
+      #     patch=${version_parts[2]}
           
-          if [ -z "$major" ]; then major=0; fi
-          if [ -z "$minor" ]; then minor=0; fi
-          if [ -z "$patch" ]; then patch=0; fi
+      #     if [ -z "$major" ]; then major=0; fi
+      #     if [ -z "$minor" ]; then minor=0; fi
+      #     if [ -z "$patch" ]; then patch=0; fi
         
-          new_patch=$((patch + 1))
-          dev_tag="v${major}.${minor}.${new_patch}-dev"
-          echo "dev_tag=$dev_tag" >> $GITHUB_ENV
-          echo "dev_tag:$dev_tag"
+      #     new_patch=$((patch + 1))
+      #     dev_tag="v${major}.${minor}.${new_patch}-dev"
+      #     echo "dev_tag=$dev_tag" >> $GITHUB_ENV
+      #     echo "dev_tag:$dev_tag"
 
-      - name: Create a new tag for the dev build
-        env:
-          DEV_TAG: ${{ env.dev_tag }}
-        run: |
-          git tag $DEV_TAG -f
-          git push origin $DEV_TAG
+      # - name: Create a new tag for the dev build
+      #   env:
+      #     DEV_TAG: ${{ env.dev_tag }}
+      #   run: |
+      #     git tag $DEV_TAG -f
+      #     git push origin $DEV_TAG
+
+
+
+
       # - name: Describe Tags
       #   run: |
       #     git fetch --prune --unshallow
