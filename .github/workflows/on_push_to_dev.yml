@@ -20,12 +20,12 @@ jobs:
 
       - name: Fetch all branches and tags
         run: |
-          git fetch origin +refs/heads/main:refs/remotes/origin/main --tags
+          git fetch origin main --tags
     
       - name: Get the latest v tag from main
         id: tag
         run: |
-          latest_main_tag=$(git tag --list 'v*' --sort=-v:refname --merged main | head -n 1)
+          latest_main_tag=$(git tag --sort=-v:refname --merged origin/main | grep '^v' | head -n 1)
           echo "Latest main tag: $latest_main_tag"
           
           if [ -z "$latest_main_tag" ]; then
