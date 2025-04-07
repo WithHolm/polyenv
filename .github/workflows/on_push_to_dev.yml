@@ -14,118 +14,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build and release
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Fetch all branches and tags
+          version: latest
+          distribution: goreleaser
+          args: release --clean --config .goreleaser.dev.yaml --draft --snapshot
+      - name: Grab dev release version from metadata
         run: |
-          git fetch origin main --tags
-          git tag --sort=-v:refname --merged origin/main
-    
-      # - name: Get the latest v tag from main
-      #   id: tag
-      #   run: |
-      #     latest_main_tag=$(git tag --sort=-v:refname --merged origin/main | grep '^v' | head -n 1)
-      #     echo "Latest main tag: $latest_main_tag"
-          
-      #     if [ -z "$latest_main_tag" ]; then
-      #       echo "latest_main_tag=v0.0.0" >> $GITHUB_ENV
-      #     else
-      #       echo "latest_main_tag=$latest_main_tag" >> $GITHUB_ENV
-      #     fi
-  
-      # - name: Calculate new dev tag
-      #   id: version
-      #   run: |
-      #     echo "current version: ${{ env.latest_main_tag }}"
-      #     version=${{ env.latest_main_tag }}
-      #     IFS='.' read -r -a version_parts <<< "${version#v}"
-      #     major=${version_parts[0]}
-      #     minor=${version_parts[1]}
-      #     patch=${version_parts[2]}
-          
-      #     if [ -z "$major" ]; then major=0; fi
-      #     if [ -z "$minor" ]; then minor=0; fi
-      #     if [ -z "$patch" ]; then patch=0; fi
-        
-      #     new_patch=$((patch + 1))
-      #     dev_tag="v${major}.${minor}.${new_patch}-dev"
-      #     echo "dev_tag=$dev_tag" >> $GITHUB_ENV
-      #     echo "dev_tag:$dev_tag"
+          version=$(jq -r '.version' ./dist/metadata.json)
+          echo "verson:$version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+      - name: Create prelease
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: Dev Release ${{ steps.create_release.outputs.version }}
+          body: |
+            THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
+          draft: true
+          prerelease: true
 
-      # - name: Create a new tag for the dev build
-      #   env:
-      #     DEV_TAG: ${{ env.dev_tag }}
-      #   run: |
-      #     git tag $DEV_TAG -f
-      #     git push origin $DEV_TAG
-
-
-
-
-      # - name: Describe Tags
-      #   run: |
-      #     git fetch --prune --unshallow
-
-      #     echo "git tag: $(git tag -l)"
-      #     # latest_tag=$(git describe --tags --abbrev=0 HEAD~)
-      #     # echo "Latest Tag: $latest_tag"
-      # - uses: nimblehq/branch-tag-action@v1
-      #   id: extract
-
-      # # Use the output/env from the `extract` step
-      # - name: Print the values
-      #   run: |
-      #     echo "The branch tag isa ${{ steps.extract.outputs.branch_tag }}"
-      #     echo "or ${{ env.BRANCH_TAG }}"
-      # - run: |
-      #     tag=$(git tag -l v*| sort -rV | head -n 1)
-      #     echo $(git tag -l)
-      #     echo what..
-      #     # if [ -z "$tag" ]; then
-      #     #   echo "yooo"
-      #     # fi
-      #     # echo $tag
-      #     # git tag $tag -f
-      #   id: tag
-      #   name: Push version tag to current commit
-      # - run: |
-      #     git log -1 --decorate=short
-      # - name: Set up Go
-      #   uses: actions/setup-go@v5
-      #   with:
-      #     go-version-file: "go.mod"
-      #     cache: true
-      # - name: Build and release
-      #   id: goreleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     version: latest
-      #     distribution: goreleaser
-      #     args: release --clean --config .goreleaser.dev.yaml --draft
-      # - name: Grab dev release version from metadata
-      #   run: |
-      #     version=$(jq -r '.version' ./dist/metadata.json)
-      #     echo "verson:$version"
-      #     echo "version=$version" >> $GITHUB_OUTPUT
-      # - name: Create prelease
-      #   id: create_release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      #   with:
-      #     tag_name: dev
-      #     release_name: Dev Release ${{ steps.create_release.outputs.version }}
-      #     body: |
-      #       THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
-      #     draft: true
-      #     prerelease: true
-      # upload all in dist
-      # - name: Upload Artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: polyenv-dev
-      #     path: dist/*
+      - name: Upload Contents to Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          tag: ${{ steps.version.outputs.version }}
+          overwrite: true
+          file_glob: true
