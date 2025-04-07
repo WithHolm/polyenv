@@ -25,6 +25,7 @@ jobs:
           distribution: goreleaser
           args: release --clean --config .goreleaser.dev.yaml --draft --snapshot
       - name: Grab dev release version from metadata
+        id: version
         run: |
           version=$(jq -r '.version' ./dist/metadata.json)
           echo "verson:$version"
@@ -38,6 +39,8 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           release_name: Dev Release ${{ steps.create_release.outputs.version }}
           body: |
+            # DEV RELEASE
+            release created by github action @ ${{ github.event.head_commit.timestamp }}
             THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
           draft: true
           prerelease: true
