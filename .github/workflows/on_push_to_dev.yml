@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build and release
         id: goreleaser
@@ -23,7 +25,7 @@ jobs:
         with:
           version: latest
           distribution: goreleaser
-          args: release --clean --config .goreleaser.dev.yaml --draft --snapshot
+          args: release --clean --config .goreleaser.dev.yaml --draft --snapshot --verbose
       - name: Grab dev release version from metadata
         id: version
         run: |
@@ -37,14 +39,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          release_name: Dev Release ${{ steps.create_release.outputs.version }}
+          release_name: Dev Release ${{ steps.version.outputs.version }}
           body: |
             # DEV RELEASE
+
             release created by github action @ ${{ github.event.head_commit.timestamp }}
+
             THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
+
           draft: true
           prerelease: true
-
       - name: Upload Contents to Release
         uses: svenstaro/upload-release-action@v2
         with:
