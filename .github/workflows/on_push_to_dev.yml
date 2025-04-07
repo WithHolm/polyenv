@@ -1,4 +1,4 @@
-name: Build
+name: Dev-Build
 
 on: 
   push: 
@@ -55,5 +55,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*
           tag: ${{ steps.version.outputs.version }}
-          overwrite: true
           file_glob: true
+          prerelease: true
