@@ -23,7 +23,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          version: latest
+          version: "~> v2"
           distribution: goreleaser
           args: release --clean --config .goreleaser.dev.yaml --draft --snapshot --verbose
       - name: Grab dev release version from metadata
