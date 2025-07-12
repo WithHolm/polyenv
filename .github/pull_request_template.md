@@ -21,10 +21,10 @@
 ## Documentation
 <!-- if you have fixed a bug or added a feature/vault -->
 - [ ] I have updated the documentation
-- [ ] I have appended the 
+- [ ] If the change is big enough, I have updated changelog
 
 ## Testing
-<!-- Describe how you tested your changes..this is optional -->
+<!-- All tests should be "{file}_test.go", in same folder, but if you have other tests, please describe what tests are run..this is optional -->
 
 ## Checklist
 

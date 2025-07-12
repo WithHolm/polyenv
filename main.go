@@ -1,7 +1,15 @@
 package main
 
-import "github.com/withholm/polyenv/cmd"
+import (
+	_ "embed"
+
+	"github.com/withholm/polyenv/cmd"
+)
+
+//go:embed CONTRIBUTORS
+var Contributors string
 
 func main() {
+	cmd.SetContributors(Contributors)
 	cmd.Execute()
 }

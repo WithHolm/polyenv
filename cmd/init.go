@@ -4,13 +4,21 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/list"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+	"github.com/withholm/polyenv/internal/tools"
+	"github.com/withholm/polyenv/internal/tui"
 	"github.com/withholm/polyenv/internal/vaults"
 )
+
+var vaultType vaults.VaultType
+var initargs []string
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -18,58 +26,134 @@ var initCmd = &cobra.Command{
 	Long: `
 		init will set up the .env file for syncing with your enterprise-vault.
 	`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		argPath := tools.ExtractFilenameArg(args)
+		if argPath != "" {
+			Path = tools.AppendDotEnvExtension(argPath)
+		}
+		argVault, err := tools.ExtractVaultNameArg(args, vaults.ListVaultTypes())
+		if err != nil {
+			return err
+		}
+		if argVault != "" {
+			vaultType = vaults.VaultType(argVault)
+		}
+
+		return nil
+	},
 	Run: initialize,
 }
 
 func init() {
+	description := fmt.Sprintf("quick init will lead you directly to the setup for the given vault")
+	initCmd.Flags().Var(&vaultType, "type", description)
+	initCmd.Flags().StringArrayVarP(&initargs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
+
 	rootCmd.AddCommand(initCmd)
 }
 
-func initialize(cmd *cobra.Command, args []string) {
-	slog.Debug("init called", "envfile", Path)
-	var vaultKey string
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Select a secret provider").
-				Options(
-					vaults.GetVaultsAsHuhOptions()...,
-				).Value(&vaultKey),
-		),
-	)
-	e := form.Run()
+func runHuh(f *huh.Form) {
+	if f == nil {
+		return
+	}
+
+	theme := huh.ThemeCatppuccin()
+	theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
+	theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
+
+	e := f.WithTheme(theme).WithProgramOptions(tea.WithAltScreen()).Run()
+
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
 		os.Exit(1)
 	}
-	// slog.Info("selected vault", "vault", vaultKey)
+}
 
-	Vault, err := vaults.NewInitVault(vaultKey)
+/*
+intended:
+init --type vaulttype --arg key=value
+init dev -> inits the file dev.env
+init dev!keyvault -> inits the file dev.env and sets up the keyvault
+init !keyvault -> inits the file local.env (default value) and sets up the keyvault
+*/
+func initialize(cmd *cobra.Command, args []string) {
+	slog.Debug("init", "Path", Path, "Vault", vaultType)
+
+	Path = tools.AppendDotEnvExtension(Path)
+
+	// os.Exit(0)
+	slog.Debug("init called", "envfile", Path)
+
+	// theme := huh.ThemeCatppuccin()
+	// theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
+	// theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
+
+	if vaultType == "" {
+		form := huh.NewForm(
+			huh.NewGroup(
+				vaults.VaultTypeSelector(&vaultType),
+			),
+		)
+		runHuh(form)
+	}
+
+	Vault, err := vaults.NewInitVault(string(vaultType))
 	if err != nil {
 		slog.Error("failed to create vault: " + err.Error())
 		os.Exit(1)
 	}
 
-	// Wiz := Vault.NewVaultWizard()
+	var InitArgs map[string]string
+	if len(initargs) > 0 {
+		var e error
+		InitArgs, e = godotenv.Unmarshal(strings.Join(initargs, "\n"))
+		if e != nil {
+			slog.Error("failed to unmarshal vault arguments: " + e.Error())
+			os.Exit(1)
+		}
+	}
 
-	err = Vault.NewWizardWarmup()
+	model := tui.NewInitModel(vaultType, InitArgs)
+	// theme := huh.ThemeCatppuccin()
+	// theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
+	// theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
+
+	// p := tea.NewProgram(model, tea.WithAltScreen())
+	p := tea.NewProgram(model)
+	_, err = p.Run()
 	if err != nil {
-		slog.Error("failed to warm vault for init: " + err.Error())
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	wizForm := Vault.NewWizardNext()
+	Vault = model.Vault
+	// if e != nil {
+	// 	fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
+	// 	os.Exit(1)
+	// }
 
-	for wizForm != nil {
-		err = wizForm.Run()
-		if err != nil {
-			slog.Error("failed to run wizard: " + err.Error())
-			os.Exit(1)
-		}
-		wizForm = Vault.NewWizardNext()
-	}
+	// err = Vault.WizardWarmup(InitArgs)
+	// if err != nil {
+	// 	slog.Error("failed to warm vault for init: " + err.Error())
+	// 	os.Exit(1)
+	// }
 
-	VaultOpts := Vault.NewWizardComplete()
+	// wizForm := Vault.WizardNext()
+	// for wizForm != nil {
+	// 	runHuh(wizForm)
+	// 	// wizForm.Init()
+	// 	// wizForm.NextField()
+	// 	// wizForm.PrevField()
+	// 	// err = wizForm.WithTheme(theme).WithProgramOptions(tea.WithAltScreen()).Run()
+	// 	// if err != nil {
+	// 	// 	slog.Error("failed to run wizard: " + err.Error())
+	// 	// 	os.Exit(1)
+	// 	// }
+	// 	wizForm = Vault.WizardNext()
+	// }
+
+	slog.Debug("finished.. validating")
+	VaultOpts := Vault.WizardComplete()
 	// Vault.ValidateConfig(VaultOpts)
 
 	// slog.Info("done setting up vault")
@@ -87,14 +171,12 @@ func initialize(cmd *cobra.Command, args []string) {
 
 	//save the vault options
 	// vaults.SaveVault(Vault, Path)
-	happy := true
-	huh.NewForm(huh.NewGroup(
-		huh.NewConfirm().
-			Title("Warning").
-			Description("PRETTY PLEASE. add your dotenv file to .gitignore if you are going to pull to file!").
-			Affirmative("Yes, I understand").
-			Negative("No, i dont care about security!").Value(&happy),
-	)).Run()
+	// happy := true
+	runHuh(
+		huh.NewForm(huh.NewGroup(
+			huh.NewNote().Title("WARNING").Description("add your dotenv file to .gitignore if you are going to pull to file!"),
+		)),
+	)
 
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1).Bold(true)
 	commandStyle := lipgloss.NewStyle().MarginRight(1).Italic(true)
@@ -107,16 +189,5 @@ func initialize(cmd *cobra.Command, args []string) {
 		list.New(fmt.Sprintf("polyenv pull --path %s --out file", Path)).ItemStyle(commandStyle),
 		"if output is not specified, it will default to terminal",
 	).Enumerator(list.Dash).ItemStyle(itemStyle)
-	fmt.Print(list)
-
-	//TODO: fix this
-	// fmt.Print("to pull secrets, run one of the following commands:\n")
-	// fmt.Printf("pull, output to terminal\n")
-	// fmt.Printf("\tpolyenv pull --path %s --out term\n", Path)
-	// fmt.Printf("pull, output to terminal as json\n")
-	// fmt.Printf("\tpolyenv pull --path %s --out termjson\n", Path)
-	// fmt.Printf("pull, output to %s:\n", Path)
-	// fmt.Printf("\tpolyenv pull --path %s --out file\n", Path)
-	// fmt.Printf("if output is not specified, it will default to terminal\n")
-	// slog.Warn("PRETTY PLEASE. add your dotenv file to .gitignore if you are going to pull to file!")
+	slog.Info(fmt.Sprint(list))
 }

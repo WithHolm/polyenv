@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	// add persistend flags (flags that are set for all commands)
-	rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
+	// rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
 	rootCmd.PersistentFlags().StringVarP(&Path, "path", "p", "local.env", "Path to the .env file")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug logging")
 	// rootCmd.PersistentFlags().BoolVar(&Debug, "whatif", false, "Enable whatif. will not push or pull, but will show what would be done")

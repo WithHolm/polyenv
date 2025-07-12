@@ -1,19 +1,17 @@
 # polyenv
 
-polyenv is a CLI tool that allows you to sync your .env files with alternatives to dotenv vault.
+polyenv is a CLI tool that allows you to to grab secrets directly from your enterprise vaults and either save them to local .env file or output them to terminal.
 for now only Azure Keyvault is supported, but more will be available in the future.
 
 ## Features
 
-- Initialize .env file for syncing with Azure Key Vault
-- Push secrets from .env file to Azure Key Vault
-- Pull secrets from Azure Key Vault to .env file
-- Support for multiple tenants and subscriptions
-- Interactive wizard for easy setup
+- Initialize a .polyenv file for syncing. this can be used with your git repo
+- Push secrets from .env file to your remote vault
+- Pull secrets from remote vault to .env file
 
 ## Installation
 
-check release page [here](https://github.com/WithHolm/polyenv/releases) to download the goddamn application
+check release page [here](https://github.com/WithHolm/polyenv/releases) to download the application
 
 ## Usage
 
@@ -25,13 +23,13 @@ check release page [here](https://github.com/WithHolm/polyenv/releases) to downl
 polyenv init [--path <path-to-env-file>]
 ```
 
-2. Push secrets to Azure Key Vault:
+2. Push secrets to vault:
 
 ```
 polyenv push [--path <path-to-env-file>]
 ```
 
-3. Pull secrets from Azure Key Vault:
+3. Pull secrets from vault:
 
 ```
 polyenv pull [--path <path-to-env-file>]
@@ -39,7 +37,8 @@ polyenv pull [--path <path-to-env-file>]
 
 ### Options
 
-- `--path, -p`: Specify the path to the .env file (default: ".env")
+- `--path, -p`: Specify the path to the .env file (default: "local.env")
+- `--debug`: Enable debug mode
 
 ## Developer Information
 
@@ -47,7 +46,6 @@ polyenv pull [--path <path-to-env-file>]
 
 - `cmd/`: Contains the Cobra command implementations
 - `internal/`: Internal packages
-  - `charm/`: Custom implementation for interactive selection
   - `tools/`: Utility functions
   - `vaults/`: Vault implementations (currently Azure Key Vault)
 - `main.go`: Entry point of the application

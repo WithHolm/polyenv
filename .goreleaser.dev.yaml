@@ -34,6 +34,7 @@ archives:
       - LICENSE
       - docs/*
       - README.md
+      - changelog/{{- incpatch .Version }}.md
     name_template: >-
       {{ .ProjectName }}_dev_
       {{- incpatch .Version }}_

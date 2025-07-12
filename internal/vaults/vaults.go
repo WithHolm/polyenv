@@ -2,11 +2,13 @@ package vaults
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/joho/godotenv"
 	"github.com/withholm/polyenv/internal/tools"
-	"github.com/withholm/polyenv/internal/vaults/keyvault"
-	"github.com/withholm/polyenv/internal/vaults/temp"
 
 	_ "embed"
 )
@@ -31,36 +33,18 @@ type Vault interface {
 	// set options for the vault
 	SetOptions(map[string]string) error
 	// get options for the vault
-	GetOptions() map[string]string
+	// GetOptions() map[string]string
 
-	NewWizardWarmup() error
-	NewWizardNext() *huh.Form
-	NewWizardComplete() map[string]string
-
-	UpdateWizardWarmup(map[string]string) error
-	UpdateWizardNext() *huh.Form
-	UpdateWizardComplete() map[string]string
-}
-
-// registry of all vaults
-var Registry = map[string]Vault{
-	"keyvault": &keyvault.Client{},
-	"temp":     &temp.Client{},
-}
-
-// returns Registry as options for huh.Select
-func GetVaultsAsHuhOptions() []huh.Option[string] {
-	ret := make([]huh.Option[string], 0)
-	for k, v := range Registry {
-		ret = append(ret, huh.NewOption(v.DisplayName(), k))
-	}
-	return ret
+	WizardWarmup(map[string]string) error
+	WizardNext() *huh.Form
+	WizardComplete() map[string]string
 }
 
 func VaildateVaultOpts(opts map[string]string) error {
 	if opts["VAULT_TYPE"] == "" {
 		return fmt.Errorf("vault type cannot be empty")
 	}
+
 	vlt, ok := Registry[opts["VAULT_TYPE"]]
 	if !ok {
 		return fmt.Errorf("unknown vault type: %s", opts["VAULT_TYPE"])
@@ -120,6 +104,33 @@ func NewVault(vaultType string, options map[string]string) (Vault, error) {
 	return v, nil
 }
 
-func SaveVault(vlt Vault, dotenvFile string) error {
-	return WriteFile(dotenvFile, vlt.GetOptions())
+//go:embed template
+var template string
+
+// write vault file
+func WriteFile(path string, options map[string]string) error {
+	path = GetVaultPath(path)
+
+	if options["VAULT_TYPE"] == "" {
+		slog.Debug("please, developer, add 'VAULT_TYPE' as output to GetOptions()")
+		return fmt.Errorf("vault type cannot be empty")
+	}
+
+	out := make([]string, 0)
+	out = append(out, template)
+	s, err := godotenv.Marshal(options)
+	if err != nil {
+		return err
+	}
+	out = append(out, s)
+
+	//str to byte
+	out = append(out, "\n")
+	//0644:rw-r--r--
+	err = os.WriteFile(path, []byte(strings.Join(out, "\n")), 0644)
+	if err != nil {
+		panic("failed to write file: " + err.Error())
+	}
+
+	return nil
 }

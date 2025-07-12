@@ -20,8 +20,9 @@ type PullOutputType string
 
 const (
 	file         PullOutputType = "file"
-	terminal     PullOutputType = "term"
-	terminaljson PullOutputType = "termjson"
+	terminal     PullOutputType = "term"   // mykey=value
+	terminaljson PullOutputType = "json"   // {"mykey":"value"}
+	termJsonKv   PullOutputType = "jsonkv" // {"key":"mykey","value":"value"}
 )
 
 var pullPath string
@@ -73,7 +74,7 @@ func pull(cmd *cobra.Command, args []string) {
 		}
 		pullPath = _path
 	}
-	slog.Debug("pull path", "path", pullPath)
+	slog.Debug("absolute", "path", pullPath)
 
 	// check if opts file exists..
 	if !tools.VaultOptsExist(pullPath) {
@@ -89,10 +90,17 @@ func pull(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	j, e := json.MarshalIndent(vaultOpts, "", "  ")
+	if e != nil {
+		log.Fatal("failed to marshal vaultOpts: " + e.Error())
+		os.Exit(1)
+	}
+	slog.Debug("vault options", "config", string(j))
+
 	// Init vault using config
 	cli, err := vaults.NewVault(vaultOpts["VAULT_TYPE"], vaultOpts)
 	if err != nil {
-		log.Fatal("failed to create vault: " + err.Error())
+		log.Fatal("failed to create vault: ", err)
 		os.Exit(1)
 	}
 	// Pull secrets

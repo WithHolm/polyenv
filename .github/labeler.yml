@@ -12,7 +12,6 @@ documentation:
 vault:
   - 'internal/vaults/**'
 
-
 cmd:
   - 'cmd/**'
 
@@ -22,7 +21,6 @@ code:
 
 # Label for specific tooling or scripts
 tools:
-  - 'local.env.polyenv'
   - 'internal/tools/**'
 
 # Label for test and assets related changes

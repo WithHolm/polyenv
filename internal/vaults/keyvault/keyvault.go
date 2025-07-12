@@ -8,11 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
+	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/charmbracelet/huh"
@@ -27,22 +30,37 @@ type Client struct {
 	tenant string
 
 	//name of the tag that contains the env key
-	envNameTag string
+	tag string
 
 	//uri of the keyvault
 	uri string
 
-	//subscription of the keyvault
-	subscription string
-
 	//include keys and certificates
-	includeCert bool
+	// includeCert bool
 
-	//az client
+	autoUppercase bool
+
+	replaceHyphen bool
+
+	appendExpiration string
+
+	ignoreContentType []string
+
+	keys []string
+
 	client *azsecrets.Client
 
-	newWiz NewWizard
-	// updateWiz UpdateWizard
+	wiz Wizard
+}
+
+var ctx context.Context
+
+func Init() {
+	os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+	azlog.SetListener(func(cls azlog.Event, msg string) {
+		slog.Debug(msg)
+	})
+	azlog.SetEvents(azlog.EventRequest, azlog.EventResponse)
 }
 
 // validate that client implemts the vault interface -> done at vaults.go to avoid circular dependency
@@ -52,59 +70,47 @@ func (cli *Client) DisplayName() string {
 	return "Azure Key Vault"
 }
 
-func (cli *Client) NewVaultWizard() NewWizard {
-	w := newWizard()
-	return w
-}
-
 //region new wiz
 
-func (cli *Client) NewWizardWarmup() error {
-	cli.newWiz = newWizard()
-	cli.newWiz.Warmup()
+func (cli *Client) WizardWarmup(m map[string]string) error {
+	cli.wiz = newWizard(m)
+	cli.wiz.Warmup()
 	return nil
 }
 
-func (cli *Client) NewWizardNext() *huh.Form {
-	// slog.Info("next")
-	return cli.newWiz.Next()
+func (cli *Client) WizardNext() *huh.Form {
+	return cli.wiz.Next()
 }
 
-func (cli *Client) NewWizardComplete() map[string]string {
-	return cli.newWiz.Complete()
-}
-
-//region update wiz
-
-func (cli *Client) UpdateWizardWarmup(map[string]string) error {
-	panic("update vault config is not implemented for keyvault yet..")
-}
-
-func (cli *Client) UpdateWizardNext() *huh.Form {
-	panic("update vault config is not implemented for keyvault yet..")
-}
-
-func (cli *Client) UpdateWizardComplete() map[string]string {
-	panic("update vault config is not implemented for keyvault yet..")
+func (cli *Client) WizardComplete() map[string]string {
+	return cli.wiz.Complete()
 }
 
 // set attributes for the client. used by repository init
 func (cli *Client) SetOptions(options map[string]string) error {
+	slog.Debug("setting options", "options", options)
 
-	keys := []string{"NAME", "TENANT", "URI", "ENV_NAME_TAG", "INCLUDE_CERTANDKEYS"}
-	for _, key := range keys {
-		if options[key] == "" {
-			return fmt.Errorf("option %s cannot be empty", key)
-		}
-	}
-
-	cli.envNameTag = options["ENV_NAME_TAG"]
+	cli.tag = options["ENV_NAME_TAG"]
 	cli.uri = options["URI"]
 	cli.name = options["NAME"]
 	cli.tenant = options["TENANT"]
-	// cli.style = options["STYLE"]
-	cli.includeCert = options["INCLUDE_CERTANDKEYS"] == "true"
-	if cli.envNameTag == "" {
+	cli.autoUppercase = options["AUTO_UPPERCASE"] == "true"
+	cli.replaceHyphen = options["REPLACE_HYPHEN"] == "true"
+	cli.appendExpiration = options["APPEND_EXPIRATION"]
+	cli.ignoreContentType = strings.Split(options["IGNORE_CONTENT_TYPES"], ",")
+
+	if cli.appendExpiration != "" {
+		_, err := time.Parse(time.RFC3339, cli.appendExpiration)
+		if err != nil {
+			return fmt.Errorf("failed to parse append expiration: %s", err)
+		}
+	}
+
+	if len(cli.ignoreContentType) != 0 && len(cli.keys) != 0 {
+		return fmt.Errorf("cannot set both keys and ignore content types")
+	}
+
+	if cli.tag == "" {
 		return fmt.Errorf("env name tag cannot be empty")
 	}
 	if cli.uri == "" {
@@ -118,17 +124,6 @@ func (cli *Client) SetOptions(options map[string]string) error {
 	}
 
 	return nil
-}
-
-func (cli *Client) GetOptions() map[string]string {
-	return map[string]string{
-		"VAULT_TYPE":          "keyvault",
-		"NAME":                cli.name,
-		"TENANT":              cli.tenant,
-		"URI":                 cli.uri,
-		"ENV_NAME_TAG":        cli.envNameTag,
-		"INCLUDE_CERTANDKEYS": fmt.Sprintf("%t", cli.includeCert),
-	}
 }
 
 // Converts a string to keyvault name
@@ -149,7 +144,7 @@ func (cli *Client) Push(name string, value string) error {
 		Value:       &value,
 		ContentType: &contentType,
 		Tags: map[string]*string{
-			cli.envNameTag: &name,
+			cli.tag: &name,
 		},
 	}
 	sName := ConvertToKeyvaultName(name)
@@ -176,11 +171,11 @@ func (cli *Client) Pull() (map[string]string, error) {
 		}
 		// try to get val from tags, else just use secret name
 		var n string
-		if val.Secret.Tags[cli.envNameTag] == nil {
+		if val.Secret.Tags[cli.tag] == nil {
 			slog.With("secret", secret).Debug("no env key found in tags, using secret name")
 			n = secret
 		} else {
-			n = *val.Secret.Tags[cli.envNameTag]
+			n = *val.Secret.Tags[cli.tag]
 		}
 		out[n] = *val.Secret.Value
 	}
@@ -196,9 +191,9 @@ func (cli *Client) List() (out []string, err error) {
 		return nil, err
 	}
 	for _, secret := range list {
-		if !cli.includeCert && *secret.ContentType == "application/x-pkcs12" {
-			continue
-		}
+		// if !cli.includeCert && *secret.ContentType == "application/x-pkcs12" {
+		// 	continue
+		// }
 		out = append(out, secret.ID.Name())
 	}
 

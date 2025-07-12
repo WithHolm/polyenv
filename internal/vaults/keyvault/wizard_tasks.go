@@ -14,7 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 )
 
-// region KISS
+// return a slice of tenants available to the user
 func getTenants() (out []armsubscriptions.TenantIDDescription, err error) {
 	// defer close(chn)
 	out = make([]armsubscriptions.TenantIDDescription, 0)
@@ -41,6 +41,8 @@ func getTenants() (out []armsubscriptions.TenantIDDescription, err error) {
 	return out, nil
 }
 
+// return slice of subscriptions from selected tenant.
+// remember that user needs to have logged in to the tenant using az before sdk returns any subscriptions (even if the tenant is listed in the tenants list)
 func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err error) {
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
@@ -67,6 +69,7 @@ func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err
 	return out, nil
 }
 
+// return a slice of keyvaults from selected subscriptions
 func getKeyvaults(subId []string, tenId string) (out []GraphQueryItem, err error) {
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
@@ -140,6 +143,7 @@ func getKeyvaults(subId []string, tenId string) (out []GraphQueryItem, err error
 	return out, nil
 }
 
+// return a slice of keyvault secrets from selected keyvault
 func getKeyvaultKeys(vaultUri string, tenId string) (out []*azsecrets.SecretProperties, err error) {
 	// ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
