@@ -40,6 +40,12 @@ type Vault interface {
 	WizardComplete() map[string]string
 }
 
+type VaultOptions struct {
+	ReplaceHyphen     bool     `toml:"replaceHyphen"`
+	AutoUppercase     bool     `toml:"autoUppercase"`
+	IgnoreContentType []string `toml:"ignoreContentType"`
+}
+
 func VaildateVaultOpts(opts map[string]string) error {
 	if opts["VAULT_TYPE"] == "" {
 		return fmt.Errorf("vault type cannot be empty")
