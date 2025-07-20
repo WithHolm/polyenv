@@ -1,165 +1,192 @@
 package tui
 
-import (
-	"encoding/json"
-	"fmt"
-	"log/slog"
+// const maxWidth = 80
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
-	"github.com/withholm/polyenv/internal/vaults"
-)
+// type wizState int
 
-const maxWidth = 80
+// const (
+// 	statePre wizState = iota
+// 	stateVlt
+// 	statePost
+// )
 
-type wizState int
+// type InitModel struct {
+// 	vaultType vaults.VaultType
+// 	Vault     vaults.Vault
+// 	Options   vaults.VaultOptions
+// 	state     wizState
+// 	form      *huh.Form
+// 	Completed bool
+// }
 
-const (
-	statePre wizState = iota
-	stateVlt
-	statePost
-)
+// func NewInitModel(vaultType vaults.VaultType, opts map[string]string) *InitModel {
+// 	if vaultType != "" {
+// 		v, e := vaults.NewInitVault(string(vaultType))
+// 		if e != nil {
+// 			slog.Error("failed to create vault", "error", e)
+// 			return nil
+// 		}
 
-type InitModel struct {
-	vaultType vaults.VaultType
-	Vault     vaults.Vault
-	state     wizState
-	form      *huh.Form
-	Completed bool
-}
+// 		e = v.WizardWarmup(opts)
+// 		if e != nil {
+// 			slog.Error("failed to start vault wizard", "error", e)
+// 		}
 
-func NewInitModel(vaultType vaults.VaultType, opts map[string]string) *InitModel {
-	if vaultType != "" {
-		v, e := vaults.NewInitVault(string(vaultType))
-		if e != nil {
-			slog.Error("failed to create vault", "error", e)
-			return nil
-		}
+// 		return &InitModel{
+// 			state:     stateVlt,
+// 			vaultType: vaultType,
+// 			Vault:     v,
+// 			form:      v.WizardNext(),
+// 			Options: vaults.VaultOptions{
+// 				UseDotSecretForSecrets: true,
+// 				HyphenToUnderscore:     true,
+// 				UppercaseLocally:       true,
+// 			},
+// 		}
+// 	}
 
-		e = v.WizardWarmup(opts)
-		if e != nil {
-			slog.Error("failed to start vault wizard", "error", e)
-		}
+// 	in := &InitModel{
+// 		state:     statePre,
+// 		vaultType: vaultType,
+// 		Vault:     nil,
+// 		form:      nil,
+// 		Options: vaults.VaultOptions{
+// 			UseDotSecretForSecrets: true,
+// 			HyphenToUnderscore:     true,
+// 			UppercaseLocally:       true,
+// 		},
+// 	}
+// 	in.form = in.PreFormNext()
+// 	return in
+// }
 
-		return &InitModel{
-			state:     stateVlt,
-			vaultType: vaultType,
-			Vault:     v,
-			form:      v.WizardNext(),
-		}
-	}
+// // region bubbletea
 
-	in := &InitModel{
-		state:     statePre,
-		vaultType: vaultType,
-		Vault:     nil,
-		form:      nil,
-	}
-	in.form = in.PreFormNext()
-	return in
-}
+// // tea Init of form controller
+// func (m InitModel) Init() tea.Cmd {
+// 	return m.form.Init()
+// }
 
-// region bubbletea
-func (m InitModel) Init() tea.Cmd {
-	return m.form.Init()
-}
+// // update form controller
+// func (m InitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// 	var cmds []tea.Cmd
 
-func (m InitModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
+// 	//if current form is completed, move to next form in group
+// 	if m.form.State == huh.StateCompleted {
+// 		slog.Debug("form completed going to next", "state", m.state)
+// 		//check if current model state is completed and move to next state
+// 		switch m.state {
+// 		case statePre:
+// 			m.form = m.PreFormNext()
+// 		case stateVlt:
+// 			m.form = m.Vault.WizardNext()
+// 		case statePost:
+// 			m.form = m.PostFormNext()
+// 		}
+// 		cmd := m.form.Init()
+// 		return m, cmd
+// 		// cmds = append(cmds, cmd)
+// 	}
 
-	// slog.Debug("msg", "str", fmt.Sprintf("%v", msg))
-	if m.form.State == huh.StateCompleted {
-		slog.Debug("form completed going to next", "state", m.state)
-		//check if current model state is completed and move to next state
-		switch m.state {
-		case statePre:
-			m.form = m.PreFormNext()
-		case stateVlt:
-			m.form = m.Vault.WizardNext()
-		case statePost:
-			m.form = m.PostFormNext()
-		}
-		cmd := m.form.Init()
-		return m, cmd
-		// cmds = append(cmds, cmd)
-	}
+// 	//if form is nil, move to next wizard state
+// 	if m.form == nil {
+// 		slog.Debug("going to next wiz state", "current", m.state, "next", m.state+1)
+// 		m.state++
+// 		switch m.state {
+// 		case stateVlt:
+// 			m.form = m.Vault.WizardNext()
+// 		case statePost:
+// 			m.form = m.PostFormNext()
+// 		default:
+// 			return m, tea.Quit
+// 		}
+// 		m.form.Init()
+// 	}
 
-	if m.form == nil {
-		slog.Debug("going to next wiz state", "current", m.state, "next", m.state+1)
-		m.state++
-		switch m.state {
-		case stateVlt:
-			m.form = m.Vault.WizardNext()
-		case statePost:
-			m.form = m.PostFormNext()
-		default:
-			return m, tea.Quit
-		}
-		m.form.Init()
-	}
+// 	switch msg := msg.(type) {
+// 	case tea.KeyMsg:
+// 		switch msg.String() {
+// 		case "ctrl+c", "esc", "q":
+// 			return m, tea.Quit
+// 		}
+// 	}
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc", "q":
-			return m, tea.Quit
-		}
-	default:
-		j, e := json.Marshal(msg)
-		if e != nil {
-			slog.Error("failed to marshal", "error", e)
-			return m, tea.Quit
-		}
-		slog.Debug("msg", "str", fmt.Sprintf("%s", j))
-	}
+// 	form, cmd := m.form.Update(msg)
+// 	if f, ok := form.(*huh.Form); ok {
+// 		m.form = f
+// 		cmds = append(cmds, cmd)
+// 	}
 
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = f
-		cmds = append(cmds, cmd)
-	}
+// 	return m, tea.Batch(cmds...)
+// }
 
-	return m, tea.Batch(cmds...)
-}
+// func (m InitModel) View() string {
+// 	if m.form == nil {
+// 		return ""
+// 	}
+// 	if m.form.State != huh.StateCompleted {
+// 		return m.form.View()
+// 	}
 
-func (m InitModel) View() string {
-	if m.form == nil {
-		return ""
-	}
-	if m.form.State != huh.StateCompleted {
-		return m.form.View()
-	}
-
-	return ""
-}
+// 	return ""
+// }
 
 //endregion
 
 //region other forms
 
-var preFormGroup int
-var postFormGroup int
+// var preFormGroup int
+// var postFormGroup int
 
-func (m InitModel) PreFormNext() *huh.Form {
-	func() { preFormGroup++ }()
-	switch preFormGroup {
-	case 0:
-		return huh.NewForm(
-			huh.NewGroup(
-				vaults.VaultTypeSelector(&m.vaultType),
-			),
-		)
-	}
-	return nil
-}
+// // ran before "new vault" form
+// func (m InitModel) PreFormNext() *huh.Form {
+// 	func() { preFormGroup++ }()
+// 	switch preFormGroup {
+// 	case 0: // select vault type
+// 		return huh.NewForm(
+// 			huh.NewGroup(
+// 				vaults.VaultTypeSelector(&m.vaultType),
+// 			),
+// 		)
+// 	}
+// 	return nil
+// }
 
-func (m InitModel) PostFormNext() *huh.Form {
-	func() { postFormGroup++ }()
-	switch postFormGroup {
-	case 0:
-		return huh.NewForm(huh.NewGroup(
-			huh.NewNote().Title("WARNING").Description("add your dotenv file to .gitignore if you are going to pull to file!"),
-		))
-	}
-	return nil
-}
+// // ran after "new vault" form
+// func (m InitModel) PostFormNext() *huh.Form {
+// 	func() { postFormGroup++ }()
+// 	switch postFormGroup {
+// 	case 0: // additional options
+// 		return huh.NewForm(
+// 			huh.NewGroup(
+// 				huh.NewConfirm().
+// 					Title("Do you want to use dot vault for secrets?").
+// 					Description("Any secrets you pull will be stored in a .env.secret.* file along with your .env file. this makes it easier to add them to gitignore. while being accessible with any .env import system").
+// 					Affirmative("Yes").
+// 					Negative("No").
+// 					Value(&m.Options.UseDotSecretForSecrets),
+// 			),
+// 			huh.NewGroup(
+// 				huh.NewConfirm().
+// 					Title("Do you want to convert hyphens to underscores when pulling secrets?").
+// 					Description("convert remote vault name 'my-secret' to 'my_secret' locally").
+// 					Affirmative("Yes").
+// 					Negative("No").
+// 					Value(&m.Options.HyphenToUnderscore),
+// 			),
+// 			huh.NewGroup(
+// 				huh.NewConfirm().
+// 					Title("Do you want to automatically uppercase the env name when setting env vars?").
+// 					Description("convert remote vault name 'my-secret' to 'MY-SECRET' locally").
+// 					Affirmative("Yes").
+// 					Negative("No").
+// 					Value(&m.Options.UppercaseLocally),
+// 			),
+// 		)
+// 	case 1: // warning
+// 		return huh.NewForm(huh.NewGroup(
+// 			huh.NewNote().Title("WARNING").Description("add your dotenv file to .gitignore if you are going to pull to file!"),
+// 		))
+// 	}
+// 	return nil
+// }
