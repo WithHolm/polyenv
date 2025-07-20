@@ -20,8 +20,7 @@ var rootCmd = &cobra.Command{
 	Use:   "polyenv [action] [arguments]",
 	Short: "a version of dotenv vault that can use other possible providers instead of the 'standard' dotenv-vault.",
 	Long: `
-		A version of dotenv that uses keyvault as 'vault' instead of the dotenv projects default one.
-		Requires the user to have active access to the specified keyvault when this command is run".
+		manage your .env files, enables you to use other possible providers instead of the 'standard' dotenv-vault.
 	`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Set up logger
@@ -30,14 +29,15 @@ var rootCmd = &cobra.Command{
 		// }
 
 		opts := log.Options{
-			Level: log.InfoLevel,
+			Level:        log.InfoLevel,
+			ReportCaller: Debug,
 		}
 		if Debug {
 			opts.Level = log.DebugLevel
+			// opts.ReportCaller = true
 		}
 		handler := log.NewWithOptions(os.Stderr, opts)
 		logger := slog.New(handler)
-		// slog.Debug("debug logging enabled", "debug", Debug)
 		slog.SetDefault(logger)
 	},
 }
@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	// add persistend flags (flags that are set for all commands)
 	// rootCmd.PersistentFlags().StringVar(&author, "author", "Philip Meholm (withholm)", "Author name for copyright attribution")
-	rootCmd.PersistentFlags().StringVarP(&Path, "path", "p", "local.env", "Path to the .env file")
+	rootCmd.PersistentFlags().StringVarP(&Path, "path", "p", ".env", "Path to the .env file")
 	rootCmd.PersistentFlags().BoolVar(&Debug, "debug", false, "Enable debug logging")
 	// rootCmd.PersistentFlags().BoolVar(&Debug, "whatif", false, "Enable whatif. will not push or pull, but will show what would be done")
 
@@ -72,18 +72,18 @@ func Execute() {
 	}
 }
 
-// set path
-func setPathOrArg(args []string) {
-	if len(args) >= 1 && Path != "" {
-		slog.Error("Both --path and positional arguments are set. Please use only one of the two.")
-		os.Exit(1)
-	} else if len(args) == 1 && Path == "" {
-		slog.Debug("using positional argument as path", "path", args[0])
-		Path = args[0]
-	}
+// // set path
+// func setPathOrArg(args []string) {
+// 	if len(args) >= 1 && Path != "" {
+// 		slog.Error("Both --path and positional arguments are set. Please use only one of the two.")
+// 		os.Exit(1)
+// 	} else if len(args) == 1 && Path == "" {
+// 		slog.Debug("using positional argument as path", "path", args[0])
+// 		Path = args[0]
+// 	}
 
-	if Path == "" {
-		slog.Error("no path set. please set --path or positional argument")
-		os.Exit(1)
-	}
-}
+// 	if Path == "" {
+// 		slog.Error("no path set. please set --path or positional argument")
+// 		os.Exit(1)
+// 	}
+// }
