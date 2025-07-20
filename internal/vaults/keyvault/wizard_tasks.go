@@ -11,7 +11,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armsubscriptions"
-	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 )
 
 // return a slice of tenants available to the user
@@ -70,7 +69,7 @@ func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err
 }
 
 // return a slice of keyvaults from selected subscriptions
-func getKeyvaults(subId []string, tenId string) (out []GraphQueryItem, err error) {
+func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) {
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
 		TenantID:                   tenId,
@@ -86,15 +85,15 @@ func getKeyvaults(subId []string, tenId string) (out []GraphQueryItem, err error
 	client := clientFactory.NewClient()
 
 	projections := []string{"name", "resourceGroup", "subscriptionId", "tenantId", "location", "vaultUri = properties.vaultUri"}
-	subFilter := make([]string, len(subId))
-	for i, sub := range subId {
-		subFilter[i] = fmt.Sprintf("'%s'", sub)
-	}
-	subscriptionflt := strings.Join(subFilter, ",")
-	query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults' and subscriptionId in (%s)|project %s", subscriptionflt, strings.Join(projections, ","))
-	slog.Debug("query to run", "value", query)
+	// subFilter := make([]string, len(subId))
+	// for i, sub := range subId {
+	// 	subFilter[i] = fmt.Sprintf("'%s'", sub)
+	// }
+	// subscriptionflt := strings.Join(subFilter, ",")
+	query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults' and subscriptionId == '%s'|project %s", subId, strings.Join(projections, ","))
+	// slog.Debug("query to run", "value", query)
 
-	slog.Debug("query to run", "value", query)
+	// slog.Debug("query to run", "value", query)
 	// get first page. this will also tell us if there are more pages
 	res, err := client.Resources(ctx, armresourcegraph.QueryRequest{
 		Query: to.Ptr(query),
@@ -144,20 +143,20 @@ func getKeyvaults(subId []string, tenId string) (out []GraphQueryItem, err error
 }
 
 // return a slice of keyvault secrets from selected keyvault
-func getKeyvaultKeys(vaultUri string, tenId string) (out []*azsecrets.SecretProperties, err error) {
-	// ctx := context.Background()
-	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		TenantID:                   tenId,
-		AdditionallyAllowedTenants: []string{"*"},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
-	}
+// func getKeyvaultKeys(vaultUri string, tenId string) (out []*azsecrets.SecretProperties, err error) {
+// 	// ctx := context.Background()
+// 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
+// 		TenantID:                   tenId,
+// 		AdditionallyAllowedTenants: []string{"*"},
+// 	})
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
+// 	}
 
-	cli, err := azsecrets.NewClient(vaultUri, cred, nil)
-	out, err = listSecrets(cli)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+// 	cli, err := azsecrets.NewClient(vaultUri, cred, nil)
+// 	out, err = listSecrets(cli)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return out, nil
+// }

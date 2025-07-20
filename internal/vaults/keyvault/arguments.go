@@ -20,7 +20,7 @@ func GetTenant(tenant string) (string, error) {
 	}
 
 	var v map[string]any
-	json.Unmarshal(body, v)
+	json.Unmarshal(body, &v)
 
 	if v["token_endpoint"] == nil {
 		return "", fmt.Errorf("failed to get correct openid config for tenant %s", tenant)
