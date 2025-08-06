@@ -1,0 +1,32 @@
+[
+  {
+    "name": "mystore",
+    "keys": {
+      "mykey": {
+        "content_type": "text/plain",
+        "value": "myvalue",
+        "enabled": true
+      }
+    }
+  },
+  {
+    "name": "myOtherstore",
+    "keys": {
+      "mykey": {
+        "content_type": "text/plain",
+        "value": "myothervalue",
+        "enabled": true
+      },
+      "myOtherkey": {
+        "content_type": "text/plain",
+        "value": "myothervalue",
+        "enabled": false
+      },
+      "myThirdValue": {
+        "content_type": "text/plain",
+        "value": "mythirdvalue",
+        "enabled": false
+      }
+    }
+  }
+]

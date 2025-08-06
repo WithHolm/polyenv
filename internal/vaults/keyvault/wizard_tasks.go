@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -20,17 +21,17 @@ func getTenants() (out []armsubscriptions.TenantIDDescription, err error) {
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
+		return nil, fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 	clientFactory, err := armsubscriptions.NewClientFactory(cred, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client factory: %v", err)
+		return nil, fmt.Errorf("failed to create client factory: %w", err)
 	}
 	pager := clientFactory.NewTenantsClient().NewListPager(nil)
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list tenants: %s", err)
+			return nil, fmt.Errorf("failed to list tenants: %w", err)
 		}
 
 		for _, v := range page.Value {
@@ -44,19 +45,21 @@ func getTenants() (out []armsubscriptions.TenantIDDescription, err error) {
 // remember that user needs to have logged in to the tenant using az before sdk returns any subscriptions (even if the tenant is listed in the tenants list)
 func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err error) {
 	ctx := context.Background()
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
+		TenantID: tenantId,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
+		return nil, fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 	clientFactory, err := armsubscriptions.NewClientFactory(cred, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client factory: %v", err)
+		return nil, fmt.Errorf("failed to create client factory: %w", err)
 	}
 	pager := clientFactory.NewClient().NewListPager(nil)
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list subscriptions: %s", err)
+			return nil, fmt.Errorf("failed to list subscriptions: %w", err)
 		}
 		for _, v := range page.Value {
 			if *v.TenantID == tenantId {
@@ -68,38 +71,55 @@ func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err
 	return out, nil
 }
 
+// map [tenant]graph response
+var (
+	QueryCache = make(map[string][]GraphQueryItem)
+	cacheMutex sync.RWMutex
+)
+
 // return a slice of keyvaults from selected subscriptions
 func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) {
+	slog.Debug("getting keyvaults", "subscription", subId, "tenant", tenId)
+
+	cacheMutex.RLock()
+	defer cacheMutex.RUnlock()
+	out, ok := QueryCache[tenId]
+	if ok {
+		slog.Debug("using cached keyvaults", "count", len(out))
+		o := make([]GraphQueryItem, 0)
+		for _, v := range out {
+			if v.SubscriptionId == subId {
+				o = append(o, v)
+			}
+		}
+		return o, nil
+	}
+
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
 		TenantID:                   tenId,
 		AdditionallyAllowedTenants: []string{"*"},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
+		return nil, fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 	clientFactory, err := armresourcegraph.NewClientFactory(cred, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client factory: %v", err)
+		return nil, fmt.Errorf("failed to create client factory: %w", err)
 	}
 	client := clientFactory.NewClient()
 
+	// var err error
 	projections := []string{"name", "resourceGroup", "subscriptionId", "tenantId", "location", "vaultUri = properties.vaultUri"}
-	// subFilter := make([]string, len(subId))
-	// for i, sub := range subId {
-	// 	subFilter[i] = fmt.Sprintf("'%s'", sub)
-	// }
-	// subscriptionflt := strings.Join(subFilter, ",")
-	query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults' and subscriptionId == '%s'|project %s", subId, strings.Join(projections, ","))
-	// slog.Debug("query to run", "value", query)
+	// query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults' and subscriptionId == '%s'|project %s", subId, strings.Join(projections, ","))
+	query := fmt.Sprintf("resources| where type == 'microsoft.keyvault/vaults'|project %s", strings.Join(projections, ","))
 
-	// slog.Debug("query to run", "value", query)
 	// get first page. this will also tell us if there are more pages
 	res, err := client.Resources(ctx, armresourcegraph.QueryRequest{
 		Query: to.Ptr(query),
 	}, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to finish the request: %v", err)
+		return nil, fmt.Errorf("failed to finish the request: %w", err)
 	}
 
 	// what to expect..
@@ -110,14 +130,14 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 			//marshall to json and then unmarshal to struct.. i wish there was a better way
 			jData, err := json.Marshal(v)
 			if err != nil {
-				return nil, fmt.Errorf("failed to marshal json: %s", err)
+				return nil, fmt.Errorf("failed to marshal json: %w", err)
 			}
 
 			//convert to struct
 			var queryItem GraphQueryItem
 			err = json.Unmarshal(jData, &queryItem)
 			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal json: %s", err)
+				return nil, fmt.Errorf("failed to unmarshal json: %w", err)
 			}
 
 			out = append(out, queryItem)
@@ -135,11 +155,21 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 		}, nil)
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to list keyvault resources: %s", err)
+			return nil, fmt.Errorf("failed to list keyvault resources: %w", err)
 		}
 	}
 
-	return out, nil
+	QueryCache[tenId] = out
+
+	o := make([]GraphQueryItem, 0)
+	for _, v := range out {
+		if v.SubscriptionId == subId {
+			o = append(o, v)
+		}
+	}
+	slog.Debug("got vaults", "count", len(o))
+
+	return o, nil
 }
 
 // return a slice of keyvault secrets from selected keyvault

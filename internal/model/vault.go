@@ -8,18 +8,23 @@ type Vault interface {
 	// returns the display name of the vault
 	DisplayName() string
 
-	// list all secrets
-	List() ([]Secret, error)
-
 	// Warm the vault connection.
 	Warmup() error
 
+	//convert vault to a marshalable map
+	Marshal() map[string]any
+
+	//convert vault from marshalable map
+	Unmarshal(m map[string]any) error
+
 	// validate the incoming config
-	ValidateConfig(options map[string]any) error
+	// ValidateConfig(options map[string]any) error
 
 	//Validate the secret name.used when new secret is made, optionally with a suggestion
 	ValidateSecretName(name string) (string, error)
 
+	// list all secrets
+	List
 	Push
 	Pull
 	Wizard
@@ -50,7 +55,10 @@ type Wizard interface {
 	//starts the wizard. same as vault warmup, but you cannot assume to have the any of the correct data
 	WizWarmup(map[string]any) error
 	//next form in wizard. returns nil if there are no more forms
-	WizNext() *huh.Form
-	//completes the wizard. returns the data to be saved
-	WizComplete() map[string]any
+	WizNext() (*huh.Form, error)
+	//completes the wizard. returns the data to be saved. error if something went wrong
+	WizComplete() (map[string]any, error)
+}
+
+type Wiz struct {
 }

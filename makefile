@@ -1,23 +1,18 @@
-
-app_name=polyenv
-target_folder=./build
-target_os=windows-amd64,linux-amd64,linux-ppc64le,darwin-amd64,darwin-arm64
-target_path=$(target_folder)/$(app_name)
-
-ifeq ($(OS),Windows_NT)
-	target_path=$(target_folder)/$(app_name).exe
-endif
-
-
 init:
 	@go mod tidy
 	@go mod download
-
-build-ci: init
-	@pwsh ./.github/script/build.ps1 -targetOS $(target_os) -path $(target_folder)
 
 test: init
 	@go test ./...
 
 build: init
-	@goreleaser release --clean --snapshot
+	@goreleaser release --clean --snapshot --skip publish
+
+test-release: init
+	@echo "==> Creating a temporary tag for release test..."
+	@git tag -f v9.9.9-test
+	@echo "==> Running goreleaser in release test mode (without publishing)..."
+	@goreleaser release --skip publish --clean
+	@echo "==> Cleaning up temporary tag..."
+	@git tag -d v9.9.9-test
+	@echo "==> Release test complete. Check the 'dist' directory for artifacts."

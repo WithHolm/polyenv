@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/charmbracelet/huh"
+	"github.com/joho/godotenv"
 	"github.com/withholm/polyenv/internal/model"
 	"github.com/withholm/polyenv/internal/tools"
-	"github.com/withholm/polyenv/internal/tui"
 	"github.com/withholm/polyenv/internal/vaults"
 )
 
@@ -22,7 +23,9 @@ type VaultOptions struct {
 
 // struct to hold opened ployenv file
 type File struct {
-	Path     string                    `toml:"-"`
+	//full path to the file
+	Path string `toml:"-"`
+	//name of the environment
 	Name     string                    `toml:"-"`
 	Options  VaultOptions              `toml:"options"`
 	VaultMap map[string]map[string]any `toml:"vault"`
@@ -30,16 +33,32 @@ type File struct {
 	Secrets  map[string]model.Secret   `toml:"secret"`
 }
 
-// open vault from path
-func OpenVaultFile(path string) (File, error) {
-	path = tools.GetVaultFilePath(path)
+//region file
+
+// open vault from env tag
+func OpenFile(env string) (File, error) {
+	root, e := tools.GetGitRootOrCwd()
+	if e != nil {
+		return File{}, e
+	}
+
+	allfiles, e := tools.GetAllFiles(root, []string{".polyenv.toml"})
+	if e != nil {
+		return File{}, e
+	}
+
+	var path string
+	for _, f := range allfiles {
+		if strings.HasPrefix(filepath.Base(f), env) {
+			path = f
+			break
+		}
+	}
+	if path == "" {
+		return File{}, fmt.Errorf("no env file found with name '%s'", env)
+	}
 
 	var vaultFile File
-
-	err := tools.TestVaultFileExists(path)
-	if err != nil {
-		return vaultFile, err
-	}
 
 	// decode the file to struct
 	meta, err := toml.DecodeFile(path, &vaultFile)
@@ -51,38 +70,39 @@ func OpenVaultFile(path string) (File, error) {
 		slog.Warn("got undecoded items in vault file", "undecoded", meta.Undecoded())
 	}
 
-	vaultFile.Path = path
+	vaultFile.Path = filepath.Dir(path)
+	vaultFile.Name, _, _ = strings.Cut(filepath.Base(path), ".")
 
 	//convert map of toml vaults to map of vaultmodel.Vault
+	vaultFile.Vaults = make(map[string]model.Vault)
 	for k, v := range vaultFile.VaultMap {
-		slog.Debug("got vault", "key", k)
+		slog.Debug("processing configured vault", "key", k)
 
 		slog.Debug("vault", "options", v)
-		vaultType := fmt.Sprintf("%s", v["type"])
+		t, ok := v["type"]
+		if !ok {
+			return vaultFile, fmt.Errorf("vault '%s': key 'type' is missing in polyenv file", k)
+		}
+
+		vaultType := fmt.Sprintf("%s", t)
 		if vaultType == "" {
 			return vaultFile, fmt.Errorf("vault '%s': vault 'type' is missing in .polyenv file", k)
 		}
 
-		vault, err := vaults.GetVaultInstance(string(vaultType))
+		vault, err := vaults.NewVaultInstance(string(vaultType))
 		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error getting instance of vault '%s'", k, vaultType)
+			return vaultFile, fmt.Errorf("vault '%s': error getting instance of vault '%s': %w", k, vaultType, err)
 		}
-
-		err = vault.ValidateConfig(v)
+		err = vault.Unmarshal(v)
 		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error validating config: %s", k, err)
+			return vaultFile, fmt.Errorf("vault '%s': error unmarshalling config: %w", k, err)
 		}
-
-		vbyte, err := toml.Marshal(v)
-		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error marshalling vault options: %s", k, err)
-		}
-		err = toml.Unmarshal(vbyte, &vault)
-		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error unmarshalling vault options: %s", k, err)
-		}
-
 		vaultFile.Vaults[k] = vault
+	}
+
+	for k, v := range vaultFile.Secrets {
+		v.LocalKey = k
+		vaultFile.Secrets[k] = v
 	}
 
 	return vaultFile, nil
@@ -91,20 +111,13 @@ func OpenVaultFile(path string) (File, error) {
 func (file *File) Save() {
 	file.VaultMap = make(map[string]map[string]any)
 	for k, v := range file.Vaults {
-		slog.Debug("processing vault", "displayname", k, "vault", v)
-		// stupid conversion to map[string]any
-		// convert to toml then back to map[string]any
-		bytes, err := toml.Marshal(v)
-		if err != nil {
-			slog.Error("failed to marshal vault", "vault", v, "error", err)
-			os.Exit(1)
-		}
+		slog.Debug("marshalling vault", "displayname", k, "vault", v.ToString())
 
-		maps := make(map[string]any)
-		err = toml.Unmarshal(bytes, &maps)
-		if err != nil {
-			slog.Error("failed to decode vault", "vault", v, "error", err)
-			os.Exit(1)
+		maps := v.Marshal()
+
+		_, ok := maps["type"]
+		if !ok {
+			slog.Error("failed to marshal vault", "vault", v, "error", "missing type")
 		}
 
 		file.VaultMap[k] = maps
@@ -115,52 +128,22 @@ func (file *File) Save() {
 		slog.Error("failed to marshal polyenv file", "error", e)
 		os.Exit(1)
 	}
-	slog.Debug("saving polyenvfile", "path", file.Path)
-	err := os.WriteFile(file.Path, bytes, 0644)
+	// filepath := filepath.Join(file.Path, file.Name+".polyenv.toml")
+	slog.Debug("saving polyenvfile", "path", file.Path, "name", file.Name)
+	err := os.WriteFile(filepath.Join(file.Path, file.Name+".polyenv.toml"), bytes, 0644)
 	if err != nil {
 		slog.Error("failed to write polyenv file", "error", err)
 		os.Exit(1)
 	}
 }
 
+// Get the vault by name
 func (file *File) GetVault(name string) (model.Vault, error) {
 	vault, ok := file.Vaults[name]
 	if !ok {
 		return nil, fmt.Errorf("vault not found")
 	}
 	return vault, nil
-}
-
-func (file *File) TuiSelectVault() *model.Vault {
-	var displayName string
-	f := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Select vault").
-				OptionsFunc(func() (ret []huh.Option[string]) {
-					for k, v := range file.Vaults {
-						ret = append(ret, huh.NewOption(fmt.Sprintf("%s (%s)", k, v.ToString()), k))
-					}
-					return ret
-				}, nil).
-				Value(&displayName),
-		),
-	)
-	tui.RunHuh(f)
-	vault, ok := file.Vaults[displayName]
-	if !ok {
-		slog.Error("vault not found", "vault", displayName)
-		os.Exit(1)
-	}
-	return &vault
-}
-
-func (file *File) AddVault(displayName string, vault model.Vault) {
-	file.Vaults[displayName] = vault
-}
-
-func (file *File) RemoveVault(displayName string) {
-	delete(file.Vaults, displayName)
 }
 
 func (file *File) GetVaultNames() []string {
@@ -182,13 +165,79 @@ func (file *File) ValidateSecretName(name string) error {
 	return nil
 }
 
+func (file *File) GetSecretInfo(remoteKey string, vault string) (model.Secret, bool) {
+	for _, v := range file.Secrets {
+		// slog.Info("secret", "remotekey", v.RemoteKey, "vault", v.Vault)
+		if v.RemoteKey == remoteKey && v.Vault == vault {
+			return v, true
+		}
+	}
+	return model.Secret{}, false
+}
+
+//region vaultopts
+
 // converts string using rules set by options
 func (opt VaultOptions) ConvertString(s string) string {
-	if opt.UppercaseLocally {
+	if opt.UppercaseLocally && strings.ToUpper(s) != s {
+		// slog.Debug("converting to uppercase", "string", s)
 		s = strings.ToUpper(s)
 	}
-	if opt.HyphenToUnderscore {
+	if opt.HyphenToUnderscore && strings.Contains(s, "-") {
+		// slog.Debug("converting to underscore", "string", s)
 		s = strings.ReplaceAll(s, "-", "_")
 	}
 	return s
+}
+
+// return all dotenv keys in the project in files that include current environment
+// {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
+func (f *File) AllDotenvKeys() (out []model.StoredEnv, err error) {
+	// get all files
+	cwd, err := tools.GetGitRootOrCwd()
+	if err != nil {
+		return nil, err
+	}
+	allfiles, err := tools.GetAllFiles(cwd, []string{".env"})
+	if err != nil {
+		return nil, err
+	}
+
+	// sort by amount of /
+	sort.Slice(allfiles, func(i, j int) bool {
+		return strings.Count(allfiles[i], "/") > strings.Count(allfiles[j], "/")
+	})
+
+	for _, fl := range allfiles {
+		// {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
+		if !strings.Contains(fl, f.Name) {
+			continue
+		}
+
+		slog.Debug("found file", "file", fl)
+
+		m, e := godotenv.Read(fl)
+		if e != nil {
+			slog.Error("failed to read file", "error", e)
+			os.Exit(1)
+		}
+
+		for k, v := range m {
+			out = append(out, model.StoredEnv{
+				Key:   k,
+				Value: v,
+				File:  fl,
+			})
+		}
+	}
+
+	return out, nil
+}
+
+// generate a new file name based on the current file name
+func (f *File) GenerateFileName(extension string) string {
+	// extension = strings.TrimPrefix(extension, ".")
+	extension = strings.TrimSuffix(extension, ".")
+
+	return extension + "." + f.Name
 }

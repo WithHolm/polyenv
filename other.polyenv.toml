@@ -1,0 +1,23 @@
+[options]
+  hyphens_to_underscores = true
+  uppercase_locally = true
+  use_dot_secret_file_for_secrets = true
+
+[vault]
+  [vault."Azure Key Vault"]
+    tenant = "ecabee7b-8606-4ae2-9f69-d63203bc23d5"
+    type = "keyvault"
+    uri = "https://kv-dev-samna-pkeys.vault.azure.net/"
+  [vault."Development Vault"]
+    store = "myOtherstore"
+    type = "devvault"
+
+[secret]
+  [secret.MY_KEEY]
+    vault = "Azure Key Vault"
+    content_type = "text/plain"
+    remote_key = "key"
+  [secret.MY_KEY]
+    vault = "Development Vault"
+    content_type = "text/plain"
+    remote_key = "mykey"

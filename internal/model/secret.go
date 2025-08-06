@@ -1,6 +1,11 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"log/slog"
+
+	"github.com/joho/godotenv"
+)
 
 type Secret struct {
 	Vault       string `toml:"vault"`
@@ -16,6 +21,12 @@ type SecretContent struct {
 	Value       string
 	RemoteKey   string
 	LocalKey    string
+}
+
+type StoredEnv struct {
+	Value string
+	Key   string
+	File  string
 }
 
 func (s Secret) ToString() string { return fmt.Sprintf("%s (%s)", s.RemoteKey, s.ContentType) }
@@ -44,6 +55,48 @@ func (s Secret) SetContent(v Vault, content SecretContent) error {
 	er := v.Push(content)
 	if er != nil {
 		return fmt.Errorf("failed to push secret: %s", er)
+	}
+	return nil
+}
+
+// saves stored env variable to dotenv file.
+// will update if key already exists, or create new if not
+func (st StoredEnv) Save() error {
+	mp, e := godotenv.Read(st.File)
+	if e != nil {
+		return fmt.Errorf("failed to parse dotenv file: %w", e)
+	}
+	currentvalue, ok := mp[st.Key]
+	if ok {
+		if currentvalue == st.Value {
+			return nil
+		}
+	}
+
+	mp[st.Key] = st.Value
+	slog.Debug("saving env", "key", st.Key, "file", st.File)
+	e = godotenv.Write(mp, st.File)
+	if e != nil {
+		return fmt.Errorf("failed to write to dotenv file: %w", e)
+	}
+	return nil
+}
+
+// removes stored env variable from dotenv file
+func (st StoredEnv) Remove() error {
+	mp, e := godotenv.Read(st.File)
+	if e != nil {
+		return fmt.Errorf("failed to parse dotenv file: %w", e)
+	}
+
+	_, ok := mp[st.Key]
+	if ok {
+		delete(mp, st.Key)
+	}
+
+	e = godotenv.Write(mp, st.File)
+	if e != nil {
+		return fmt.Errorf("failed to write to dotenv file: %w", e)
 	}
 	return nil
 }

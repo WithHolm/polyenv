@@ -1,0 +1,20 @@
+[options]
+  hyphens_to_underscores = true
+  uppercase_locally = true
+  use_dot_secret_file_for_secrets = true
+
+[vault]
+  [vault.akv]
+    tenant = "ecabee7b-8606-4ae2-9f69-d63203bc23d5"
+    type = "keyvault"
+    uri = "https://kv-dev-samna-pkeys.vault.azure.net/"
+
+[secret]
+  [secret.MY_SUPER_SECRET]
+    vault = "akv"
+    content_type = "text/plain"
+    remote_key = "my-super-secret"
+  [secret.SOME_KEY]
+    vault = "akv"
+    content_type = "text/plain"
+    remote_key = "some-key"

@@ -5,7 +5,52 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync"
 )
+
+// region app config
+
+type appConfig struct {
+	Debug         bool
+	TruncateDebug bool
+}
+
+var (
+	instance    *appConfig
+	configMutex sync.RWMutex
+	once        sync.Once
+)
+
+// returns the current app config
+func AppConfig() *appConfig {
+	configMutex.RLock()
+	defer configMutex.RUnlock()
+	once.Do(func() {
+		instance = &appConfig{
+			TruncateDebug: true, // default value
+			Debug:         false,
+		}
+	})
+
+	return instance
+}
+
+// set debug
+func (a *appConfig) SetDebug(d bool) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+
+	instance.Debug = d
+}
+
+// set truncate debug
+func (a *appConfig) SetTruncateDebug(d bool) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	instance.TruncateDebug = d
+}
+
+//region other
 
 // extract filename from cobra args
 func ExtractFilenameArg(args []string) (s string) {
@@ -18,14 +63,6 @@ func ExtractFilenameArg(args []string) (s string) {
 	}
 	return ""
 }
-
-// append .env extension to path if not already there
-// func AppendDotEnvExtension(path string) string {
-// 	if strings.Contains(path, ".env") {
-// 		return path
-// 	}
-// 	return ".env"path + ""
-// }
 
 // extract vault name from cobra args
 func ExtractVaultNameArg(args []string, vaults []string) (string, error) {
