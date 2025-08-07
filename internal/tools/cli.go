@@ -41,6 +41,11 @@ func (a *appConfig) SetDebug(d bool) {
 	defer configMutex.Unlock()
 
 	instance.Debug = d
+	if d {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	} else {
+		slog.SetLogLoggerLevel(slog.LevelInfo)
+	}
 }
 
 // set truncate debug
