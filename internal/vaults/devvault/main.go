@@ -3,18 +3,46 @@
 package devvault
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 
 	"github.com/charmbracelet/huh"
 	"github.com/withholm/polyenv/internal/model"
 )
 
-//go:embed dev.json
-var devstoreFile []byte
-
 var vaultName = "devvault"
+
+var stores = []Store{
+	{
+		Name: "mystore",
+		Keys: map[string]Key{
+			"mykey": {
+				ContentType: "text/plain",
+				Value:       "myvalue",
+				Enabled:     true,
+			},
+		},
+	},
+	{
+		Name: "myOtherstore",
+		Keys: map[string]Key{
+			"mykey": {
+				ContentType: "text/plain",
+				Value:       "myothervalue",
+				Enabled:     true,
+			},
+			"myOtherkey": {
+				ContentType: "text/plain",
+				Value:       "myothervalue",
+				Enabled:     false,
+			},
+			"myThirdValue": {
+				ContentType: "text/plain",
+				Value:       "mythirdvalue",
+				Enabled:     false,
+			},
+		},
+	},
+}
 
 // const devstore []Store = make([]Store, 0)
 
@@ -38,13 +66,14 @@ type Client struct {
 var devStore []Store
 
 func getVaults() (out []Store, err error) {
-	if len(devStore) == 0 {
-		e := json.Unmarshal(devstoreFile, &devStore)
-		if e != nil {
-			return nil, e
-		}
-	}
-	return devStore, nil
+	return stores, nil
+	// if len(devStore) == 0 {
+	// 	e := json.Unmarshal(devstoreFile, &devStore)
+	// 	if e != nil {
+	// 		return nil, e
+	// 	}
+	// }
+	// return devStore, nil
 }
 
 func (c *Client) ToString() string {
