@@ -13,9 +13,16 @@ import (
 	"strings"
 
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	azsec "github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 )
+
+type azsecretsClient interface {
+	NewListSecretPropertiesPager(options *azsec.ListSecretPropertiesOptions) *runtime.Pager[azsec.ListSecretPropertiesResponse]
+	GetSecret(ctx context.Context, name string, version string, options *azsec.GetSecretOptions) (azsec.GetSecretResponse, error)
+	SetSecret(ctx context.Context, name string, parameters azsec.SetSecretParameters, options *azsec.SetSecretOptions) (azsec.SetSecretResponse, error)
+}
 
 type Client struct {
 	//name of the keyvault
@@ -27,7 +34,7 @@ type Client struct {
 	//uri of the keyvault
 	Uri string `toml:"uri"`
 
-	client *azsecrets.Client `toml:"-"`
+	client azsecretsClient `toml:"-"`
 
 	wiz Wizard `toml:"-"`
 }
@@ -140,7 +147,7 @@ func (cli *Client) Warmup() error {
 		return err
 	}
 
-	newCli, err := azsecrets.NewClient(cli.Uri, cred, nil)
+	newCli, err := azsec.NewClient(cli.Uri, cred, nil)
 	if err != nil {
 		return err
 	}
