@@ -76,7 +76,7 @@ func initialize(cmd *cobra.Command, args []string) {
 		),
 	)
 	tui.RunHuh(f)
-	file.TuiAddOpts(nil)
+	file.TuiAddOpts(nil, false)
 
 	e := file.TuiAddGitIgnore()
 	if e != nil {

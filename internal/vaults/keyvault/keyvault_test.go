@@ -8,50 +8,14 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/withholm/polyenv/internal/model"
+	"github.com/withholm/polyenv/internal/vaults/vaulttest"
 )
 
-func TestClient_List(t *testing.T) {
+func TestKeyVault(t *testing.T) {
 	mock := &mockAzsecretsClient{}
-	c := &Client{client: mock}
-
-	secrets, err := c.List()
-	if err != nil {
-		t.Fatalf("List() returned an error: %v", err)
-	}
-
-	if len(secrets) != 2 {
-		t.Errorf("expected 2 secrets, but got %d", len(secrets))
-	}
-}
-
-func TestClient_Pull(t *testing.T) {
-	mock := &mockAzsecretsClient{}
-	c := &Client{client: mock}
-
-	secret := model.Secret{RemoteKey: "secret1"}
-	content, err := c.Pull(secret)
-	if err != nil {
-		t.Fatalf("Pull() returned an error: %v", err)
-	}
-
-	if content.Value != "value1" {
-		t.Errorf("expected value to be 'value1', but got '%s'", content.Value)
-	}
-}
-
-func TestClient_Push(t *testing.T) {
-	mock := &mockAzsecretsClient{}
-	c := &Client{client: mock}
-
-	content := model.SecretContent{RemoteKey: "secret1", Value: "new-value"}
-	err := c.Push(content)
-	if err != nil {
-		t.Fatalf("Push() returned an error: %v", err)
-	}
-
-	if !mock.SetSecretCalled {
-		t.Error("SetSecret was not called")
-	}
+	vaulttest.TestVault(t, &Client{client: mock}, func() model.Vault {
+		return &Client{}
+	})
 }
 
 type mockAzsecretsClient struct {

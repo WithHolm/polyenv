@@ -253,7 +253,6 @@ func (p *File) TuiAddSecret(vaultName string) {
 		}
 		secret.LocalKey = displayname
 		p.Secrets[displayname] = secret
-		// setSecretsFromVault = append(setSecretsFromVault, secret)
 	}
 
 	//remove secrets from local that where de-selected during selection
@@ -281,43 +280,54 @@ func (p *File) TuiAddSecret(vaultName string) {
 
 // TODO: add indivitial checks for each option
 // add options to the polyenv file
-func (p *File) TuiAddOpts(opts *VaultOptions) {
+func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 	if opts != nil {
 		p.Options = *opts
-	} else {
-		desc := []string{
-			"Any secrets you pull will be stored in a .env.secret." + p.Name + " file instead of .env file.",
-			"This makes it easier to add them to gitignore. while being accessible with any .env import system",
-			"I HIGLY SUGGEST YOU USE THIS",
-		}
-		f := huh.NewForm(
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Do you want to use dot vault for secrets?").
-					Description(strings.Join(desc, "\n")).
-					Affirmative("Yes").
-					Negative("No").
-					Value(&p.Options.UseDotSecretFileForSecrets),
-			),
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Convert hyphens to underscores in env name when setting setting new secrets?").
-					Description("convert remote secret name 'my-secret' to 'my_secret' locally").
-					Affirmative("Yes").
-					Negative("No").
-					Value(&p.Options.HyphenToUnderscore),
-			),
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Automatically uppercase env name when setting new secrets?").
-					Description("convert remote vault name 'my-secret' to 'MY-SECRET' locally").
-					Affirmative("Yes").
-					Negative("No").
-					Value(&p.Options.UppercaseLocally),
-			),
-		)
-		tui.RunHuh(f)
 	}
+
+	f := huh.NewForm(
+		huh.NewGroup(
+			huh.NewNote().Title("Global Options").Description(strings.Join([]string{
+				"These are the global options currently defined:",
+				fmt.Sprintf("Save all secrets to a .env.secret.%s instead of .env? %t", p.Name, p.Options.UseDotSecretFileForSecrets),
+			}, "\n")),
+			huh.NewNote().TitleFunc(func() string {
+				return fmt.Sprintf("Save all secrets to a .env.secret.%s instead of .env", p.Name)
+			}, nil).Description(fmt.Sprintf("%t", p.Options.UseDotSecretFileForSecrets)),
+
+			huh.NewConfirm().Title("Do you want to keep these or edit them?").Affirmative("Keep").Negative("Edit").Value(&acceptDefaults),
+		).WithHide(acceptDefaults),
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Global: Do you want to use dot secret file for secrets?").
+				Description(strings.Join([]string{
+					"Any secrets you pull will be stored in a .env.secret." + p.Name + " file instead of .env file.",
+					"This makes it easier to add them to gitignore. while being accessible with any .env import system",
+					"I HIGLY SUGGEST YOU USE THIS",
+				}, "\n")).
+				Affirmative("Yes").
+				Negative("No").
+				Value(&p.Options.UseDotSecretFileForSecrets),
+		).WithHide(acceptDefaults),
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Global: Convert hyphens to underscores in env name when setting setting new secrets?").
+				Description("convert remote secret name 'my-secret' to 'my_secret' locally").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&p.Options.HyphenToUnderscore),
+		).WithHide(acceptDefaults),
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Global: Automatically uppercase env name when setting new secrets?").
+				Description("convert remote vault name 'my-secret' to 'MY-SECRET' locally").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&p.Options.UppercaseLocally),
+		).WithHide(acceptDefaults),
+	)
+	tui.RunHuh(f)
+
 	p.Save()
 }
 
