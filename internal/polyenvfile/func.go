@@ -18,14 +18,15 @@ func FileExists(env string) error {
 	if e != nil {
 		return e
 	}
+	slog.Debug("working", "dir", workingDir)
 	Files, err := tools.GetAllFiles(workingDir, []string{"polyenv.toml"})
 	if err != nil {
 		return err
 	}
-	slog.Debug("checking", "files", Files)
+	slog.Debug("checking", "env", env, "files", Files)
 	for _, f := range Files {
-		slog.Debug("checking", "file", f)
 		filename := filepath.Base(f)
+		slog.Debug("checking", "file", filename)
 		if strings.HasPrefix(filename, env) {
 			return fmt.Errorf("file '%s' already exists: %s", env, f)
 		}
@@ -33,7 +34,7 @@ func FileExists(env string) error {
 	return nil
 }
 
-// Lists all environments
+// Lists all environments. returns string slice of names of environments
 func ListEnvironments() ([]string, error) {
 	workingDir, e := tools.GetGitRootOrCwd()
 	if e != nil {
