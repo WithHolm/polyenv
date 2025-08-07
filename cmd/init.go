@@ -41,7 +41,7 @@ var initCmd = &cobra.Command{
 func init() {
 	description := "quick init will lead you directly to the setup for the given vault"
 	initCmd.Flags().StringVar(&vaultType, "type", "", description)
-	initCmd.Flags().BoolVar(&checkgitignore, "gig", false, "ye")
+	// initCmd.Flags().BoolVar(&useDefaultConfig, "use-default-config", false, "")
 	initCmd.Flags().StringArrayVarP(&initargs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
 	err := initCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return vaults.List(), cobra.ShellCompDirectiveKeepOrder

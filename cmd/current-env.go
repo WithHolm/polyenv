@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -19,8 +20,9 @@ var output string
 
 var outputs = []string{
 	"json",
-	"pwshdevops",
-	"pwsh",
+	"azdevops",
+	// "pwshdevops",
+	// "pwsh",
 }
 
 func generateEnvCommand() *cobra.Command {
@@ -60,13 +62,31 @@ func listEnv(cmd *cobra.Command, args []string) {
 		out[v.Key] = v.Value
 	}
 
-	jsonBytes, err := json.MarshalIndent(out, "", "  ")
+	exePath, err := os.Executable()
 	if err != nil {
-		slog.Error("failed to marshal json", "error", err)
-		os.Exit(1)
+		fmt.Println("Error:", err)
+		return
 	}
 
-	fmt.Println(string(jsonBytes))
+	switch output {
+	case "json":
+		jsonBytes, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			slog.Error("failed to marshal json", "error", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(jsonBytes))
+	case "azdevops":
+		for k, v := range out {
+			_, isSecret := PolyenvFile.Secrets[k]
+			fmt.Printf("##vso[task.setvariable variable=%s;issecret=%v]%s\n", k, isSecret, v)
+		}
+	case "pwsh":
+		fmt.Printf(pwshToEnvCommand, exePath, "!"+Environment)
+	default:
+		slog.Error("unhandeled output case", "case", output)
+	}
+
 }
 
 // list stats for currently stored env variables
@@ -113,7 +133,6 @@ func listEnvStats(l []model.StoredEnv) {
 		{Title: "SecretVault", Width: max(longestVault, len("SecretVault"))},
 	}
 
-	// theme := huh.ThemeCatppuccin()
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
@@ -122,29 +141,8 @@ func listEnvStats(l []model.StoredEnv) {
 	)
 
 	t.View()
-	// s := table.DefaultStyles()
-	// style := lipgloss.NewStyle().
-	// 	BorderStyle(lipgloss.RoundedBorder()).
-	// style := lipgloss.NewStyle().
-	// 	BorderStyle(lipgloss.NormalBorder()).
-	// 	Background(theme.Focused.Base.GetBackground())
-	// style.
-	// Foreground(lipgloss.Color("205")).
-	// BorderStyle(lipgloss.RoundedBorder()).
-	// BorderForeground(lipgloss.Color("205"))
-
-	// t.SetStyle(style)
-
 	fmt.Print(t.View() + "\n")
-	// fmt.Print(style.Render(t.View()) + "\n")
-
-	// t.BorderStyle = lipgloss.RoundedBorder()
-	// t.TitleStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	// t.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	// t.SetColumnStyle(0, lipgloss.NewStyle().Foreground(lipgloss.Color("205")))
-	// t.SetColumnStyle(1, lipgloss.NewStyle().Foreground(lipgloss.Color("205")))
-	// t.SetColumnStyle(2, lipgloss.NewStyle().Foreground(lipgloss.Color("205")))
-
-	// t.
-	// // lipgloss.NewRenderer(lipgloss.ANSI256).Render(t.View())
 }
+
+//go:embed script/pwsh-env.ps1
+var pwshToEnvCommand string
