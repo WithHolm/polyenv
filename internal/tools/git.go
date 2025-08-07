@@ -7,6 +7,7 @@ import (
 
 var Cwd string
 var CwdErr error
+var CurrWd string
 
 // GetGitRoot finds the root directory of the git repository containing the current working directory.
 // It does this by walking up the directory tree from the CWD and looking for a ".git" directory or file.
@@ -36,10 +37,12 @@ func _getGitRootOrCwd() (string, error) {
 	}
 }
 
+// returns cached git root or current working directory
 func GetGitRootOrCwd() (string, error) {
-	if Cwd != "" || CwdErr != nil {
-		return Cwd, CwdErr
-	}
-	Cwd, CwdErr = _getGitRootOrCwd()
-	return Cwd, CwdErr
+	return _getGitRootOrCwd()
+	// if Cwd != "" || CwdErr != nil {
+	// 	return Cwd, CwdErr
+	// }
+	// Cwd, CwdErr = _getGitRootOrCwd()
+	// return Cwd, CwdErr
 }
