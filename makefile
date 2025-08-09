@@ -2,11 +2,10 @@ init:
 	@go mod tidy
 	@go mod download
 
-deadcode:
-	@go vet ./...
-
 test: init
-	@go test ./...
+	@go test ./internal/... ./cmd/... -coverprofile=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html
+	
 
 build: init
 	@goreleaser release --clean --snapshot --skip publish
