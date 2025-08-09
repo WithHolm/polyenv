@@ -197,15 +197,3 @@ func TestFile_GetSecretInfo(t *testing.T) {
 		t.Error("GetSecretInfo() found a non-existent secret")
 	}
 }
-
-func TestVaultOptions_ConvertString(t *testing.T) {
-	opt := VaultOptions{
-		HyphenToUnderscore: true,
-		UppercaseLocally:   true,
-	}
-
-	converted := opt.ConvertString("my-secret")
-	if converted != "MY_SECRET" {
-		t.Errorf("expected 'my-secret' to be converted to 'MY_SECRET', but got '%s'", converted)
-	}
-}

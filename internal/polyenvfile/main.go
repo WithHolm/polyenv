@@ -15,12 +15,6 @@ import (
 	"github.com/withholm/polyenv/internal/vaults"
 )
 
-type VaultOptions struct {
-	HyphenToUnderscore         bool `toml:"hyphens_to_underscores"`
-	UppercaseLocally           bool `toml:"uppercase_locally"`
-	UseDotSecretFileForSecrets bool `toml:"use_dot_secret_file_for_secrets"`
-}
-
 // struct to hold opened ployenv file
 type File struct {
 	//full path to the file
@@ -176,19 +170,6 @@ func (file *File) GetSecretInfo(remoteKey string, vault string) (model.Secret, b
 }
 
 //region vaultopts
-
-// converts string using rules set by options
-func (opt VaultOptions) ConvertString(s string) string {
-	if opt.UppercaseLocally && strings.ToUpper(s) != s {
-		// slog.Debug("converting to uppercase", "string", s)
-		s = strings.ToUpper(s)
-	}
-	if opt.HyphenToUnderscore && strings.Contains(s, "-") {
-		// slog.Debug("converting to underscore", "string", s)
-		s = strings.ReplaceAll(s, "-", "_")
-	}
-	return s
-}
 
 // return all dotenv keys in the project in files that include current environment
 // {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
