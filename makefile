@@ -2,6 +2,9 @@ init:
 	@go mod tidy
 	@go mod download
 
+deadcode:
+	@go vet ./...
+
 test: init
 	@go test ./...
 

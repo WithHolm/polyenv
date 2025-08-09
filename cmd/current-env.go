@@ -143,6 +143,3 @@ func listEnvStats(l []model.StoredEnv) {
 	t.View()
 	fmt.Print(t.View() + "\n")
 }
-
-//go:embed script/pwsh-env.ps1
-var pwshToEnvCommand string
