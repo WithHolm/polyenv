@@ -66,16 +66,16 @@ func initialize(cmd *cobra.Command, args []string) {
 	file := polyenvfile.TuiNewFile(Environment)
 
 	//set global options
-	f := huh.NewForm(
-		huh.NewGroup(
-			huh.NewNote().
-				Title("Global options").
-				Description("Set options. all vaults will adhere to these..").
-				Next(true).
-				NextLabel("Enter to continue"),
-		),
-	)
-	tui.RunHuh(f)
+	// f := huh.NewForm(
+	// 	huh.NewGroup(
+	// 		huh.NewNote().
+	// 			Title("Global options").
+	// 			Description("Set options. all vaults will adhere to these..").
+	// 			Next(true).
+	// 			NextLabel("Enter to continue"),
+	// 	),
+	// )
+	// tui.RunHuh(f)
 	file.TuiAddOpts(nil, false)
 
 	e := file.TuiAddGitIgnore()
