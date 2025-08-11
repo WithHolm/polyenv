@@ -36,6 +36,8 @@ jobs:
             **/*_test.go
             **/*.go
             **/*.mod
+          files_ignore: |
+            vendor/**
           matrix: true
       - name: Get unique directories
         id: unique-directories
