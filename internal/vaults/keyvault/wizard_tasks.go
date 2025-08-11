@@ -82,12 +82,13 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 	slog.Debug("getting keyvaults", "subscription", subId, "tenant", tenId)
 
 	cacheMutex.RLock()
-	defer cacheMutex.RUnlock()
-	out, ok := QueryCache[tenId]
+	cachedResult, ok := QueryCache[tenId]
+	cacheMutex.RUnlock()
+
 	if ok {
-		slog.Debug("using cached keyvaults", "count", len(out))
+		slog.Debug("using cached keyvaults", "count", len(cachedResult))
 		o := make([]GraphQueryItem, 0)
-		for _, v := range out {
+		for _, v := range cachedResult {
 			if v.SubscriptionId == subId {
 				o = append(o, v)
 			}
@@ -159,7 +160,9 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 		}
 	}
 
+	cacheMutex.Lock()
 	QueryCache[tenId] = out
+	cacheMutex.Unlock()
 
 	o := make([]GraphQueryItem, 0)
 	for _, v := range out {
