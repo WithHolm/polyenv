@@ -73,7 +73,7 @@ func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err
 
 // map [tenant]graph response
 var (
-	QueryCache = make(map[string][]GraphQueryItem)
+	queryCache = make(map[string][]GraphQueryItem)
 	cacheMutex sync.RWMutex
 )
 
