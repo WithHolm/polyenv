@@ -81,9 +81,8 @@ func pull(cmd *cobra.Command, args []string) {
 -			secretFilePath = root + "/" + secretFilename
 +			secretFilePath = filepath.Join(root, secretFilename)
 			// create new file
-			_, e := os.Create(secretFilePath)
-			if e != nil {
-				slog.Error("failed to create .env.secret file", "error", e)
+			if err := os.WriteFile(secretFilePath, []byte{}, 0o600); err != nil {
+				slog.Error("failed to create .env.secret file", "error", err)
 				os.Exit(1)
 			}
 		} else {
