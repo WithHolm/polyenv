@@ -63,10 +63,8 @@ jobs:
           cache: true
       - name: Run test for ${{ matrix.packages }}
         run: |
-          if [ "${{ matrix.packages }}" = "." ]; then
-            go test -v -race ./...
-          else
-            go test -v -race "./${{ matrix.packages }}"
+          if [ "${{ matrix.packages }}" != "." ]; then
+          go test -v -race "${{ matrix.packages }}"
           fi
       - name: Run govulncheck for ${{ matrix.packages }}
         run: |
@@ -74,5 +72,5 @@ jobs:
           if [ "${{ matrix.packages }}" = "." ]; then
             govulncheck ./...
           else
-            govulncheck "./${{ matrix.packages }}"
+            govulncheck "${{ matrix.packages }}"
           fi
