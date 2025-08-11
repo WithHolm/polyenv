@@ -75,7 +75,7 @@ func pull(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		if len(secretFiles) > 1 {
-			slog.Error("oh wow. i am poly-env-onomus. multiple .env.secret files dont work for me, hun", "files", secretFilename)
+			slog.Error("multiple .env.secret files found; expected exactly one", "files", secretFiles)
 			os.Exit(1)
 		} else if len(secretFiles) == 0 {
 -			secretFilePath = root + "/" + secretFilename
