@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/denormal/go-gitignore"
@@ -55,6 +56,21 @@ func ListEnvironments() ([]string, error) {
 	return out, nil
 }
 
+// check is project root is a git repo
+func RootIsGitRepo() bool {
+	root, err := tools.GetGitRootOrCwd()
+	if err != nil {
+		slog.Debug("failed to get git root", "error", err)
+		return false
+	}
+
+	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
+		return false
+	}
+
+	return true
+}
+
 // checks if the .gitignore file matches the .env.secure file
 func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 	skipPath = append(skipPath, []string{
@@ -78,6 +94,10 @@ func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 	e := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			return nil
+		}
+
+		if slices.Contains(skipPath, d.Name()) {
+			return filepath.SkipDir
 		}
 
 		if path != root {

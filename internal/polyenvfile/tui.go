@@ -67,7 +67,11 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 		tui.RunHuh(f)
 	}
 
-	vault.WizComplete()
+	err = vault.WizComplete()
+	if err != nil {
+		slog.Error("failed to complete vault wizard", "error", err)
+		os.Exit(1)
+	}
 
 	var vaultDisplayName string
 	var addSecret bool
@@ -103,6 +107,7 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 	if vaultDisplayName == "" {
 		vaultDisplayName = vault.DisplayName()
 	}
+
 	if p.Vaults == nil {
 		p.Vaults = make(map[string]model.Vault)
 	}
@@ -138,7 +143,6 @@ func (file *File) TuiSelectVault() string {
 	}
 	slog.Debug("selected vault", "vault", vault.ToString())
 	return displayName
-
 }
 
 // region secret
@@ -516,6 +520,10 @@ func tuiSelectEnvNote(env string) string {
 
 func (p *File) TuiAddGitIgnore() error {
 	if !p.Options.UseDotSecretFileForSecrets {
+		return nil
+	}
+
+	if !RootIsGitRepo() {
 		return nil
 	}
 

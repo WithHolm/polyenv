@@ -131,6 +131,10 @@ func (file *File) Save() {
 	}
 }
 
+func (file *File) Fullname() string {
+	return filepath.Join(file.Path, file.Name+".polyenv.toml")
+}
+
 // Get the vault by name
 func (file *File) GetVault(name string) (model.Vault, error) {
 	vault, ok := file.Vaults[name]

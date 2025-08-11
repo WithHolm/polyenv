@@ -1,13 +1,19 @@
 # polyenv
 
-polyenv is a CLI tool that allows you to to grab secrets directly from your enterprise vaults and either save them to local .env file or a new .env.secret file.
+![alt](/docs/logo.png)
+
+polyenv is a CLI tool that allows you to manage secrets in your environment and show values from multiple env files
 
 for now only Azure Keyvault is supported, but more will be available in the future.
 
+no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool that you can use to pull secrets from your already defined
+
 ## Features
 
-- Initialize a .polyenv.toml file for config. this can be used with your git repo
-- Pull secrets from remote vault
+- Initialize a .polyenv.toml file for config. this can be synced used with your git repo.
+- Pull secrets from a selection of remote vaults.
+- Load values from multiple env files within the same environment.
+- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool.
 
 ## Installation
 
@@ -26,6 +32,8 @@ it will ask you to add vaults and secrets:
 - `polyenv init --type {vaultType} --arg key=value`: Initializes the environment with the given [vault type](#supported-vaults) and sets the given arguments set dotenv style
 
 in all cases it will create a `{env}.polyenv.toml` file in the current directory. this file can be moved anywhere within your repo.
+
+![init](/docs/demos/init.gif)
 
 #### Add vault or secret
 

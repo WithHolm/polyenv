@@ -57,7 +57,7 @@ type Wizard interface {
 	//next form in wizard. returns nil if there are no more forms
 	WizNext() (*huh.Form, error)
 	//completes the wizard. returns the data to be saved. error if something went wrong
-	WizComplete() (map[string]any, error)
+	WizComplete() error
 }
 
 type Wiz struct {

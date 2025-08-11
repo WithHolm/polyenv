@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"slices"
@@ -15,7 +16,10 @@ import (
 
 var vaultType string
 var initargs []string
-var checkgitignore bool
+var acceptPolyenvDefaults bool
+var vaultTypes []string
+
+// var checkgitignore bool
 
 var initCmd = &cobra.Command{
 	Use:   "init [environment] [--type vaulttype] [--arg key=value]...",
@@ -23,12 +27,13 @@ var initCmd = &cobra.Command{
 	Long: `
 		init will set up environment for managment.
 	`,
+	Args: cobra.MaximumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
 			Environment = args[0]
 		}
 
-		if vaultType != "" && !slices.Contains(vaults.List(), vaultType) {
+		if vaultType != "" && !slices.Contains(vaultTypes, vaultType) {
 			slog.Error("invalid vault type", "type", vaultType)
 			cmd.Usage()
 			return
@@ -39,44 +44,30 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	description := "quick init will lead you directly to the setup for the given vault"
-	initCmd.Flags().StringVar(&vaultType, "type", "", description)
-	// initCmd.Flags().BoolVar(&useDefaultConfig, "use-default-config", false, "")
+	//append 'none' to skip vault creation for demos..
+	vaultTypes = vaults.List()
+	vaultTypes = append(vaultTypes, "none")
+	description := fmt.Sprintf("quick init will lead you directly to the setup for the given vault: %s", vaultTypes)
+
+	initCmd.Flags().StringVar(&vaultType, "vault", "", description)
 	initCmd.Flags().StringArrayVarP(&initargs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
-	err := initCmd.RegisterFlagCompletionFunc("type", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return vaults.List(), cobra.ShellCompDirectiveKeepOrder
+	err := initCmd.RegisterFlagCompletionFunc("vault", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return vaultTypes, cobra.ShellCompDirectiveKeepOrder
 	})
+	initCmd.Flags().BoolVar(&acceptPolyenvDefaults, "accept-default-settings", false, "Accept default settings for polyenv file")
 	cobra.CheckErr(err)
 	rootCmd.AddCommand(initCmd)
 }
 
-/*
-intended:
-init --type vaulttype --arg key=value
-init dev -> inits the file dev.env
-init dev!keyvault -> inits the file dev.env and sets up the keyvault
-init !keyvault -> inits the file local.env (default value) and sets up the keyvault
-*/
 func initialize(cmd *cobra.Command, args []string) {
-	if checkgitignore {
-		polyenvfile.GitignoreMatchesEnvSecret()
-		os.Exit(0)
-	}
+	// if checkgitignore {
+	// 	polyenvfile.GitignoreMatchesEnvSecret()
+	// 	os.Exit(0)
+	// }
 
 	file := polyenvfile.TuiNewFile(Environment)
 
-	//set global options
-	// f := huh.NewForm(
-	// 	huh.NewGroup(
-	// 		huh.NewNote().
-	// 			Title("Global options").
-	// 			Description("Set options. all vaults will adhere to these..").
-	// 			Next(true).
-	// 			NextLabel("Enter to continue"),
-	// 	),
-	// )
-	// tui.RunHuh(f)
-	file.TuiAddOpts(nil, false)
+	file.TuiAddOpts(nil, acceptPolyenvDefaults)
 
 	e := file.TuiAddGitIgnore()
 	if e != nil {
@@ -102,7 +93,7 @@ func initialize(cmd *cobra.Command, args []string) {
 		tui.RunHuh(f)
 	}
 
-	if shouldAddVault {
+	if shouldAddVault && vaultType != "none" {
 		vaultArgs := map[string]any{}
 		if len(initargs) > 0 {
 			if vaultType == "" {
@@ -122,4 +113,7 @@ func initialize(cmd *cobra.Command, args []string) {
 		file.TuiAddVault(string(vaultType), vaultArgs)
 	}
 
+	slog.Info("polyenv file created", "path", file.Path, "name", file.Name)
+	slog.Info("You can have this anywhere in your project. It will store info needed to pull secrets from vaults.")
+	slog.Info(fmt.Sprintf("run 'polyenv !%s' to see what you can do with this env", Environment))
 }

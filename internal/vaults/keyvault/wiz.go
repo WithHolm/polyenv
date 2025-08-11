@@ -211,16 +211,16 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 	return nil, nil
 }
 
-func (cli *Client) WizComplete() (map[string]any, error) {
+func (cli *Client) WizComplete() error {
 	cli.Tenant = cli.wiz.Tenant
 	cli.Uri = cli.wiz.Uri
 	err := cli.Warmup()
 	if err != nil {
-		return nil, fmt.Errorf("failed to warmup vault: %w", err)
+		return fmt.Errorf("failed to warmup vault: %w", err)
 	}
-
-	return map[string]any{
-		"tenant": cli.wiz.Tenant,
-		"uri":    cli.wiz.Uri,
-	}, nil
+	return nil
+	// return map[string]any{
+	// 	"tenant": cli.wiz.Tenant,
+	// 	"uri":    cli.wiz.Uri,
+	// }, nil
 }

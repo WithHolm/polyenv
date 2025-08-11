@@ -4,6 +4,7 @@ package devvault
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/charmbracelet/huh"
 	"github.com/withholm/polyenv/internal/model"
@@ -67,13 +68,6 @@ var devStore []Store
 
 func getVaults() (out []Store, err error) {
 	return stores, nil
-	// if len(devStore) == 0 {
-	// 	e := json.Unmarshal(devstoreFile, &devStore)
-	// 	if e != nil {
-	// 		return nil, e
-	// 	}
-	// }
-	// return devStore, nil
 }
 
 func (c *Client) ToString() string {
@@ -91,7 +85,7 @@ func (c *Client) Warmup() error {
 func (c *Client) Marshal() map[string]any {
 	return map[string]any{
 		"type":  vaultName,
-		"store": c.store.Name,
+		"store": c.Name,
 	}
 }
 
@@ -101,12 +95,13 @@ func (c *Client) Unmarshal(m map[string]any) error {
 		return fmt.Errorf("invalid or missing 'store' key")
 	}
 	st := s.(string)
-
+	slog.Debug("unmarshal", "store", st)
 	var store Store
 	val, e := getVaults()
 	if e != nil {
 		return fmt.Errorf("failed to get vaults: %w", e)
 	}
+	slog.Debug("got vaults", "vaults", val)
 
 	for _, v := range val {
 		if v.Name == st {
@@ -114,11 +109,12 @@ func (c *Client) Unmarshal(m map[string]any) error {
 			break
 		}
 	}
-
+	slog.Debug("found store", "store", store)
 	if store.Name == "" {
 		return fmt.Errorf("cannot find vault '%s'", st)
 	}
 	c.store = store
+	c.Name = st
 	return nil
 }
 
@@ -154,15 +150,15 @@ func (c *Client) WizNext() (*huh.Form, error) {
 							ret = append(ret, opt)
 						}
 						return ret
-					}, nil).Value(&c.store.Name),
+					}, nil).Value(&c.Name),
 			),
 		), nil
 	}
 	return nil, nil
 }
 
-func (c *Client) WizComplete() (map[string]any, error) {
-	return nil, nil
+func (c *Client) WizComplete() error {
+	return nil
 }
 
 //region Push
@@ -199,6 +195,7 @@ func (c *Client) ListElevate() error {
 func (c *Client) List() (out []model.Secret, err error) {
 	out = make([]model.Secret, 0)
 	for k, v := range c.store.Keys {
+		slog.Debug("adding secret", "key", k)
 		out = append(out, model.Secret{
 			RemoteKey:   k,
 			LocalKey:    k,

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/withholm/polyenv/internal/model"
 	"github.com/withholm/polyenv/internal/tools"
@@ -21,8 +22,7 @@ var output string
 var outputs = []string{
 	"json",
 	"azdevops",
-	// "pwshdevops",
-	// "pwsh",
+	"github",
 }
 
 func generateEnvCommand() *cobra.Command {
@@ -62,12 +62,6 @@ func listEnv(cmd *cobra.Command, args []string) {
 		out[v.Key] = v.Value
 	}
 
-	exePath, err := os.Executable()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
 	switch output {
 	case "json":
 		jsonBytes, err := json.MarshalIndent(out, "", "  ")
@@ -81,8 +75,38 @@ func listEnv(cmd *cobra.Command, args []string) {
 			_, isSecret := PolyenvFile.Secrets[k]
 			fmt.Printf("##vso[task.setvariable variable=%s;issecret=%v]%s\n", k, isSecret, v)
 		}
-	case "pwsh":
-		fmt.Printf(pwshToEnvCommand, exePath, "!"+Environment)
+	case "github":
+		//i could just godotenv.write.. but i dont know if the file has any other content
+		//so im just gonna append dotenv content to the file
+		envFile := os.Getenv("GITHUB_ENV")
+		if envFile == "" {
+			slog.Error("no GITHUB_ENV set. are you running this in a github action?")
+			os.Exit(1)
+		}
+
+		stringOut := make(map[string]string)
+		for k, v := range out {
+			stringOut[k] = fmt.Sprintf("%v", v)
+			slog.Info("setting env", "key", k)
+		}
+
+		out, err := godotenv.Marshal(stringOut)
+		if err != nil {
+			slog.Error("failed to marshal env", "error", err)
+			os.Exit(1)
+		}
+
+		f, err := os.OpenFile(envFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		if _, err := f.WriteString(out + "\n"); err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Wrote environment variable to GITHUB_ENV")
 	default:
 		slog.Error("unhandeled output case", "case", output)
 	}

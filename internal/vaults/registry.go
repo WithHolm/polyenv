@@ -3,6 +3,7 @@ package vaults
 import (
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 
 	"github.com/withholm/polyenv/internal/model"
@@ -40,5 +41,6 @@ func List() []string {
 	for k := range reg {
 		keys = append(keys, k)
 	}
+	slices.Sort(keys)
 	return keys
 }
