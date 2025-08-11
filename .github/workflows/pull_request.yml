@@ -1,14 +1,24 @@
-name: Test Changed Files
+name: Go CI
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
 
-env:
-  APP_NAME: polyenv
-  GO_PLATFORMS: "linux-amd64, linux-ppc64le, darwin-amd64, darwin-arm64, windows-amd64"
-
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
   changed-packages:
     runs-on: ubuntu-latest
     outputs:
@@ -27,59 +37,41 @@ jobs:
             **/*.go
             **/*.mod
           matrix: true
-      - name: List all changed files
-        run: |
-          echo '${{ steps.changed-files.outputs.all_changed_files }}'
       - name: Get unique directories
         id: unique-directories
         run: |
           DIRS=$(echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
           echo "unique directories: $DIRS"
           echo "directories=$DIRS" >> $GITHUB_OUTPUT
-      - name: List all changed directories
-        run: |
-          echo '${{ steps.unique-directories.outputs.directories }}'
+
   run_package_tests:
     needs: [changed-packages]
-    runs-on: ubuntu-latest
-    # if: false
     if: ${{ needs.changed-packages.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
       fail-fast: false
-      max-parallel: 4
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
-      - name: Run test ${{ matrix.packages }}
+          cache: true # Added caching
+      - name: Run test for ${{ matrix.packages }}
         run: |
-          dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
-          echo "running test for $dir"
-          go test -v ./$dir
-      - name: govulncheck
+          dir_to_test="./..."
+          if [ "${{ matrix.packages }}" != "." ]; then
+            dir_to_test="./${{ matrix.packages }}"
+          fi
+          echo "running test for $dir_to_test"
+          go test -v -race "$dir_to_test" # Added -race flag
+      - name: Run govulncheck for ${{ matrix.packages }}
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          dir=$([ "${{ matrix.packages }}" = "." ] && echo "..." || echo "${{ matrix.packages }}")
-          govulncheck ./$dir
-  # pr_summary:
-  #   runs-on: ubuntu-latest
-  #   name: PR Summarizer
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v4
-
-  #     - name: Summarize PR with AI
-  #       uses: behrouz-rad/ai-pr-summarizer@v1
-  #       with:
-  #         llm-model: "deepseek-coder-v2:latest"
-  #         prompt-file: ./.github/ollama_assets/prompt2.txt
-  #         models-file: ./.github/ollama_assets/models.txt
-  #         version-file: ./.github/ollama_assets/version.txt
-  #         context-window: 4096
-  #         upload-changes: true
-  #         fail-on-error: true
-  #         token: ${{ secrets.GITHUB_TOKEN }}
+          dir_to_test="./..."
+          if [ "${{ matrix.packages }}" != "." ]; then
+            dir_to_test="./${{ matrix.packages }}"
+          fi
+          govulncheck "$dir_to_test"
