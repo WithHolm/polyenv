@@ -60,5 +60,3 @@ type Wizard interface {
 	WizComplete() error
 }
 
-type Wiz struct {
-}
