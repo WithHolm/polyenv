@@ -16,7 +16,7 @@ var AuthorsCmd = &cobra.Command{
 // set from main.go
 var contributors string
 
-//go:embed logo.txt
+//go:embed logo2.txt
 var logo string
 
 func SetContributors(s string) {
