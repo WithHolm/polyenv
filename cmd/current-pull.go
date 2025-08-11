@@ -78,7 +78,8 @@ func pull(cmd *cobra.Command, args []string) {
 			slog.Error("oh wow. i am poly-env-onomus. multiple .env.secret files dont work for me, hun", "files", secretFilename)
 			os.Exit(1)
 		} else if len(secretFiles) == 0 {
-			secretFilePath = root + "/" + secretFilename
+-			secretFilePath = root + "/" + secretFilename
++			secretFilePath = filepath.Join(root, secretFilename)
 			// create new file
 			_, e := os.Create(secretFilePath)
 			if e != nil {
