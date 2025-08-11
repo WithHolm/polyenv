@@ -35,12 +35,12 @@ func (s Secret) ToString() string { return fmt.Sprintf("%s (%s)", s.RemoteKey, s
 func (s Secret) GetContent(v Vault) (string, error) {
 	err := v.PullElevate()
 	if err != nil {
-		return "", fmt.Errorf("failed to elevate permissions: %s", err)
+		return "", fmt.Errorf("failed to elevate permissions: %w", err)
 	}
 
 	ret, er := v.Pull(s)
 	if er != nil {
-		return "", fmt.Errorf("failed to pull secret: %s", er)
+		return "", fmt.Errorf("failed to pull secret: %w", er)
 	}
 	return ret.Value, nil
 }
@@ -49,12 +49,12 @@ func (s Secret) GetContent(v Vault) (string, error) {
 func (s Secret) SetContent(v Vault, content SecretContent) error {
 	err := v.PushElevate()
 	if err != nil {
-		return fmt.Errorf("failed to elevate permissions: %s", err)
+		return fmt.Errorf("failed to elevate permissions: %w", err)
 	}
 
 	er := v.Push(content)
 	if er != nil {
-		return fmt.Errorf("failed to push secret: %s", er)
+		return fmt.Errorf("failed to push secret: %w", er)
 	}
 	return nil
 }
