@@ -30,9 +30,12 @@ func TestStoredEnv_Save(t *testing.T) {
 	filePath := filepath.Join(tmpDir, ".env")
 
 	// Create the file before writing to it
-	_, err = os.Create(filePath)
+	f, err = os.Create(filePath)
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("failed to close file: %v", err)
 	}
 
 	se := StoredEnv{

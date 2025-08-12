@@ -210,7 +210,7 @@ func (c *Client) List() (out []model.Secret, err error) {
 			RemoteKey:   k,
 			LocalKey:    k,
 			ContentType: v.ContentType,
-			Enabled:     true,
+			Enabled:     v.Enabled,
 		})
 	}
 	return out, nil
