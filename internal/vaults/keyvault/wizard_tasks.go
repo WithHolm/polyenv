@@ -118,6 +118,9 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 	// get first page. this will also tell us if there are more pages
 	res, err := client.Resources(ctx, armresourcegraph.QueryRequest{
 		Query: to.Ptr(query),
+		Options: &armresourcegraph.QueryRequestOptions{
+			ResultFormat: to.Ptr(armresourcegraph.ResultFormatObjectArray),
+		},
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to finish the request: %w", err)
@@ -127,7 +130,12 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 	//https://github.com/Azure/azure-sdk-for-go/blob/main/sdk/resourcemanager/resourcegraph/armresourcegraph/client_example_test.go
 	for {
 		//add data to items
-		for _, v := range res.Data.([]interface{}) {
+		items, ok := res.Data.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("unexpected Resource Graph result format; expected ObjectArray, got %T", res.Data)
+		}
+
+		for _, v := range items {
 			//marshall to json and then unmarshal to struct.. i wish there was a better way
 			jData, err := json.Marshal(v)
 			if err != nil {
@@ -151,7 +159,8 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 		res, err = client.Resources(ctx, armresourcegraph.QueryRequest{
 			Query: to.Ptr(query),
 			Options: &armresourcegraph.QueryRequestOptions{
-				SkipToken: res.SkipToken,
+				ResultFormat: to.Ptr(armresourcegraph.ResultFormatObjectArray),
+				SkipToken:    res.SkipToken,
 			},
 		}, nil)
 
@@ -174,22 +183,3 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 
 	return o, nil
 }
-
-// return a slice of keyvault secrets from selected keyvault
-// func getKeyvaultKeys(vaultUri string, tenId string) (out []*azsecrets.SecretProperties, err error) {
-// 	// ctx := context.Background()
-// 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-// 		TenantID:                   tenId,
-// 		AdditionallyAllowedTenants: []string{"*"},
-// 	})
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
-// 	}
-
-// 	cli, err := azsecrets.NewClient(vaultUri, cred, nil)
-// 	out, err = listSecrets(cli)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return out, nil
-// }
