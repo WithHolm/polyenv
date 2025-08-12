@@ -136,21 +136,23 @@ type TestVault struct {
 	PushCalled bool
 }
 
-func (v *TestVault) ToString() string                                     { return "" }
-func (v *TestVault) DisplayName() string                                  { return "" }
-func (v *TestVault) Warmup() error                                        { return nil }
-func (v *TestVault) Marshal() map[string]any                              { return nil }
-func (v *TestVault) Unmarshal(m map[string]any) error                     { return nil }
-func (v *TestVault) ValidateSecretName(name string) (string, error)       { return name, nil }
-func (v *TestVault) ListElevate() error                                   { return nil }
-func (v *TestVault) List() ([]Secret, error)                              { return nil, nil }
-func (v *TestVault) PushElevate() error                                   { return nil }
-func (v *TestVault) Push(s SecretContent) error                           {
+func (v *TestVault) ToString() string                               { return "" }
+func (v *TestVault) DisplayName() string                            { return "" }
+func (v *TestVault) Warmup() error                                  { return nil }
+func (v *TestVault) Marshal() map[string]any                        { return nil }
+func (v *TestVault) Unmarshal(m map[string]any) error               { return nil }
+func (v *TestVault) ValidateSecretName(name string) (string, error) { return name, nil }
+func (v *TestVault) ListElevate() error                             { return nil }
+func (v *TestVault) List() ([]Secret, error)                        { return nil, nil }
+func (v *TestVault) PushElevate() error                             { return nil }
+func (v *TestVault) Push(s SecretContent) error {
 	v.PushCalled = true
 	return nil
 }
-func (v *TestVault) PullElevate() error                                   { return nil }
-func (v *TestVault) Pull(s Secret) (SecretContent, error)                 { return SecretContent{Value: v.PullValue}, nil }
-func (v *TestVault) WizWarmup(map[string]any) error                       { return nil }
-func (v *TestVault) WizNext() (*huh.Form, error)                          { return nil, nil }
-func (v *TestVault) WizComplete() (map[string]any, error)                 { return nil, nil }
+func (v *TestVault) PullElevate() error { return nil }
+func (v *TestVault) Pull(s Secret) (SecretContent, error) {
+	return SecretContent{Value: v.PullValue}, nil
+}
+func (v *TestVault) WizWarmup(map[string]any) error { return nil }
+func (v *TestVault) WizNext() (*huh.Form, error)    { return nil, nil }
+func (v *TestVault) WizComplete() error             { return nil }

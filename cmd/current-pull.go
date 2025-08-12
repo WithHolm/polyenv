@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/charmbracelet/huh/spinner"
@@ -39,7 +40,8 @@ func pull(cmd *cobra.Command, args []string) {
 	}
 
 	for _, v := range existingEnv {
-		slog.Debug("file:"+v.File, "key", v.Key, "value", v.Value)
+		// slog.Debug("file:"+v.File, "key", v.Key, "value", v.Value)
+		slog.Debug("file:"+v.File, "key", v.Key)
 	}
 
 	//region pull:precheck
@@ -78,8 +80,7 @@ func pull(cmd *cobra.Command, args []string) {
 			slog.Error("multiple .env.secret files found; expected exactly one", "files", secretFiles)
 			os.Exit(1)
 		} else if len(secretFiles) == 0 {
--			secretFilePath = root + "/" + secretFilename
-+			secretFilePath = filepath.Join(root, secretFilename)
+			secretFilePath = filepath.Join(root, secretFilename)
 			// create new file
 			if err := os.WriteFile(secretFilePath, []byte{}, 0o600); err != nil {
 				slog.Error("failed to create .env.secret file", "error", err)
@@ -154,7 +155,6 @@ func pull(cmd *cobra.Command, args []string) {
 
 		for _, v := range existingEnv {
 			if v.Key == newEnv.Key {
-				// slog.Info("updating existing env", "key", newEnv.Key, "file", v.File)
 				v.Value = newEnv.Value
 				e := v.Save()
 				if e != nil {

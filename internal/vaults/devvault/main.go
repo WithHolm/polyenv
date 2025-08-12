@@ -59,12 +59,11 @@ type Key struct {
 }
 
 type Client struct {
-	wizState int
-	Name     string `toml:"name"`
-	store    Store  `toml:"-"`
+	wizState   int
+	Name       string `toml:"name"`
+	store      Store  `toml:"-"`
+	PushCalled bool   `toml:"-"`
 }
-
-var devStore []Store
 
 func getVaults() (out []Store, err error) {
 	return stores, nil
@@ -79,6 +78,16 @@ func (c *Client) DisplayName() string {
 }
 
 func (c *Client) Warmup() error {
+	if c.store.Name == "" {
+		for _, v := range stores {
+			if v.Name == c.Name {
+				c.store = v
+				return nil
+			}
+		}
+		return fmt.Errorf("cannot find vault '%s'", c.Name)
+	}
+
 	return nil
 }
 
@@ -111,7 +120,7 @@ func (c *Client) Unmarshal(m map[string]any) error {
 	}
 	slog.Debug("found store", "store", store)
 	if store.Name == "" {
-		return fmt.Errorf("cannot find vault '%s'", st)
+		return fmt.Errorf("cannot find store for vault '%s'", st)
 	}
 	c.store = store
 	c.Name = st
@@ -164,6 +173,7 @@ func (c *Client) WizComplete() error {
 //region Push
 
 func (c *Client) Push(s model.SecretContent) error {
+
 	return nil
 }
 
