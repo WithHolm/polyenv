@@ -135,7 +135,7 @@ func pull(cmd *cobra.Command, args []string) {
 			}
 			contents = append(contents, model.StoredEnv{
 				Value: content.Value,
-				Key:   content.LocalKey,
+				Key:   v.LocalKey,
 			})
 		}).Run()
 	}
