@@ -15,7 +15,7 @@ jobs:
       matrix: ${{ steps.unique-directories.outputs.directories }}
       changed: ${{ steps.changed-files.outputs.any_changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Get changed files
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -70,7 +70,7 @@ jobs:
   #   name: PR Summarizer
   #   steps:
   #     - name: Checkout Repository
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v5
 
   #     - name: Summarize PR with AI
   #       uses: behrouz-rad/ai-pr-summarizer@v1
