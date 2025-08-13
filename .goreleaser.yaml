@@ -29,10 +29,7 @@ builds:
     # buildvcs removes any git metadata from the binary,
     # making sure its not required when running outide of the git repo.
     flags:
-      - >-
-        {{- if (isEnvSet "CI") }}
-        -buildvcs=false
-        {{- end }}
+      - -buildvcs=false
     # ldflags are passed to the linker.
     ldflags:
       - -s -w
