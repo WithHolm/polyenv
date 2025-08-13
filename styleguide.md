@@ -22,13 +22,12 @@ func (cnt *count) increment() {
 
 * camelCase for private stuff
 * CamelCase for public stuff outside of the package
-* UPPERCASE_SNAKE_CASE for options in vaultopts
 
 ## logging
 
 this project uses charm log for "output", but slog for the log cmd
 keep it simple, only log to info when something is not correct. but debug things you feel are needed.
-you can use debug if you need more info.
+you can use --debug flag to enable debug if you need more info. this will also enable 
 
 this might create some issues with context and whatnot.. but it is a good start. if you have suggestions, please open an issue.
 

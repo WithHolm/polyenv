@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 )
 
 // gets tenant from microsoft .wellknwon openid config. supports guid and domain for tenant.
 func GetTenant(tenant string) (string, error) {
-	//
+	slog.Debug("getting tenant from microsoft .wellknwon openid config", "tenant", tenant)
 	url := fmt.Sprintf("https://login.microsoftonline.com/%s/v2.0/.well-known/openid-configuration", tenant)
 	resp, err := http.Get(url)
 	body, err := io.ReadAll(resp.Body)
@@ -20,7 +21,7 @@ func GetTenant(tenant string) (string, error) {
 	}
 
 	var v map[string]any
-	json.Unmarshal(body, v)
+	json.Unmarshal(body, &v)
 
 	if v["token_endpoint"] == nil {
 		return "", fmt.Errorf("failed to get correct openid config for tenant %s", tenant)

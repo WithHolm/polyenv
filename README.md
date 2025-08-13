@@ -1,13 +1,19 @@
 # polyenv
 
-polyenv is a CLI tool that allows you to to grab secrets directly from your enterprise vaults and either save them to local .env file or output them to terminal.
+![alt](/docs/logo.png)
+
+polyenv is a CLI tool that allows you to manage secrets in your environment and show values from multiple env files
+
 for now only Azure Keyvault is supported, but more will be available in the future.
+
+no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool that you can use to pull secrets from your already defined
 
 ## Features
 
-- Initialize a .polyenv file for syncing. this can be used with your git repo
-- Push secrets from .env file to your remote vault
-- Pull secrets from remote vault to .env file
+- Initialize a .polyenv.toml file for config. this can be synced used with your git repo.
+- Pull secrets from a selection of remote vaults.
+- Load values from multiple env files within the same environment.
+- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool.
 
 ## Installation
 
@@ -17,28 +23,66 @@ check release page [here](https://github.com/WithHolm/polyenv/releases) to downl
 
 ### Commands
 
-1. Initialize a .env file for syncing:
+#### Initialize a new environment
 
-```
-polyenv init [--path <path-to-env-file>]
+it will ask you to add vaults and secrets:
+
+- `polyenv init`: Asks you to select vault and secret
+- `polyenv init --type {vaultType}`: Initializes the environment with the given [vault type](#supported-vaults)
+- `polyenv init --type {vaultType} --arg key=value`: Initializes the environment with the given [vault type](#supported-vaults) and sets the given arguments set dotenv style
+
+in all cases it will create a `{env}.polyenv.toml` file in the current directory. this file can be moved anywhere within your repo.
+
+![init](/docs/demos/init.gif)
+
+#### Add vault or secret
+
+- `polyenv !{env} add vault`: Adds a new vault to the environment
+- `polyenv !{env} add secret [vault name]`: Adds a new secret to the environment
+
+#### Pull secrets from vault
+
+depending on your [config](#polyenv-config), this will either set secrets in `.env.secrets.{env}` file or existing uinqe keys in existing `{env}.env||.env.{env}` files
+
+- `polyenv !{env} pull`
+
+### Supported vaults
+
+#### Azure Key Vault
+
+The vault uses Azure SDK's [credential chains](https://learn.microsoft.com/en-us/dotnet/azure/sdk/authentication/credential-chains?tabs=dac) for authentication. Either uses your local az cli credentials or any service principal credentials defined in env variables
+
+|argument|alias|description|
+|---|---|---|
+|`tenant`||tenant id or domain|
+|`subscription`|`sub`|subscription id or name|
+
+example:
+
+``` text
+polyenv init --type keyvault --arg tenant=mytenant.com --arg subscription=mysubscription
 ```
 
-2. Push secrets to vault:
+#### Dev Vault
 
-```
-polyenv push [--path <path-to-env-file>]
-```
-
-3. Pull secrets from vault:
-
-```
-polyenv pull [--path <path-to-env-file>]
+``` text
+polyenv init --type devvault --arg store=mystore
 ```
 
 ### Options
 
-- `--path, -p`: Specify the path to the .env file (default: "local.env")
 - `--debug`: Enable debug mode
+- `--disable-truncate-debug`: Disables truncating debug logging
+  - some debug logs from external providers may be overly verbose so vault implementaiton may tuncate log message. this flag will disable that. use if you want to see the full log message.
+
+## Polyenv Config
+
+- **hypens to underscores**
+  - when selecting new secrets, it will replace hyphens with underscores when selecting new name. it makes it easier to define new secrets.
+- **uppercase locally**
+  - when selecting new secrets, it will convert the name to uppercase. this makes it easier to define new secrets.
+- **use dot secret file for secrets**
+  - will save any secrets to `.env.secret.{env}` file instead of `.env` file. makes it easier to git ignore secrets.
 
 ## Developer Information
 
@@ -72,7 +116,7 @@ The tool uses Azure SDK's DefaultAzureCredential for authentication. Make sure t
 
 ## Contributing
 
-(Add contribution guidelines here)
+fork the project, make your changes, and submit a pull request.
 
 ## License
 

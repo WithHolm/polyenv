@@ -36,6 +36,7 @@ type standardRenderer struct {
 	lastRender         string
 	lastRenderedLines  []string
 	linesRendered      int
+	altLinesRendered   int
 	useANSICompressor  bool
 	once               sync.Once
 
@@ -57,9 +58,6 @@ type standardRenderer struct {
 
 	// lines explicitly set not to render
 	ignoreLines map[int]struct{}
-
-	// lines rendered before entering alt screen mode
-	linesRenderedBeforeAltScreen int
 }
 
 // newRenderer creates a new renderer. Normally you'll want to initialize it
@@ -173,7 +171,9 @@ func (r *standardRenderer) flush() {
 	buf := &bytes.Buffer{}
 
 	// Moving to the beginning of the section, that we rendered.
-	if r.linesRendered > 1 {
+	if r.altScreenActive {
+		buf.WriteString(ansi.CursorHomePosition)
+	} else if r.linesRendered > 1 {
 		buf.WriteString(ansi.CursorUp(r.linesRendered - 1))
 	}
 
@@ -217,7 +217,7 @@ func (r *standardRenderer) flush() {
 		if _, ignore := r.ignoreLines[i]; ignore || canSkip {
 			// Unless this is the last line, move the cursor down.
 			if i < len(newLines)-1 {
-				buf.WriteString(ansi.CursorDown1)
+				buf.WriteByte('\n')
 			}
 			continue
 		}
@@ -259,11 +259,15 @@ func (r *standardRenderer) flush() {
 	}
 
 	// Clearing left over content from last render.
-	if r.linesRendered > len(newLines) {
+	if r.lastLinesRendered() > len(newLines) {
 		buf.WriteString(ansi.EraseScreenBelow)
 	}
 
-	r.linesRendered = len(newLines)
+	if r.altScreenActive {
+		r.altLinesRendered = len(newLines)
+	} else {
+		r.linesRendered = len(newLines)
+	}
 
 	// Make sure the cursor is at the start of the last line to keep rendering
 	// behavior consistent.
@@ -271,9 +275,9 @@ func (r *standardRenderer) flush() {
 		// This case fixes a bug in macOS terminal. In other terminals the
 		// other case seems to do the job regardless of whether or not we're
 		// using the full terminal window.
-		buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
+		buf.WriteString(ansi.CursorPosition(0, len(newLines)))
 	} else {
-		buf.WriteString(ansi.CursorLeft(r.width))
+		buf.WriteString(ansi.CursorBackward(r.width))
 	}
 
 	_, _ = r.out.Write(buf.Bytes())
@@ -284,6 +288,14 @@ func (r *standardRenderer) flush() {
 	// See https://github.com/charmbracelet/bubbletea/pull/1233
 	r.lastRenderedLines = newLines
 	r.buf.Reset()
+}
+
+// lastLinesRendered returns the number of lines rendered lastly.
+func (r *standardRenderer) lastLinesRendered() int {
+	if r.altScreenActive {
+		return r.altLinesRendered
+	}
+	return r.linesRendered
 }
 
 // write writes to the internal buffer. The buffer will be outputted via the
@@ -314,7 +326,7 @@ func (r *standardRenderer) clearScreen() {
 	defer r.mtx.Unlock()
 
 	r.execute(ansi.EraseEntireScreen)
-	r.execute(ansi.HomeCursorPosition)
+	r.execute(ansi.CursorHomePosition)
 
 	r.repaint()
 }
@@ -335,11 +347,7 @@ func (r *standardRenderer) enterAltScreen() {
 	}
 
 	r.altScreenActive = true
-	r.execute(ansi.EnableAltScreenBuffer)
-
-	// Save the current line count before entering the alternate screen mode.
-	// This allows us to compare and adjust the cursor position when exiting the alternate screen.
-	r.linesRenderedBeforeAltScreen = r.linesRendered
+	r.execute(ansi.SetAltScreenSaveCursorMode)
 
 	// Ensure that the terminal is cleared, even when it doesn't support
 	// alt screen (or alt screen support is disabled, like GNU screen by
@@ -348,7 +356,7 @@ func (r *standardRenderer) enterAltScreen() {
 	// Note: we can't use r.clearScreen() here because the mutex is already
 	// locked.
 	r.execute(ansi.EraseEntireScreen)
-	r.execute(ansi.HomeCursorPosition)
+	r.execute(ansi.CursorHomePosition)
 
 	// cmd.exe and other terminals keep separate cursor states for the AltScreen
 	// and the main buffer. We have to explicitly reset the cursor visibility
@@ -358,6 +366,9 @@ func (r *standardRenderer) enterAltScreen() {
 	} else {
 		r.execute(ansi.ShowCursor)
 	}
+
+	// Entering the alt screen resets the lines rendered count.
+	r.altLinesRendered = 0
 
 	r.repaint()
 }
@@ -371,19 +382,7 @@ func (r *standardRenderer) exitAltScreen() {
 	}
 
 	r.altScreenActive = false
-	r.execute(ansi.DisableAltScreenBuffer)
-
-	// Adjust cursor and screen
-	if r.linesRendered < r.linesRenderedBeforeAltScreen {
-		// If fewer lines were rendered in the alternate screen, move the cursor up
-		// to align with the previous normal screen position and clear any remaining lines.
-		r.execute(ansi.CursorUp(r.linesRenderedBeforeAltScreen - r.linesRendered))
-		r.execute(ansi.EraseScreenBelow)
-	} else if r.linesRendered > r.linesRenderedBeforeAltScreen && r.linesRenderedBeforeAltScreen > 0 {
-		// If more lines were rendered in the alternate screen, move the cursor down
-		// to align with the new position.
-		r.execute(ansi.CursorDown(r.linesRendered - r.linesRenderedBeforeAltScreen))
-	}
+	r.execute(ansi.ResetAltScreenSaveCursorMode)
 
 	// cmd.exe and other terminals keep separate cursor states for the AltScreen
 	// and the main buffer. We have to explicitly reset the cursor visibility
@@ -417,49 +416,49 @@ func (r *standardRenderer) enableMouseCellMotion() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EnableMouseCellMotion)
+	r.execute(ansi.SetButtonEventMouseMode)
 }
 
 func (r *standardRenderer) disableMouseCellMotion() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.DisableMouseCellMotion)
+	r.execute(ansi.ResetButtonEventMouseMode)
 }
 
 func (r *standardRenderer) enableMouseAllMotion() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EnableMouseAllMotion)
+	r.execute(ansi.SetAnyEventMouseMode)
 }
 
 func (r *standardRenderer) disableMouseAllMotion() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.DisableMouseAllMotion)
+	r.execute(ansi.ResetAnyEventMouseMode)
 }
 
 func (r *standardRenderer) enableMouseSGRMode() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EnableMouseSgrExt)
+	r.execute(ansi.SetSgrExtMouseMode)
 }
 
 func (r *standardRenderer) disableMouseSGRMode() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.DisableMouseSgrExt)
+	r.execute(ansi.ResetSgrExtMouseMode)
 }
 
 func (r *standardRenderer) enableBracketedPaste() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EnableBracketedPaste)
+	r.execute(ansi.SetBracketedPasteMode)
 	r.bpActive = true
 }
 
@@ -467,7 +466,7 @@ func (r *standardRenderer) disableBracketedPaste() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.DisableBracketedPaste)
+	r.execute(ansi.ResetBracketedPasteMode)
 	r.bpActive = false
 }
 
@@ -482,7 +481,7 @@ func (r *standardRenderer) enableReportFocus() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.EnableReportFocus)
+	r.execute(ansi.SetFocusEventMode)
 	r.reportingFocus = true
 }
 
@@ -490,7 +489,7 @@ func (r *standardRenderer) disableReportFocus() {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.execute(ansi.DisableReportFocus)
+	r.execute(ansi.ResetFocusEventMode)
 	r.reportingFocus = false
 }
 
@@ -511,7 +510,7 @@ func (r *standardRenderer) setWindowTitle(title string) {
 func (r *standardRenderer) setIgnoredLines(from int, to int) {
 	// Lock if we're going to be clearing some lines since we don't want
 	// anything jacking our cursor.
-	if r.linesRendered > 0 {
+	if r.lastLinesRendered() > 0 {
 		r.mtx.Lock()
 		defer r.mtx.Unlock()
 	}
@@ -524,16 +523,17 @@ func (r *standardRenderer) setIgnoredLines(from int, to int) {
 	}
 
 	// Erase ignored lines
-	if r.linesRendered > 0 {
+	lastLinesRendered := r.lastLinesRendered()
+	if lastLinesRendered > 0 {
 		buf := &bytes.Buffer{}
 
-		for i := r.linesRendered - 1; i >= 0; i-- {
+		for i := lastLinesRendered - 1; i >= 0; i-- {
 			if _, exists := r.ignoreLines[i]; exists {
 				buf.WriteString(ansi.EraseEntireLine)
 			}
-			buf.WriteString(ansi.CursorUp1)
+			buf.WriteString(ansi.CUU1)
 		}
-		buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered)) // put cursor back
+		buf.WriteString(ansi.CursorPosition(0, lastLinesRendered)) // put cursor back
 		_, _ = r.out.Write(buf.Bytes())
 	}
 }
@@ -543,6 +543,10 @@ func (r *standardRenderer) setIgnoredLines(from int, to int) {
 // rendered to again.
 func (r *standardRenderer) clearIgnoredLines() {
 	r.ignoreLines = nil
+}
+
+func (r *standardRenderer) resetLinesRendered() {
+	r.linesRendered = 0
 }
 
 // insertTop effectively scrolls up. It inserts lines at the top of a given
@@ -572,14 +576,14 @@ func (r *standardRenderer) insertTop(lines []string, topBoundary, bottomBoundary
 
 	buf := &bytes.Buffer{}
 
-	buf.WriteString(ansi.SetScrollingRegion(topBoundary, bottomBoundary))
-	buf.WriteString(ansi.SetCursorPosition(0, topBoundary))
+	buf.WriteString(ansi.SetTopBottomMargins(topBoundary, bottomBoundary))
+	buf.WriteString(ansi.CursorPosition(0, topBoundary))
 	buf.WriteString(ansi.InsertLine(len(lines)))
 	_, _ = buf.WriteString(strings.Join(lines, "\r\n"))
-	buf.WriteString(ansi.SetScrollingRegion(0, r.height))
+	buf.WriteString(ansi.SetTopBottomMargins(0, r.height))
 
 	// Move cursor back to where the main rendering routine expects it to be
-	buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
+	buf.WriteString(ansi.CursorPosition(0, r.lastLinesRendered()))
 
 	_, _ = r.out.Write(buf.Bytes())
 }
@@ -602,13 +606,13 @@ func (r *standardRenderer) insertBottom(lines []string, topBoundary, bottomBound
 
 	buf := &bytes.Buffer{}
 
-	buf.WriteString(ansi.SetScrollingRegion(topBoundary, bottomBoundary))
-	buf.WriteString(ansi.SetCursorPosition(0, bottomBoundary))
+	buf.WriteString(ansi.SetTopBottomMargins(topBoundary, bottomBoundary))
+	buf.WriteString(ansi.CursorPosition(0, bottomBoundary))
 	_, _ = buf.WriteString("\r\n" + strings.Join(lines, "\r\n"))
-	buf.WriteString(ansi.SetScrollingRegion(0, r.height))
+	buf.WriteString(ansi.SetTopBottomMargins(0, r.height))
 
 	// Move cursor back to where the main rendering routine expects it to be
-	buf.WriteString(ansi.SetCursorPosition(0, r.linesRendered))
+	buf.WriteString(ansi.CursorPosition(0, r.lastLinesRendered()))
 
 	_, _ = r.out.Write(buf.Bytes())
 }
