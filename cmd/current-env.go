@@ -90,7 +90,7 @@ func listEnv(cmd *cobra.Command, args []string) {
 			slog.Info("setting env", "key", k)
 		}
 
-		out, err := godotenv.Marshal(stringOut)
+		dotenvContent, err := godotenv.Marshal(stringOut)
 		if err != nil {
 			slog.Error("failed to marshal env", "error", err)
 			os.Exit(1)
@@ -101,9 +101,14 @@ func listEnv(cmd *cobra.Command, args []string) {
 			slog.Error("failed to open GITHUB_ENV file", "error", err)
 			os.Exit(1)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				slog.Error("failed to close GITHUB_ENV file", "error", err)
+			}
+		}()
+		// defer f.Close()
 
-		if _, err := f.WriteString(out + "\n"); err != nil {
+		if _, err := f.WriteString(dotenvContent + "\n"); err != nil {
 			slog.Error("failed to write to GITHUB_ENV file", "error", err)
 			os.Exit(1)
 		}
