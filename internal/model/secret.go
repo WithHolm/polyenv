@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -86,6 +87,9 @@ func (st StoredEnv) Save() error {
 func (st StoredEnv) Remove() error {
 	mp, e := godotenv.Read(st.File)
 	if e != nil {
+		if os.IsNotExist(e) {
+			return nil
+		}
 		return fmt.Errorf("failed to parse dotenv file: %w", e)
 	}
 
