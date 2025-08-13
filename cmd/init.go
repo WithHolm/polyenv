@@ -4,190 +4,116 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/list"
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
-	"github.com/withholm/polyenv/internal/tools"
+	"github.com/withholm/polyenv/internal/polyenvfile"
 	"github.com/withholm/polyenv/internal/tui"
 	"github.com/withholm/polyenv/internal/vaults"
 )
 
-var vaultType vaults.VaultType
+var vaultType string
 var initargs []string
+var acceptPolyenvDefaults bool
+var vaultTypes []string
+
+// var checkgitignore bool
 
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "init the current .env file to keyvault",
+	Use:   "init [environment] [--type vaulttype] [--arg key=value]...",
+	Short: "initiales a new environment",
 	Long: `
-		init will set up the .env file for syncing with your enterprise-vault.
+		init will set up environment for managment.
 	`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		argPath := tools.ExtractFilenameArg(args)
-		if argPath != "" {
-			Path = tools.AppendDotEnvExtension(argPath)
-		}
-		argVault, err := tools.ExtractVaultNameArg(args, vaults.ListVaultTypes())
-		if err != nil {
-			return err
-		}
-		if argVault != "" {
-			vaultType = vaults.VaultType(argVault)
+	Args: cobra.MaximumNArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			Environment = args[0]
 		}
 
-		return nil
+		if vaultType != "" && !slices.Contains(vaultTypes, vaultType) {
+			slog.Error("invalid vault type", "type", vaultType)
+			cmd.Usage()
+			return
+		}
+
 	},
 	Run: initialize,
 }
 
 func init() {
-	description := fmt.Sprintf("quick init will lead you directly to the setup for the given vault")
-	initCmd.Flags().Var(&vaultType, "type", description)
-	initCmd.Flags().StringArrayVarP(&initargs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
+	//append 'none' to skip vault creation for demos..
+	vaultTypes = vaults.List()
+	vaultTypes = append(vaultTypes, "none")
+	description := fmt.Sprintf("quick init will lead you directly to the setup for the given vault: %s", vaultTypes)
 
+	initCmd.Flags().StringVar(&vaultType, "vault", "", description)
+	initCmd.Flags().StringArrayVarP(&initargs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
+	err := initCmd.RegisterFlagCompletionFunc("vault", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return vaultTypes, cobra.ShellCompDirectiveKeepOrder
+	})
+	initCmd.Flags().BoolVar(&acceptPolyenvDefaults, "accept-default-settings", false, "Accept default settings for polyenv file")
+	cobra.CheckErr(err)
 	rootCmd.AddCommand(initCmd)
 }
 
-func runHuh(f *huh.Form) {
-	if f == nil {
-		return
-	}
+func initialize(cmd *cobra.Command, args []string) {
+	// if checkgitignore {
+	// 	polyenvfile.GitignoreMatchesEnvSecret()
+	// 	os.Exit(0)
+	// }
 
-	theme := huh.ThemeCatppuccin()
-	theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
-	theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
+	file := polyenvfile.TuiNewFile(Environment)
 
-	e := f.WithTheme(theme).WithProgramOptions(tea.WithAltScreen()).Run()
+	file.TuiAddOpts(nil, acceptPolyenvDefaults)
 
+	e := file.TuiAddGitIgnore()
 	if e != nil {
-		fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
+		slog.Error("Failed to add data to gitignore", "err", e)
 		os.Exit(1)
 	}
-}
 
-/*
-intended:
-init --type vaulttype --arg key=value
-init dev -> inits the file dev.env
-init dev!keyvault -> inits the file dev.env and sets up the keyvault
-init !keyvault -> inits the file local.env (default value) and sets up the keyvault
-*/
-func initialize(cmd *cobra.Command, args []string) {
-	slog.Debug("init", "Path", Path, "Vault", vaultType)
-
-	Path = tools.AppendDotEnvExtension(Path)
-
-	// os.Exit(0)
-	slog.Debug("init called", "envfile", Path)
-
-	// theme := huh.ThemeCatppuccin()
-	// theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
-	// theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
-
-	if vaultType == "" {
-		form := huh.NewForm(
+	// return
+	// Determine if we should proceed with adding a vault.
+	// We do this if --type or --arg flags are provided, otherwise we ask the user.
+	shouldAddVault := vaultType != "" || len(initargs) > 0
+	if !shouldAddVault {
+		f := huh.NewForm(
 			huh.NewGroup(
-				vaults.VaultTypeSelector(&vaultType),
+				huh.NewConfirm().
+					Title("Add vault to '" + file.Name + "'").
+					Description("Do you want to add a new vault?").
+					Affirmative("Yes").
+					Negative("No").
+					Value(&shouldAddVault),
 			),
 		)
-		runHuh(form)
+		tui.RunHuh(f)
 	}
 
-	Vault, err := vaults.NewInitVault(string(vaultType))
-	if err != nil {
-		slog.Error("failed to create vault: " + err.Error())
-		os.Exit(1)
-	}
+	if shouldAddVault && vaultType != "none" {
+		vaultArgs := map[string]any{}
+		if len(initargs) > 0 {
+			if vaultType == "" {
+				slog.Warn("new vault arguments defined, but no vault type specified. lets hope you select the correct vault :)")
+			}
 
-	var InitArgs map[string]string
-	if len(initargs) > 0 {
-		var e error
-		InitArgs, e = godotenv.Unmarshal(strings.Join(initargs, "\n"))
-		if e != nil {
-			slog.Error("failed to unmarshal vault arguments: " + e.Error())
-			os.Exit(1)
+			for _, v := range initargs {
+				key, val, ok := strings.Cut(v, "=")
+				if !ok {
+					slog.Warn("failed to parse argument", "argument", v)
+					continue
+				}
+				slog.Debug("parsed argument", "key", key, "val", val)
+				vaultArgs[key] = val
+			}
 		}
+		file.TuiAddVault(string(vaultType), vaultArgs)
 	}
 
-	model := tui.NewInitModel(vaultType, InitArgs)
-	// theme := huh.ThemeCatppuccin()
-	// theme.Focused.FocusedButton = theme.Blurred.FocusedButton.SetString("◉")
-	// theme.Focused.BlurredButton = theme.Blurred.BlurredButton.SetString("○")
-
-	// p := tea.NewProgram(model, tea.WithAltScreen())
-	p := tea.NewProgram(model)
-	_, err = p.Run()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	Vault = model.Vault
-	// if e != nil {
-	// 	fmt.Fprintf(os.Stderr, "failed to run wizard: %s\n", e.Error())
-	// 	os.Exit(1)
-	// }
-
-	// err = Vault.WizardWarmup(InitArgs)
-	// if err != nil {
-	// 	slog.Error("failed to warm vault for init: " + err.Error())
-	// 	os.Exit(1)
-	// }
-
-	// wizForm := Vault.WizardNext()
-	// for wizForm != nil {
-	// 	runHuh(wizForm)
-	// 	// wizForm.Init()
-	// 	// wizForm.NextField()
-	// 	// wizForm.PrevField()
-	// 	// err = wizForm.WithTheme(theme).WithProgramOptions(tea.WithAltScreen()).Run()
-	// 	// if err != nil {
-	// 	// 	slog.Error("failed to run wizard: " + err.Error())
-	// 	// 	os.Exit(1)
-	// 	// }
-	// 	wizForm = Vault.WizardNext()
-	// }
-
-	slog.Debug("finished.. validating")
-	VaultOpts := Vault.WizardComplete()
-	// Vault.ValidateConfig(VaultOpts)
-
-	// slog.Info("done setting up vault")
-	err = Vault.ValidateConfig(VaultOpts)
-	if err != nil {
-		slog.Error("failed to validate vault '" + Vault.DisplayName() + "' options: " + err.Error())
-		os.Exit(1)
-	}
-
-	err = vaults.WriteFile(Path, VaultOpts)
-	if err != nil {
-		slog.Error("failed to write vault options: " + err.Error())
-		os.Exit(1)
-	}
-
-	//save the vault options
-	// vaults.SaveVault(Vault, Path)
-	// happy := true
-	runHuh(
-		huh.NewForm(huh.NewGroup(
-			huh.NewNote().Title("WARNING").Description("add your dotenv file to .gitignore if you are going to pull to file!"),
-		)),
-	)
-
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1).Bold(true)
-	commandStyle := lipgloss.NewStyle().MarginRight(1).Italic(true)
-	list := list.New(
-		"pull, output to terminal",
-		list.New(fmt.Sprintf("polyenv pull --path %s --out term", Path)).ItemStyle(commandStyle),
-		"pull, output to terminal as json",
-		list.New(fmt.Sprintf("polyenv pull --path %s --out termjson", Path)).ItemStyle(commandStyle),
-		fmt.Sprintf("pull, output to %s", Path),
-		list.New(fmt.Sprintf("polyenv pull --path %s --out file", Path)).ItemStyle(commandStyle),
-		"if output is not specified, it will default to terminal",
-	).Enumerator(list.Dash).ItemStyle(itemStyle)
-	slog.Info(fmt.Sprint(list))
+	slog.Info("polyenv file created", "path", file.Path, "name", file.Name)
+	slog.Info("You can have this anywhere in your project. It will store info needed to pull secrets from vaults.")
+	slog.Info(fmt.Sprintf("run 'polyenv !%s' to see what you can do with this env", Environment))
 }

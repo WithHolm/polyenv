@@ -28,7 +28,7 @@ so what is needed?
 
 so.. toml could be best option here. it allows for comments and is "structured" while seeming pretty open.
 
-``` text
+``` toml
 #mysecret.polyenv
 [vault.myvault]
 type = "keyvault"
@@ -40,26 +40,37 @@ type = "keyvault"
 tenant = "my-tenant"
 uri = "myvault2.vault.azure.net"
 
-[vault.myvault3]
-type = "keyvault"
-tenant = "my-tenant"
-uri = "myvault3.vault.azure.net"
+# Example for AWS Secrets Manager.
+# Note the vault-specific 'region' field, which is required for AWS.
+#please not that there isnt a aws vault type yet..
+[vault.aws-myvault]
+type = "aws-secrets-manager"
+region = "us-east-1"
+# The optional 'path_prefix' will be prepended to the remote_key of any
+# secret that uses this vault definition.
+path_prefix = "production/my-app/"
 
 [options]
-replaceHyphen = true
-autoUppercase = true
-ignoreContentType = ["application/x-pkcs12"]
+hyphens_to_underscores = true
+uppercase_locally = true
 
-[secret.localname]
+[secret.keyvault-secret]
 vault = "myvault"
-key = "myVaultSecret"
+remote_key = "myVaultSecret"
 
-[secret.localname2]
+[secret.keyvault-secret2]
 vault = "myvault2"
-key = "myVaultSecret2"
+remote_key = "myVaultSecret2"
+
+[secret.my-aws-secret]
+vault = "aws-myvault"
+remote_key = "credentials/my-aws-secret"
+
+[secret.my-aws-secret2]
+vault = "aws-myvault"
 ```
 
-``` text
+``` dotenv
 #mysecret.env
 LOCALNAME=value1
 LOCALNAME2=value2
@@ -67,6 +78,18 @@ LOCALNAME2=value2
 
 what happens if you have a secret in `.env` file and want to push it to a vault or you register a new secret?
 
-* connect secret to vault (list of available vaults)
+* select secret from `.env` file (`huh` list of "un synced" secrets if none is defined when starting app)
+* connect secret to vault (`huh` list of available vaults)
   * select one or register a new one
-* set `remote-name`
+* set `remote-name` 
+
+## Options:
+
+* hyphens_to_underscores
+  * convert hyphens to underscores in the local environment
+  * this will convert secret keys in polyenv to doenv -> `secret.my-secret` -> `my_secret`
+  * default: `true`
+* uppercase_locally
+  * convert all keys in the local environment to uppercase
+  * this will convert secret keys in polyenv to doenv -> `secret.my-secret` -> `MY-SECRET`
+  * default: `true`
