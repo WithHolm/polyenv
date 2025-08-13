@@ -30,13 +30,13 @@ func TestStoredEnv_Save(t *testing.T) {
 	filePath := filepath.Join(tmpDir, ".env")
 
 	// Create the file before writing to it
-	f, err = os.Create(filePath)
+	_, err = os.Create(filePath)
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("failed to close file: %v", err)
-	}
+	// if err := f.Close(); err != nil {
+	// 	t.Fatalf("failed to close file: %v", err)
+	// }
 
 	se := StoredEnv{
 		Key:   "MY_KEY",
@@ -139,7 +139,7 @@ type TestVault struct {
 	PushCalled bool
 }
 
-func (v *TestVault) ToString() string                               { return "" }
+func (v *TestVault) String() string                                 { return "" }
 func (v *TestVault) DisplayName() string                            { return "" }
 func (v *TestVault) Warmup() error                                  { return nil }
 func (v *TestVault) Marshal() map[string]any                        { return nil }

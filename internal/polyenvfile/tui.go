@@ -85,7 +85,7 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 				Validate(func(s string) error {
 					for k, v := range p.Vaults {
 						if k == s {
-							return fmt.Errorf("vault name already exists: %s", v.ToString())
+							return fmt.Errorf("vault name already exists: %s", v.String())
 						}
 					}
 					return nil
@@ -128,7 +128,7 @@ func (file *File) TuiSelectVault() string {
 				Title("Select vault").
 				OptionsFunc(func() (ret []huh.Option[string]) {
 					for k, v := range file.Vaults {
-						ret = append(ret, huh.NewOption(fmt.Sprintf("%s (%s)", k, v.ToString()), k))
+						ret = append(ret, huh.NewOption(fmt.Sprintf("%s (%s)", k, v.String()), k))
 					}
 					return ret
 				}, nil).
@@ -141,7 +141,7 @@ func (file *File) TuiSelectVault() string {
 		slog.Error("vault not found", "vault", displayName)
 		os.Exit(1)
 	}
-	slog.Debug("selected vault", "vault", vault.ToString())
+	slog.Debug("selected vault", "vault", vault.String())
 	return displayName
 }
 

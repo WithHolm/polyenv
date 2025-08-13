@@ -105,7 +105,7 @@ func OpenFile(env string) (File, error) {
 func (file *File) Save() {
 	file.VaultMap = make(map[string]map[string]any)
 	for k, v := range file.Vaults {
-		slog.Debug("marshalling vault", "displayname", k, "vault", v.ToString())
+		slog.Debug("marshalling vault", "displayname", k, "vault", v.String())
 
 		maps := v.Marshal()
 

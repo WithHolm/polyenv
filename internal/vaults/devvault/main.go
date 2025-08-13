@@ -69,7 +69,7 @@ func getVaults() (out []Store, err error) {
 	return stores, nil
 }
 
-func (c *Client) ToString() string {
+func (c *Client) String() string {
 	return "devvault/" + c.store.Name
 }
 

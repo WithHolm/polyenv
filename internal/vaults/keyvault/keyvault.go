@@ -69,7 +69,7 @@ func (cli *Client) DisplayName() string {
 	return "Azure Key Vault"
 }
 
-func (cli *Client) ToString() string {
+func (cli *Client) String() string {
 	return fmt.Sprintf("%s/%s", cli.Tenant, cli.Uri)
 }
 

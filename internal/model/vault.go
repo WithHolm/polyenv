@@ -4,7 +4,7 @@ import "github.com/charmbracelet/huh"
 
 type Vault interface {
 	// returns current instance as string for wizards
-	ToString() string
+	String() string
 	// returns the display name of the vault
 	DisplayName() string
 
@@ -59,4 +59,3 @@ type Wizard interface {
 	//completes the wizard. returns the data to be saved. error if something went wrong
 	WizComplete() error
 }
-

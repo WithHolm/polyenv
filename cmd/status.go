@@ -50,8 +50,8 @@ func status(cmd *cobra.Command, args []string) {
 				secList.Item(fmt.Sprintf("secret %s -> %s (%s)", secVal.RemoteKey, secKey, secVal.ContentType))
 			}
 
-			slog.Debug("vault", "name", k, "vault", v.ToString())
-			vaultList.Items(fmt.Sprintf("vault '%s' -> (%s)", k, v.ToString()), secList)
+			slog.Debug("vault", "name", k, "vault", v.String())
+			vaultList.Items(fmt.Sprintf("vault '%s' -> (%s)", k, v.String()), secList)
 		}
 
 		li.Items(env, vaultList)
