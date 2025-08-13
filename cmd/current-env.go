@@ -150,7 +150,7 @@ func listEnvStats(l []model.StoredEnv) {
 			tags = append(tags, "dup")
 		}
 
-		rows[i] = table.Row{v.Key, fmt.Sprintf("%s", tags), rel, sec.Vault}
+		rows[i] = table.Row{v.Key, strings.Join(tags, ","), rel, sec.Vault}
 		longestPath = max(longestPath, len(rel))
 		longestName = max(longestName, len(v.Key))
 		longestVault = max(longestVault, len(sec.Vault))
