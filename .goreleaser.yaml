@@ -36,7 +36,7 @@ builds:
         {{- if not (isEnvSet "CI") }}
         -X "github.com/withholm/polyenv/cmd.version=dev" -X "github.com/withholm/polyenv/cmd.commit=local" -X "github.com/withholm/polyenv/cmd.date=$(date +'%Y-%m-%d')"
         {{- else }}
-        -buildvcs=false -X "github.com/withholm/polyenv/cmd.version={{.Version}}" -X "github.com/withholm/polyenv/cmd.commit={{.Commit}}" -X "github.com/withholm/polyenv/cmd.date={{.Date}}"
+        -buildvcs false -X "github.com/withholm/polyenv/cmd.version={{.Version}}" -X "github.com/withholm/polyenv/cmd.commit={{.Commit}}" -X "github.com/withholm/polyenv/cmd.date={{.Date}}"
         {{- end }}
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
