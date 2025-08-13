@@ -30,6 +30,8 @@ builds:
     ldflags:
       # Omit the devvault package during release builds.
       - -s -w
+      # if not ci: set dev version data
+      #if ci: dont set dev version data
       - >-
         {{- if not (isEnvSet "CI") }}
         -X "github.com/withholm/polyenv/cmd.version=dev" -X "github.com/withholm/polyenv/cmd.commit=local" -X "github.com/withholm/polyenv/cmd.date=$(date +'%Y-%m-%d')"

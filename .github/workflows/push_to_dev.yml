@@ -32,7 +32,7 @@ jobs:
         with:
           version: "~> v2"
           distribution: goreleaser
-          args: release --snapshot --clean
+          args: release --snapshot --clean --verbose
       - name: Grab dev release version from metadata
         id: version
         run: |
