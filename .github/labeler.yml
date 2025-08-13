@@ -16,8 +16,12 @@ cmd:
   - 'cmd/**'
 
 # Label for changes in source code
-code:
+go:
   - '**/*.go'
+
+#label for changes in vendor
+vendor:
+  - 'vendor/**'
 
 # Label for specific tooling or scripts
 tools:
