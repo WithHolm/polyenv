@@ -1,0 +1,62 @@
+name: Create Changelog Fragment
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - ready_for_review
+
+jobs:
+  create-fragment:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to read PR details
+      pull-requests: read
+      # Required to checkout the code and push changes
+      contents: write
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Extract changelog from PR body
+        id: extract-changelog
+        run: |
+          # Use awk to extract content between "## Description" and the next "##" heading
+          # This is safer than just reading the whole body
+          content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Description/{flag=1; next} /^##/{flag=0} flag' | sed 's/<!--.*-->//g' | xargs)
+
+          if [ -n "$content" ]; then
+            echo "Changelog content found."
+            # Format the content as a markdown list item for the final changelog
+            echo "FRAGMENT_CONTENT=- $content" >> $GITHUB_ENV
+            echo "CONTENT_FOUND=true" >> $GITHUB_ENV
+          else
+            echo "No changelog content found under ## Description."
+            echo "CONTENT_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create or Update changelog fragment file
+        if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          mkdir -p changelog
+          echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${PR_NUMBER}.md"
+
+      - name: Commit and push changelog fragment
+        if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add "changelog/${PR_NUMBER}.md"
+          # Check if there are any changes to commit before committing
+          if ! git diff --staged --quiet; then
+            git commit -m "docs(changelog): create/update fragment for PR #${PR_NUMBER}"
+            git push
+          else
+            echo "No changes to the changelog fragment file."
+          fi
