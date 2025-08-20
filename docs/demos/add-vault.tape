@@ -13,23 +13,27 @@ Type "polyenv !dev add vault"
 Enter
 Sleep 500ms
 
-# Down
+#select dev vault
 Sleep 500ms
 Enter
 
-
+#select "mystore"
 Sleep 500ms
 Down
 Sleep 500ms
 Enter
 
+#Add name
 Sleep 500ms
 Type "dev-vault"
 Sleep 500ms
 Enter
 
+#choose to not add secret
+Sleep 1s
 Enter
 
+#run status
 Sleep 1
 Type polyenv status
 Enter

@@ -45,7 +45,7 @@ Enter
 # Sleep 2s
 # Sleep 2s
 
-
+Sleep 2s
 Ctrl+C
 # # Run the command by pressing enter.
 # Enter

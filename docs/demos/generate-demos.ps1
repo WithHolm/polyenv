@@ -74,14 +74,14 @@ $Items | ForEach-Object  -Parallel {
             "Enter"
             "Type cls"
             "Enter"
-            "Show"
         )
 
-        $Demo = $Theming + $setup + @("#START DEMO", "") + $content
+        $Demo =  $Theming + $setup + "Set TypingSpeed 250ms" + "Show" + @("#START DEMO", "") + $content
         # New-Item -Path $temp -ItemType File -Force|Out-Null
         # Start-Sleep -Milliseconds 50
         $Demo | Out-File -FilePath $tempFile  -Force
         vhs $tempFile
+        Write-host "Done with $($_.Name)!"
     }
     finally {
         $tempDir
