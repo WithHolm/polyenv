@@ -24,13 +24,24 @@ func (cli *Client) List() (out []model.Secret, err error) {
 			return nil, fmt.Errorf("failed to list secrets: %w", err)
 		}
 		for _, secret := range page.Value {
-			if secret.ContentType == nil || secret.Attributes == nil || secret.Attributes.Enabled == nil || secret.ID == nil {
-				slog.Warn("skipping secret with nil fields", "secret", secret)
+			if secret.ID == nil {
+				slog.Warn("skipping secret with nil ID", "secret", secret)
 				continue
 			}
+
+			var ctype string
+			if secret.ContentType != nil {
+				ctype = *secret.ContentType
+			}
+
+			enabled := false
+			if secret.Attributes != nil && secret.Attributes.Enabled != nil {
+				enabled = *secret.Attributes.Enabled
+			}
+
 			out = append(out, model.Secret{
-				ContentType: *secret.ContentType,
-				Enabled:     *secret.Attributes.Enabled,
+				ContentType: ctype,
+				Enabled:     enabled,
 				RemoteKey:   secret.ID.Name(),
 			})
 		}
