@@ -19,6 +19,7 @@ func init() {
 		slog.Error("failed to list environments", "error", e)
 		os.Exit(1)
 	}
+	// fmt.Println(env)
 	for _, v := range env {
 		V := v
 		cmd := &cobra.Command{
@@ -32,6 +33,7 @@ func init() {
 					slog.Error("failed to open polyenv file", "error", e)
 					os.Exit(1)
 				}
+				// slog.Debug("Using Polyenv file", "path", p.Fullname())
 				PolyenvFile = &p
 			},
 		}

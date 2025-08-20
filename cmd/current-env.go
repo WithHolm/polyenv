@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ var outputs = []string{
 	"json",
 	"azdevops",
 	"github",
+	"azas",
 }
 
 func generateEnvCommand() *cobra.Command {
@@ -46,7 +48,7 @@ func generateEnvCommand() *cobra.Command {
 }
 
 func listEnv(cmd *cobra.Command, args []string) {
-	list, err := PolyenvFile.AllDotenvKeys()
+	list, err := PolyenvFile.AllDotenvValues()
 	if err != nil {
 		slog.Error("failed to list env", "error", err)
 		os.Exit(1)
@@ -62,6 +64,8 @@ func listEnv(cmd *cobra.Command, args []string) {
 		out[v.Key] = v.Value
 	}
 
+	slog.Debug("output as", "type", output)
+
 	switch output {
 	case "json":
 		jsonBytes, err := json.MarshalIndent(out, "", "  ")
@@ -70,9 +74,10 @@ func listEnv(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		fmt.Println(string(jsonBytes))
-	case "azdevops":
+	case "azDevops":
 		for k, v := range out {
 			_, isSecret := PolyenvFile.Secrets[k]
+			slog.Info("setting env", "key", k, "isSecret", isSecret)
 			fmt.Printf("##vso[task.setvariable variable=%s;issecret=%v]%s\n", k, isSecret, v)
 		}
 	case "github":
@@ -114,6 +119,43 @@ func listEnv(cmd *cobra.Command, args []string) {
 		}
 
 		fmt.Println("Wrote environment variable to GITHUB_ENV")
+	case "azas":
+		asAzOut := map[string]string{}
+		for k, v := range out {
+			val := fmt.Sprintf("%v", v)
+			sec, isSecret := PolyenvFile.Secrets[k]
+			if isSecret {
+
+				// vault, ok := PolyenvFile.Vaults[sec.Vault]
+				vlt, ok := PolyenvFile.VaultMap[sec.Vault]
+				if !ok {
+					slog.Error("vault not found", "vault", sec.Vault)
+					os.Exit(1)
+				}
+				if vlt["type"] != "keyvault" {
+					slog.Error("only keyvault references is supported for azas output", "secret", k, "vault", sec.Vault)
+					os.Exit(1)
+				}
+				uri, ok := vlt["uri"]
+				if !ok {
+					slog.Error("keyvault uri not found", "vault", sec.Vault)
+					os.Exit(1)
+				}
+				secretUri, err := url.JoinPath(uri.(string), "secrets", sec.RemoteKey)
+				if err != nil {
+					slog.Error("failed to join path", "error", err)
+					os.Exit(1)
+				}
+				val = fmt.Sprintf("@Microsoft.KeyVault(%s)", secretUri)
+			}
+			asAzOut[k] = val
+		}
+		jsonBytes, err := json.MarshalIndent(asAzOut, "", "  ")
+		if err != nil {
+			slog.Error("failed to marshal json", "error", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(jsonBytes))
 	default:
 		slog.Error("unhandeled output case", "case", output)
 	}

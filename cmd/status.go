@@ -17,7 +17,7 @@ func init() {
 func generateStatusCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "show the status of the environment",
+		Short: "show the status of environments",
 		Run:   status,
 	}
 }
@@ -53,8 +53,10 @@ func status(cmd *cobra.Command, args []string) {
 			slog.Debug("vault", "name", k, "vault", v.String())
 			vaultList.Items(fmt.Sprintf("vault '%s' -> (%s)", k, v.String()), secList)
 		}
-
-		li.Items(env, vaultList)
+		// if env == "" {
+		// 	env = "<none>"
+		// }
+		li.Items("!"+env, vaultList)
 	}
-	fmt.Print(li)
+	fmt.Println(li)
 }

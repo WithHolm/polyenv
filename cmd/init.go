@@ -60,11 +60,6 @@ func init() {
 }
 
 func initialize(cmd *cobra.Command, args []string) {
-	// if checkgitignore {
-	// 	polyenvfile.GitignoreMatchesEnvSecret()
-	// 	os.Exit(0)
-	// }
-
 	file := polyenvfile.TuiNewFile(Environment)
 
 	file.TuiAddOpts(nil, acceptPolyenvDefaults)

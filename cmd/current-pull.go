@@ -33,20 +33,16 @@ func generatePullCommand() *cobra.Command {
 func pull(cmd *cobra.Command, args []string) {
 	secretFilename := PolyenvFile.GenerateFileName(".env.secret")
 	var secretFilePath string
-	existingEnv, err := PolyenvFile.AllDotenvKeys()
+	existingEnv, err := PolyenvFile.AllDotenvValues()
 	if err != nil {
 		slog.Error("failed to get existing env", "error", err)
 		os.Exit(1)
 	}
 
-	for _, v := range existingEnv {
-		// slog.Debug("file:"+v.File, "key", v.Key, "value", v.Value)
-		slog.Debug("file:"+v.File, "key", v.Key)
-	}
-
 	//region pull:precheck
 	//precheck. if not using .secret file, check if key exists in existing dotenv file
 	// TODO: Is this neccessary? how can we know where to create the env key-val pair?
+	slog.Debug("precheck!", "use dot secret file", PolyenvFile.Options.UseDotSecretFileForSecrets)
 	if !PolyenvFile.Options.UseDotSecretFileForSecrets {
 		for k := range PolyenvFile.Secrets {
 			matches := 0
@@ -64,14 +60,13 @@ func pull(cmd *cobra.Command, args []string) {
 			}
 		}
 	} else {
-		// secretFilename := PolyenvFile.GenerateFileName("env.secret")
 		root, e := tools.GetGitRootOrCwd()
 		if e != nil {
 			slog.Error("failed to get project root", "error", e)
 			os.Exit(1)
 		}
 
-		secretFiles, e := tools.GetAllFiles(root, []string{secretFilename})
+		secretFiles, e := tools.GetAllFiles(root, []string{secretFilename}, tools.MatchNameIExact)
 		if e != nil {
 			slog.Error("failed to get files", "error", e)
 			os.Exit(1)
@@ -143,6 +138,7 @@ func pull(cmd *cobra.Command, args []string) {
 	//region pull:write files
 	for _, newEnv := range contents {
 		if PolyenvFile.Options.UseDotSecretFileForSecrets {
+			slog.Debug("writing to .env.secret", "key", newEnv.Key, "file", secretFilePath)
 			// slog.Info("writing to .env.secret", "key", newEnv.Key, "file", secretFilePath)
 			newEnv.File = secretFilePath
 			e := newEnv.Save()
@@ -155,6 +151,7 @@ func pull(cmd *cobra.Command, args []string) {
 
 		for _, v := range existingEnv {
 			if v.Key == newEnv.Key {
+				slog.Debug("updating existing env", "key", v.Key, "file", v.File)
 				v.Value = newEnv.Value
 				e := v.Save()
 				if e != nil {
