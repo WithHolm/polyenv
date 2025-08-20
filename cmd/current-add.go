@@ -68,6 +68,10 @@ func add(cmd *cobra.Command, args []string) {
 		),
 	)
 	tui.RunHuh(f)
+	if selected == nil {
+		slog.Error("no vault selected")
+		os.Exit(1)
+	}
 	selected.Run(cmd, args)
 }
 
