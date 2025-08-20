@@ -5,6 +5,8 @@ package devvault
 import (
 	"fmt"
 	"log/slog"
+	"slices"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/withholm/polyenv/internal/model"
@@ -66,6 +68,10 @@ type Client struct {
 }
 
 func getVaults() (out []Store, err error) {
+	slices.SortFunc(stores, func(a, b Store) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	// slices.Sort(stores)
 	return stores, nil
 }
 
@@ -98,6 +104,7 @@ func (c *Client) Marshal() map[string]any {
 	}
 }
 
+// create a type from the given map
 func (c *Client) Unmarshal(m map[string]any) error {
 	s, ok := m["store"]
 	if !ok {
@@ -110,7 +117,7 @@ func (c *Client) Unmarshal(m map[string]any) error {
 	if e != nil {
 		return fmt.Errorf("failed to get vaults: %w", e)
 	}
-	slog.Debug("got vaults", "vaults", val)
+	slog.Debug("devvault: found stores", "length", len(val))
 
 	for _, v := range val {
 		if v.Name == st {
@@ -118,7 +125,7 @@ func (c *Client) Unmarshal(m map[string]any) error {
 			break
 		}
 	}
-	slog.Debug("found store", "store", store)
+	slog.Debug("devvault: found the correct store", "name", store.Name)
 	if store.Name == "" {
 		return fmt.Errorf("cannot find store for vault '%s'", st)
 	}
@@ -158,6 +165,7 @@ func (c *Client) WizNext() (*huh.Form, error) {
 							opt := huh.NewOption(v.Name, v.Name)
 							ret = append(ret, opt)
 						}
+
 						return ret
 					}, nil).Value(&c.Name),
 			),

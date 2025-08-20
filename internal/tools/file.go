@@ -52,16 +52,37 @@ type fcache struct {
 
 var globalFileCache = NewFileCache()
 
-func GetAllFiles(root string, filter []string) (out []string, err error) {
-	//cache cause i know i have some files im searching for multiple times.. saves hot path calls
+type Matchtype int
 
+const (
+	//Name of file must contain the given string
+	MatchNameContains Matchtype = iota
+	//Name of file must indifferent match the given string (ignore case)
+	MatchNameIExact
+)
+
+// type FileFilter struct {
+// 	Value []string
+// 	Type  Matchtype
+// }
+
+// func (f FileFilter) String() string {
+// 	slices.Sort(f.Value)
+// 	return fmt.Sprintf("%d:%s", f.Type, strings.Join(f.Value, "-"))
+// }
+
+// get all files recurcivley in the given root directory
+func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err error) {
 	slices.Sort(filter)
-	key := fmt.Sprintf("%s-%s", root, strings.Join(filter, "-"))
+	//cache cause i know i have some files im searching for multiple times.. saves hot path calls
+	key := fmt.Sprintf("%s|%d:%s", root, typ, strings.Join(filter, "-"))
+	// slog.Debug("cache", "key", key)
 
 	globalFileCache.mu.RLock()
 	cache, ok := globalFileCache.cache[key]
 	globalFileCache.mu.RUnlock()
 	if ok {
+		slog.Debug("search: cache hit", "key", key)
 		return cache.out, cache.err
 	}
 
@@ -80,6 +101,7 @@ func GetAllFiles(root string, filter []string) (out []string, err error) {
 		if err != nil {
 			return err
 		}
+		// slog.Debug("checking", "path", path, "filter", filter)
 
 		if d.IsDir() {
 			// Skip directories that are unlikely to contain relevant files.
@@ -90,9 +112,17 @@ func GetAllFiles(root string, filter []string) (out []string, err error) {
 		}
 
 		for _, f := range filter {
-			if strings.Contains(d.Name(), f) {
-				out = append(out, path)
-				return nil // Found a match, move to the next file.
+			switch typ {
+			case MatchNameContains:
+				if strings.Contains(d.Name(), f) {
+					slog.Debug("search: appending contains-match", "path", path, "name", d.Name(), "filter", f)
+					out = append(out, path)
+				}
+			case MatchNameIExact:
+				if strings.EqualFold(d.Name(), f) {
+					slog.Debug("search: appending iexact-match", "path", path, "name", d.Name(), "filter", f)
+					out = append(out, path)
+				}
 			}
 		}
 		return nil
@@ -107,7 +137,7 @@ func GetAllFiles(root string, filter []string) (out []string, err error) {
 		return nil, err
 	}
 
-	slog.Debug("added to cache", "key", key, "out", out)
+	slog.Debug("search: file cache add", "key", key, "out", out)
 	globalFileCache.cache[key] = fcache{
 		out: out,
 		err: nil,
