@@ -28,17 +28,17 @@ var initCmd = &cobra.Command{
 		init will set up environment for managment.
 	`,
 	Args: cobra.MaximumNArgs(1),
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			Environment = args[0]
 		}
 
 		if vaultType != "" && !slices.Contains(vaultTypes, vaultType) {
 			slog.Error("invalid vault type", "type", vaultType)
-			cmd.Usage()
-			return
+			cmd.SilenceUsage = false
+			return fmt.Errorf("invalid vault type")
 		}
-
+		return nil
 	},
 	Run: initialize,
 }
