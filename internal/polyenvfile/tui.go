@@ -422,6 +422,10 @@ func TuiNewFile(env string) (p *File) {
 					}, newFileName).
 					Value(&newFileName).
 					Validate(func(env string) error {
+						if strings.Contains(env, " ") {
+							return fmt.Errorf("environment name cannot contain spaces")
+						}
+
 						return FileExists(tools.ExtractNameFromDotenv(env))
 					}),
 				huh.NewNote().DescriptionFunc(func() string {
@@ -457,6 +461,10 @@ func TuiNewFile(env string) (p *File) {
 					}, nil).
 					Validate(func(s string) error {
 						filename := filepath.Base(s)
+						env := tools.ExtractNameFromDotenv(filename)
+						if strings.Contains(env, " ") {
+							return fmt.Errorf("environment name cannot contain spaces")
+						}
 						return FileExists(tools.ExtractNameFromDotenv(filename))
 					}).
 					Value(&existingFile),
@@ -473,6 +481,11 @@ func TuiNewFile(env string) (p *File) {
 			env = tools.ExtractNameFromDotenv(newFileName)
 		case "existing":
 			env = tools.ExtractNameFromDotenv(filepath.Base(existingFile))
+		}
+	} else {
+		if strings.Contains(env, " ") {
+			slog.Error("environment name cannot contain spaces")
+			os.Exit(1)
 		}
 	}
 

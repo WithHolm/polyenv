@@ -105,7 +105,7 @@ func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err
 
 		if d.IsDir() {
 			// Skip directories that are unlikely to contain relevant files.
-			if d.Name() == ".git" || d.Name() == "vendor" {
+			if d.Name() == ".git" || d.Name() == "vendor" || d.Name() == "node_modules" {
 				return filepath.SkipDir
 			}
 			return nil
