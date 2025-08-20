@@ -1,4 +1,6 @@
 /dist
+/.ssh
+**/*.env*
 
 **/*env.secret*
 **/*.polyenv.toml
