@@ -1,7 +1,8 @@
-name: Create Changelog Fragment
+name: Create changelog fragments from PR
 
 on:
   pull_request_target:
+    branches-ignore: [main]
     types:
       - opened
       - edited

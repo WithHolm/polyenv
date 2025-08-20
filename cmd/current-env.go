@@ -74,7 +74,7 @@ func listEnv(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		fmt.Println(string(jsonBytes))
-	case "azDevops":
+	case "azdevops":
 		for k, v := range out {
 			_, isSecret := PolyenvFile.Secrets[k]
 			slog.Info("setting env", "key", k, "isSecret", isSecret)
