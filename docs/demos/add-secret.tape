@@ -1,39 +1,82 @@
 Hide 
 #generate polyenv file
-Type "polyenv init dev --vault none --accept-default-settings"
+Type "polyenv init dev --vault devvault --accept-default-settings"
 Enter
+Sleep 50ms
+
+Enter
+
+Type "dev-vault"
+Enter
+
+Sleep 50ms
+Enter
+
+
 Type cls
 Enter
 Show
 
 
 
+Type "polyenv status"
+Enter
+Sleep 1s
+
 # Type a command in the terminal.
-Type "polyenv !dev add vault"
-Enter
-Sleep 500ms
-
-# Down
-Sleep 500ms
+Type "polyenv !dev add secret"
+Sleep 1s
 Enter
 
+Sleep 1s
+Enter
 
-Sleep 500ms
+#select secrets
+Space
+Sleep 1s
 Down
-Sleep 500ms
-Enter
-
-Sleep 500ms
-Type "dev-vault"
-Sleep 500ms
-Enter
+Space
+Sleep 1s
 
 Enter
-
-Sleep 1
-Type gc "dev.polyenv.toml"
+Type "local-env-key"
+Sleep 1s
 Enter
-Sleep 2
+
+Type "my_other_secret"
+Sleep 1s
+Enter
+
+
+Sleep 500ms
+
+Type "polyenv status"
+Enter
+Sleep 1s
+
+
+
+# # Down
+# Sleep 500ms
+# Enter
+
+
+# Sleep 500ms
+# Down
+# Sleep 500ms
+# Enter
+
+# Sleep 500ms
+# Type "dev-vault"
+# Sleep 500ms
+# Enter
+
+# Enter
+
+# Sleep 1
+# Type gc "dev.polyenv.toml"
+# Enter
+# Sleep 2
 
 #select "New"
 # Down
@@ -75,7 +118,7 @@ Sleep 2
 # Enter
 
 Sleep 2s
-Sleep 2s
+# Sleep 2s
 
 
 Ctrl+C

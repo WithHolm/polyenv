@@ -9,7 +9,6 @@ if (!(test-path $checksumsFile)) {
 else {
     $checksums = Get-Content $checksumsFile | ConvertFrom-Json -AsHashtable
 }
-$checksums = [hashtable]::Synchronized($checksums)
 
 if (!(test-path $dist)) {
     make build
@@ -18,7 +17,21 @@ if (!(test-path $dist)) {
 $exedir = gci $dist -Filter "polyenv.exe" -Recurse -File
 set-alias polyenv $exedir
 
-Get-ChildItem -Path $PSScriptRoot -Filter *.tape -Recurse | ForEach-Object -Parallel {
+$Items = Get-ChildItem -Path $PSScriptRoot -Filter *.tape -Recurse|?{
+    $Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+    if (!$checksums.ContainsKey($_.Name)) {
+        return $true
+    }
+    elseif ($checksums[$_.Name] -eq $Hash) {
+        return $false
+    }
+    return $true
+}
+
+
+# return $Items
+
+$Items | ForEach-Object  -Parallel {
     $file = $_
     $checksums = $using:checksums
     $dist = $using:dist
@@ -76,5 +89,21 @@ Get-ChildItem -Path $PSScriptRoot -Filter *.tape -Recurse | ForEach-Object -Para
         # get-item $temp|Remove-Item
     }
 }
+
+$Items | ForEach-Object {
+    Write-host "Updating checksums for $($_.Name)"
+    $checksums[$_.Name] = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+}
+# $J.Childjobs|%{
+#     Write-Progress -Activity "Generating gifs" -Status $_.State -PercentComplete ($_.PercentComplete)
+# }
+
+# while($j.State -ne "Completed") {
+    
+#     $j.Childjobs|%{
+
+#     }
+#     Start-Sleep -Milliseconds 500
+# }
 
 $checksums | ConvertTo-Json -Depth 100 | Out-File $checksumsFile
