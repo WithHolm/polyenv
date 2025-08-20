@@ -10,10 +10,10 @@ no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool t
 
 ## Features
 
-- Initialize a .polyenv.toml file for config. this can be synced used with your git repo.
-- Pull secrets from a selection of remote vaults.
+- Config file so everyone share the same secret-sources. this can be synced used with your git repo.
+- Pull secrets from a selection of remote vaults (Only Keyvault atm. I accept pr's or issues for other sources if you want to provide access and documentation to the given solution so a solution can be written).
 - Load values from multiple env files within the same environment.
-- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool.
+- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool that should be available everywhere.
 
 ## Installation
 
@@ -35,9 +35,11 @@ in all cases it will create a `{env}.polyenv.toml` file in the current directory
 
 ![init](/docs/demos/init.gif)
 
+When this is done, you can use `polyenv !{env}` to show what commands are available to manage this environment.
+
 #### Add vault or secret
 
-- `polyenv !{env} add vault`: Adds a new vault to the environment
+- `polyenv !{env} add vault`: Adds a new vault to the environment.
 - `polyenv !{env} add secret [vault name]`: Adds a new secret to the environment
 
 #### Pull secrets from vault
@@ -45,6 +47,19 @@ in all cases it will create a `{env}.polyenv.toml` file in the current directory
 depending on your [config](#polyenv-config), this will either set secrets in `.env.secrets.{env}` file or existing uinqe keys in existing `{env}.env||.env.{env}` files
 
 - `polyenv !{env} pull`
+
+#### Show all env keys (or info about them) in current environment
+
+`polyenv !{env} env`: will output all env keys in the current environment. by default it will output as a json to stdout, but you can use `--output {json|azdevops|github}` to change that.
+
+* `azdevops` will output using `##vso[task.setvariable` to stdout. if the the env is a secret it will define the variable as secret. currently it will not use `isOutput` as i've had some issues with that, so all .
+* `github` will write the env to the `GITHUB_ENV` file.
+* `json` will output the env as json to stdout.
+* `azas` will output the env as ready made app config elements for azure app service
+  * it will output array of {key='key',value='val'} pairs. 
+  * secrets will have value `@Microsoft.KeyVault(VaultName=<vaultName>;SecretName=<secretName>)`
+
+Unfortunatley i cannot provide keys to env directly for local usage, so i have to defer to the user to do that. however there are example scripts in 
 
 ### Supported vaults
 
