@@ -16,8 +16,10 @@ func init() {
 	//genereate command and all sub commands for each environment
 	env, e := polyenvfile.ListEnvironments()
 	if e != nil {
-		slog.Error("failed to list environments", "error", e)
-		os.Exit(1)
+		slog.Warn("failed to discover environments. environment scoped commands will not work.", "error", e)
+		return
+		// slog.Error("failed to list environments", "error", e)
+		// os.Exit(1)
 	}
 	// fmt.Println(env)
 	for _, v := range env {
