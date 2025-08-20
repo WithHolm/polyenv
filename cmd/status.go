@@ -47,6 +47,9 @@ func status(cmd *cobra.Command, args []string) {
 		for k, v := range p.Vaults {
 			secList := list.New()
 			for secKey, secVal := range p.Secrets {
+				if secVal.Vault != k {
+					continue
+				}
 				secList.Item(fmt.Sprintf("secret %s -> %s (%s)", secVal.RemoteKey, secKey, secVal.ContentType))
 			}
 
