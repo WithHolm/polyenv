@@ -112,6 +112,8 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 		p.Vaults = make(map[string]model.Vault)
 	}
 	p.Vaults[vaultDisplayName] = vault
+	p.Save()
+
 	vault.Warmup()
 
 	if addSecret {
@@ -279,6 +281,7 @@ func (p *File) TuiAddSecret(vaultName string) {
 			delete(p.Secrets, k)
 		}
 	}
+	p.Save()
 
 }
 
@@ -391,7 +394,7 @@ func TuiNewFile(env string) (p *File) {
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Init").
-					Description("do you want to use an existing env file as baseline or define a new environment?/n Polyenv files follows 'environment', and will use all available files given a environment.").
+					Description("do you want to use an existing env file as baseline or define a new environment?\nPolyenv files follows 'environment', and will use all available files given a environment.").
 					Options(
 						huh.NewOption("Existing", "existing"),
 						huh.NewOption("New", "new"),
@@ -404,10 +407,9 @@ func TuiNewFile(env string) (p *File) {
 		form = huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
-					Description("Enter the name of the environment to use").
-					Placeholder("dev").
+					Description("Enter the name of the environment to use. leave empty to use just '.env'").
 					SuggestionsFunc(func() []string {
-						a, e := tools.GetAllFiles(c, []string{".env"})
+						a, e := tools.GetAllFiles(c, []string{".env"}, tools.MatchNameContains)
 						if e != nil {
 							slog.Error("failed to get files: " + e.Error())
 							os.Exit(1)
@@ -418,10 +420,9 @@ func TuiNewFile(env string) (p *File) {
 						}
 						return o
 					}, newFileName).
-					// Suggestions([]string{"dev", "prod", "staging"}).
 					Value(&newFileName).
-					Validate(func(s string) error {
-						return FileExists(tools.ExtractNameFromDotenv(s))
+					Validate(func(env string) error {
+						return FileExists(tools.ExtractNameFromDotenv(env))
 					}),
 				huh.NewNote().DescriptionFunc(func() string {
 					filter := tools.ExtractNameFromDotenv(newFileName)
@@ -435,7 +436,7 @@ func TuiNewFile(env string) (p *File) {
 					OptionsFunc(func() []huh.Option[string] {
 						out := []huh.Option[string]{}
 
-						list, err := tools.GetAllFiles(c, []string{".env"})
+						list, err := tools.GetAllFiles(c, []string{".env"}, tools.MatchNameContains)
 						if err != nil {
 							slog.Error("failed to get files: " + err.Error())
 							os.Exit(1)
@@ -495,13 +496,13 @@ func tuiSelectEnvNote(env string) string {
 		os.Exit(1)
 	}
 
-	allFiles, err := tools.GetAllFiles(cwd, []string{".env"})
+	allFiles, err := tools.GetAllFiles(cwd, []string{".env"}, tools.MatchNameContains)
 	if err != nil {
 		slog.Error("failed to get files: " + err.Error())
 		os.Exit(1)
 	}
 
-	o := "Will match:"
+	o := "Will match the following files:"
 	for _, f := range allFiles {
 		fname := tools.ExtractNameFromDotenv(filepath.Base(f))
 		cwdpath, err := filepath.Rel(cwd, f)
@@ -514,6 +515,16 @@ func tuiSelectEnvNote(env string) string {
 		if env == fname {
 			o += "\n" + cwdpath
 		}
+	}
+
+	if env == "" {
+		o += "\n ..or any file named '.env'"
+	} else {
+		files := []string{
+			strings.Join([]string{".env", env}, "."),
+			strings.Join([]string{env, "env"}, "."),
+		}
+		o += fmt.Sprintf("\n ..or any file named '%s'", strings.Join(files, ", "))
 	}
 	return o
 }
@@ -556,7 +567,7 @@ func (p *File) TuiAddGitIgnore() error {
 	//normally os.O_CREATE for opening files, however i want it to error if gitignore is not found..
 	file, err := os.OpenFile(filepath.Join(root, ".gitignore"), os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		return fmt.Errorf("Failed to open gitignore: %w", err)
+		return fmt.Errorf("failed to open gitignore: %w", err)
 	}
 	defer file.Close()
 

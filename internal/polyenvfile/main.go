@@ -31,12 +31,13 @@ type File struct {
 
 // open vault from env tag
 func OpenFile(env string) (File, error) {
+	slog.Debug("opening polyenv file", "env", env)
 	root, e := tools.GetGitRootOrCwd()
 	if e != nil {
 		return File{}, e
 	}
 
-	allfiles, e := tools.GetAllFiles(root, []string{".polyenv.toml"})
+	allfiles, e := tools.GetAllFiles(root, []string{env + ".polyenv.toml"}, tools.MatchNameIExact)
 	if e != nil {
 		return File{}, e
 	}
@@ -51,6 +52,7 @@ func OpenFile(env string) (File, error) {
 	if path == "" {
 		return File{}, fmt.Errorf("no env file found with name '%s'", env)
 	}
+	slog.Debug("found polyenv file", "path", path)
 
 	var vaultFile File
 
@@ -69,10 +71,13 @@ func OpenFile(env string) (File, error) {
 
 	//convert map of toml vaults to map of vaultmodel.Vault
 	vaultFile.Vaults = make(map[string]model.Vault)
+	if len(vaultFile.VaultMap) > 0 {
+		slog.Debug("file has vaults", "length", len(vaultFile.VaultMap))
+	}
 	for k, v := range vaultFile.VaultMap {
 		slog.Debug("processing configured vault", "key", k)
 
-		slog.Debug("vault", "options", v)
+		// slog.Debug("vault", "options", v)
 		t, ok := v["type"]
 		if !ok {
 			return vaultFile, fmt.Errorf("vault '%s': key 'type' is missing in polyenv file", k)
@@ -94,7 +99,11 @@ func OpenFile(env string) (File, error) {
 		vaultFile.Vaults[k] = vault
 	}
 
+	if len(vaultFile.Secrets) > 0 {
+		slog.Debug("file has secrets", "length", len(vaultFile.Secrets))
+	}
 	for k, v := range vaultFile.Secrets {
+		slog.Debug("secret reference", "key", k, "vault", v.Vault)
 		v.LocalKey = k
 		vaultFile.Secrets[k] = v
 	}
@@ -129,6 +138,13 @@ func (file *File) Save() {
 		slog.Error("failed to write polyenv file", "error", err)
 		os.Exit(1)
 	}
+}
+
+func (file *File) String() string {
+	if file.Name == "" {
+		return "<none>"
+	}
+	return file.Name
 }
 
 func (file *File) Fullname() string {
@@ -177,13 +193,14 @@ func (file *File) GetSecretInfo(remoteKey string, vault string) (model.Secret, b
 
 // return all dotenv keys in the project in files that include current environment
 // {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
-func (f *File) AllDotenvKeys() (out []model.StoredEnv, err error) {
+func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
+	slog.Debug("getting all dotenv values within", "env", f.Name)
 	// get all files
 	cwd, err := tools.GetGitRootOrCwd()
 	if err != nil {
 		return nil, err
 	}
-	allfiles, err := tools.GetAllFiles(cwd, []string{".env"})
+	allfiles, err := tools.GetAllFiles(cwd, []string{f.Name + ".env", ".env." + f.Name}, tools.MatchNameIExact)
 	if err != nil {
 		return nil, err
 	}
@@ -194,12 +211,16 @@ func (f *File) AllDotenvKeys() (out []model.StoredEnv, err error) {
 	})
 
 	for _, fl := range allfiles {
-		// {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
-		if !strings.Contains(fl, f.Name) {
+		environ := tools.ExtractNameFromDotenv(filepath.Base(fl))
+		if environ != f.Name {
 			continue
 		}
+		// {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
+		// if !strings.Contains(fl, f.Name) {
+		// 	continue
+		// }
 
-		slog.Debug("found file", "file", fl)
+		slog.Debug("found dotenv", "file", fl)
 
 		m, e := godotenv.Read(fl)
 		if e != nil {
@@ -208,6 +229,7 @@ func (f *File) AllDotenvKeys() (out []model.StoredEnv, err error) {
 		}
 
 		for k, v := range m {
+			slog.Debug("dotenv value", "key", k)
 			out = append(out, model.StoredEnv{
 				Key:   k,
 				Value: v,
