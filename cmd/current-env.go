@@ -30,9 +30,9 @@ var outputs = []string{
 func generateEnvCommand() *cobra.Command {
 	var envCmd = &cobra.Command{
 		Use:   "env",
-		Short: "list all current environment vairables read from .env files",
+		Short: "list all current environment variables read from .env files",
 		Long: `
-		list all current environment vairables read from .env files from git root and all sub-folders
+		list all current environment variables read from .env files from git root and all sub-folders
 	`,
 		Run: listEnv,
 	}
