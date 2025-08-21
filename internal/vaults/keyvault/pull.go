@@ -10,9 +10,13 @@ import (
 
 func (c *Client) Pull(s model.Secret) (model.SecretContent, error) {
 	var sec model.SecretContent
+	if c.client == nil {
+		return sec, fmt.Errorf("client not initialized. warmup first")
+	}
+
 	kvSecret, err := c.client.GetSecret(context.Background(), s.RemoteKey, "", nil)
 	if err != nil {
-		return sec, fmt.Errorf("failed to read secret %s: %s", s.RemoteKey, err)
+		return sec, fmt.Errorf("failed to read secret %s: %w", s.RemoteKey, err)
 	}
 
 	if kvSecret.ContentType != nil {
