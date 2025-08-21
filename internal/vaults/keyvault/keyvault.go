@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
@@ -37,6 +38,10 @@ type Client struct {
 	client azsecretsClient `toml:"-"`
 
 	wiz Wizard `toml:"-"`
+
+	pullElevateOnce sync.Once `toml:"-"`
+	pushElevateOnce sync.Once `toml:"-"`
+	listElevateOnce sync.Once `toml:"-"`
 }
 
 var ctx context.Context

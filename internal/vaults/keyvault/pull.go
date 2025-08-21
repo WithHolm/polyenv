@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/withholm/polyenv/internal/model"
 )
@@ -28,14 +27,11 @@ func (c *Client) Pull(s model.Secret) (model.SecretContent, error) {
 	return sec, nil
 }
 
-var elevated = false
+// var elevated = false
 
 func (c *Client) PullElevate() error {
-	slog.Debug("Keyvault PIM elevate not implemented yet. returning no error")
-	if elevated {
-		return nil
-	}
-	elevated = true
-	time.Sleep(time.Second * 2)
+	c.pullElevateOnce.Do(func() {
+		slog.Debug("Keyvault PIM elevate not implemented yet. returning no error")
+	})
 	return nil
 }

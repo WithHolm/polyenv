@@ -50,6 +50,8 @@ func (cli *Client) List() (out []model.Secret, err error) {
 }
 
 func (cli *Client) ListElevate() error {
-	slog.Debug("Keyvault PIM elevate not implemented yet")
+	cli.listElevateOnce.Do(func() {
+		slog.Debug("Keyvault PIM elevate not implemented yet")
+	})
 	return nil
 }
