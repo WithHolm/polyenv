@@ -157,6 +157,7 @@ func listEnv(cmd *cobra.Command, args []string) {
 		fmt.Println(string(jsonBytes))
 	default:
 		slog.Error("unhandeled output case", "case", output)
+		os.Exit(1)
 	}
 
 }
