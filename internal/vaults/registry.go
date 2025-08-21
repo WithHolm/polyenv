@@ -15,7 +15,9 @@ var reg = map[string]func() model.Vault{
 	"keyvault": func() model.Vault { return &keyvault.Client{} },
 }
 var regMu sync.RWMutex
-var logged = false
+var logOnce sync.Once
+
+// var logged = false
 
 // returns a new instance of the vault
 func NewVaultInstance(vaultType string) (model.Vault, error) {
@@ -32,10 +34,9 @@ func NewVaultInstance(vaultType string) (model.Vault, error) {
 func List() []string {
 	regMu.RLock()
 	defer regMu.RUnlock()
-	if !logged {
+	logOnce.Do(func() {
 		slog.Debug("registered vaults", "count", len(reg))
-		logged = true
-	}
+	})
 
 	keys := make([]string, 0)
 	for k := range reg {
