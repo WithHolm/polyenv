@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
