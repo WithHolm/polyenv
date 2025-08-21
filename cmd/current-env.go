@@ -146,7 +146,7 @@ func listEnv(cmd *cobra.Command, args []string) {
 					slog.Error("failed to join path", "error", err)
 					os.Exit(1)
 				}
-				val = fmt.Sprintf("@Microsoft.KeyVault(%s)", secretUri)
+				val = fmt.Sprintf("@Microsoft.KeyVault(SecretUri=%s)", secretUri)
 			}
 			asAzOut[k] = val
 		}
