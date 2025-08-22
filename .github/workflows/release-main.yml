@@ -24,7 +24,10 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-
+      
+      - name: Go mod vendor
+        run: |
+          go mod vendor -v
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
