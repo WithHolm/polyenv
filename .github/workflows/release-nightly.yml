@@ -1,9 +1,12 @@
 name: Dev-Build
 
 on: 
-  push: 
-    branches: 
-      - dev
+  schedule:
+    #every day at midnight
+    - cron: '0 0 * * *'
+  # push: 
+  #   branches: 
+  #     - dev
 
 permissions:
   contents: write
