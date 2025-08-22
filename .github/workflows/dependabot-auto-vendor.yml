@@ -17,7 +17,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # The ref points to the head of the PR branch
           ref: ${{ github.event.pull_request.head.sha }}
