@@ -23,21 +23,21 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-      - name: Go mod tidy
-        run: |
-            go mod tidy -v
+      # - name: Go mod tidy
+      #   run: |
+      #       go mod tidy -v
 
-      - name: Go mod vendor
-        run: |
-          go mod vendor -v
+      # - name: Go mod vendor
+      #   run: |
+      #     go mod vendor -v
 
-      - name: git add any changes with tag
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add .
-          git commit -m "go mod tidy for tag ${{ github.ref_name }}"
-          git tag ${{ github.ref_name }}
+      # - name: git add any changes with tag
+      #   run: |
+      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config --global user.name "github-actions[bot]"
+      #     git add .
+      #     git tag ${{ github.ref_name }}
+      #     git commit -m "go mod tidy for tag ${{ github.ref_name }}"
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6
