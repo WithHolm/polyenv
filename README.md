@@ -1,45 +1,103 @@
 # polyenv
 
-polyenv is a CLI tool that allows you to sync your .env files with alternatives to dotenv vault.
+![alt](/docs/logo.png)
+
+polyenv is a CLI tool that allows you to manage secrets in your environment and show values from multiple env files
+
 for now only Azure Keyvault is supported, but more will be available in the future.
+
+no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool that you can use to pull secrets from your already defined
 
 ## Features
 
-- Initialize .env file for syncing with Azure Key Vault
-- Push secrets from .env file to Azure Key Vault
-- Pull secrets from Azure Key Vault to .env file
-- Support for multiple tenants and subscriptions
-- Interactive wizard for easy setup
+- Config file so everyone share the same secret-sources. this can be synced used with your git repo.
+- Pull secrets from a selection of remote vaults (Only Keyvault atm. I accept pr's or issues for other sources if you want to provide access and documentation to the given solution so a solution can be written).
+- Load values from multiple env files within the same environment.
+- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool that should be available everywhere.
 
 ## Installation
 
-check release page [here](https://github.com/WithHolm/polyenv/releases) to download the goddamn application
+check release page [here](https://github.com/WithHolm/polyenv/releases) to download the application
 
 ## Usage
 
 ### Commands
 
-1. Initialize a .env file for syncing:
+#### Initialize a new environment
 
-```
-polyenv init [--path <path-to-env-file>]
+it will ask you to add vaults and secrets:
+
+- `polyenv init`: Asks you to select vault and secret
+- `polyenv init --type {vaultType}`: Initializes the environment with the given [vault type](#supported-vaults)
+- `polyenv init --type {vaultType} --arg key=value`: Initializes the environment with the given [vault type](#supported-vaults) and sets the given arguments set dotenv style
+
+in all cases it will create a `{env}.polyenv.toml` file in the current directory. this file can be moved anywhere within your repo.
+
+![init](/docs/demos/init.gif)
+
+When this is done, you can use `polyenv !{env}` to show what commands are available to manage this environment.
+
+#### Add vault or secret
+
+- `polyenv !{env} add vault`: Adds a new vault to the environment.
+- `polyenv !{env} add secret [vault name]`: Adds a new secret to the environment
+
+#### Pull secrets from vault
+
+depending on your [config](#polyenv-config), this will either set secrets in `.env.secrets.{env}` file or existing uinqe keys in existing `{env}.env||.env.{env}` files
+
+- `polyenv !{env} pull`
+
+#### Show all env keys (or info about them) in current environment
+
+`polyenv !{env} env`: will output all env keys in the current environment. by default it will output as a json to stdout, but you can use `--output {json|azdevops|github}` to change that.
+
+* `azdevops` will output using `##vso[task.setvariable` to stdout. if the the env is a secret it will define the variable as secret. currently it will not use `isOutput` as i've had some issues with that, so all .
+* `github` will write the env to the `GITHUB_ENV` file.
+* `json` will output the env as json to stdout.
+* `azas` will output the env as ready made app config elements for azure app service
+  * it will output array of {key='key',value='val'} pairs. 
+  * secrets will have value `@Microsoft.KeyVault(VaultName=<vaultName>;SecretName=<secretName>)`
+
+Unfortunatley i cannot provide keys to env directly for local usage, so i have to defer to the user to do that. however there are example scripts in 
+
+### Supported vaults
+
+#### Azure Key Vault
+
+The vault uses Azure SDK's [credential chains](https://learn.microsoft.com/en-us/dotnet/azure/sdk/authentication/credential-chains?tabs=dac) for authentication. Either uses your local az cli credentials or any service principal credentials defined in env variables
+
+|argument|alias|description|
+|---|---|---|
+|`tenant`||tenant id or domain|
+|`subscription`|`sub`|subscription id or name|
+
+example:
+
+``` text
+polyenv init --type keyvault --arg tenant=mytenant.com --arg subscription=mysubscription
 ```
 
-2. Push secrets to Azure Key Vault:
+#### Dev Vault
 
-```
-polyenv push [--path <path-to-env-file>]
-```
-
-3. Pull secrets from Azure Key Vault:
-
-```
-polyenv pull [--path <path-to-env-file>]
+``` text
+polyenv init --type devvault --arg store=mystore
 ```
 
 ### Options
 
-- `--path, -p`: Specify the path to the .env file (default: ".env")
+- `--debug`: Enable debug mode
+- `--disable-truncate-debug`: Disables truncating debug logging
+  - some debug logs from external providers may be overly verbose so vault implementaiton may tuncate log message. this flag will disable that. use if you want to see the full log message.
+
+## Polyenv Config
+
+- **hypens to underscores**
+  - when selecting new secrets, it will replace hyphens with underscores when selecting new name. it makes it easier to define new secrets.
+- **uppercase locally**
+  - when selecting new secrets, it will convert the name to uppercase. this makes it easier to define new secrets.
+- **use dot secret file for secrets**
+  - will save any secrets to `.env.secret.{env}` file instead of `.env` file. makes it easier to git ignore secrets.
 
 ## Developer Information
 
@@ -47,7 +105,6 @@ polyenv pull [--path <path-to-env-file>]
 
 - `cmd/`: Contains the Cobra command implementations
 - `internal/`: Internal packages
-  - `charm/`: Custom implementation for interactive selection
   - `tools/`: Utility functions
   - `vaults/`: Vault implementations (currently Azure Key Vault)
 - `main.go`: Entry point of the application
@@ -74,7 +131,7 @@ The tool uses Azure SDK's DefaultAzureCredential for authentication. Make sure t
 
 ## Contributing
 
-(Add contribution guidelines here)
+fork the project, make your changes, and submit a pull request.
 
 ## License
 

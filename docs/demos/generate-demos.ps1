@@ -1,0 +1,109 @@
+[cmdletBinding(SupportsShouldProcess)]
+param()
+$root = git rev-parse --show-toplevel
+$dist = join-path $root "dist"
+$checksumsFile = join-path $PSScriptRoot "checksums.json"
+if (!(test-path $checksumsFile)) {
+    $checksums = @{}
+}
+else {
+    $checksums = Get-Content $checksumsFile | ConvertFrom-Json -AsHashtable
+}
+
+if (!(test-path $dist)) {
+    make build
+}
+
+$exedir = gci $dist -Filter "polyenv.exe" -Recurse -File
+set-alias polyenv $exedir
+
+$Items = Get-ChildItem -Path $PSScriptRoot -Filter *.tape -Recurse|?{
+    $Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+    if (!$checksums.ContainsKey($_.Name)) {
+        return $true
+    }
+    elseif ($checksums[$_.Name] -eq $Hash) {
+        return $false
+    }
+    return $true
+}
+
+
+# return $Items
+
+$Items | ForEach-Object  -Parallel {
+    $file = $_
+    $checksums = $using:checksums
+    $dist = $using:dist
+    $exedir = $using:exedir
+    $PSScriptRoot = $using:PSScriptRoot
+    $gifPath = join-path $PSScriptRoot "$($file.BaseName).gif"
+
+    #see if i should skip this file because its already processed
+    if (!$checksums.ContainsKey($file.Name)) {
+        $checksums[$file.Name] = (Get-FileHash $file.FullName -Algorithm SHA256).Hash
+    }
+    elseif ($checksums[$file.Name] -eq (Get-FileHash $file.FullName -Algorithm SHA256).Hash) {
+        Write-Host "Skipping $file"
+        continue
+    }
+
+    try {
+        $tempDir = join-path ([System.IO.Path]::GetTempPath()) "$($file.BaseName)-temp"
+        New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+
+        Copy-item -Path $file.FullName -Destination $tempDir
+        $tempFile = join-path $tempDir $file.Name
+
+        $content = Get-content $file
+        $Theming = @(
+            "#set theme and style.."
+            "Output '$gifPath'"
+            "Set Theme 'Catppuccin Frappe'"
+            "Set FontSize 30"
+            "Set Width 1200"
+            "Set Height 600"
+        )
+
+        $setup = @(
+            "Set Shell pwsh"
+            "Hide"
+            "Type Set-Alias polyenv '$exedir'"
+            "Enter"
+            "Type Set-Location '$tempDir'"
+            "Enter"
+            "Type cls"
+            "Enter"
+        )
+
+        $Demo =  $Theming + $setup + "Set TypingSpeed 250ms" + "Show" + @("#START DEMO", "") + $content
+        # New-Item -Path $temp -ItemType File -Force|Out-Null
+        # Start-Sleep -Milliseconds 50
+        $Demo | Out-File -FilePath $tempFile  -Force
+        vhs $tempFile
+        Write-host "Done with $($_.Name)!"
+    }
+    finally {
+        $tempDir
+        get-item $tempDir | Remove-Item -Recurse -Force
+        # get-item $temp|Remove-Item
+    }
+}
+
+$Items | ForEach-Object {
+    Write-host "Updating checksums for $($_.Name)"
+    $checksums[$_.Name] = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+}
+# $J.Childjobs|%{
+#     Write-Progress -Activity "Generating gifs" -Status $_.State -PercentComplete ($_.PercentComplete)
+# }
+
+# while($j.State -ne "Completed") {
+    
+#     $j.Childjobs|%{
+
+#     }
+#     Start-Sleep -Milliseconds 500
+# }
+
+$checksums | ConvertTo-Json -Depth 100 | Out-File $checksumsFile

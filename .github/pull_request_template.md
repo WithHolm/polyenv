@@ -4,29 +4,32 @@
 
 ## Description
 
-<!-- Please provide a general summary of your changes. just the general summary. Used for the changelog :) -->
+<!-- 
+Please provide a general list of your changes. 
+Used for the changelog :) it will be added as a changelog file to the pr when you create the PR.
+If you dont want to add a changelog (in cases where you bugfixed something currently in dev), just leave this empty.
+- Fixed wizard for x 
+- Done other thing
+  - Done sub of other thing
+-->
 
 ## Type of change
 
-- [ ] Bug fix
-- [ ] QOL change
-- [ ] New feature
-- [ ] Breaking change
+<!--add new lines here if you want..-->
+- [] Bug fix
+- [] QOL change
+- [] New feature
+- [] Breaking change
 
 ## Where
 
-- [ ] Cli
-- [ ] Vault
-
-## Documentation
-<!-- if you have fixed a bug or added a feature/vault -->
-- [ ] I have updated the documentation
-- [ ] I have appended the 
-
-## Testing
-<!-- Describe how you tested your changes..this is optional -->
+<!--add new lines here if you want..-->
+- [] Cli
+- [] Vault
+- [] CI
 
 ## Checklist
 
-- [ ] My code follows the style guidelines
-- [ ] I have added tests
+- [] My code follows the style guidelines
+- [] I have added tests
+- [] I have updated the documentation

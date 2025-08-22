@@ -1,0 +1,77 @@
+name: Create changelog from fragments
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+jobs:
+  create-changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to checkout the code and push changes
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # We need to fetch all history so we can checkout the branch
+          fetch-depth: 0
+
+      - name: Generate changelog from fragments
+        id: generate-changelog
+        run: |
+          if [ -d "changelog" ] && [ "$(ls -A changelog)" ]; then
+            echo "Found changelog fragments."
+            CHANGELOG_DETAILS=""
+            for file in changelog/*.md; do
+              PR_NUMBER=$(basename "$file" .md)
+              # The content from the fragment file already starts with a "-", 
+              # so we just need to indent it.
+              CONTENT=$(cat "$file")
+              CHANGELOG_DETAILS="${CHANGELOG_DETAILS}* **#${PR_NUMBER}**
+              ${CONTENT}
+            "
+            done
+            echo "CHANGELOG_DETAILS<<EOF" >> $GITHUB_ENV
+            echo -e "$CHANGELOG_DETAILS" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "HAS_FRAGMENTS=true" >> $GITHUB_ENV
+          else
+            echo "No changelog fragments found."
+            echo "HAS_FRAGMENTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update changelog.md
+        if: steps.generate-changelog.outputs.HAS_FRAGMENTS == 'true'
+        env:
+          CHANGELOG_DETAILS: ${{ env.CHANGELOG_DETAILS }}
+        run: |
+          NEW_CHANGELOG="## latest
+
+          ### description
+
+          ### details
+
+          ${{ env.CHANGELOG_DETAILS }}"
+          # Create a new file with the new changelog, then concatenate the old one
+          echo -e "$NEW_CHANGELOG" > new_changelog.md
+          if [ -f "changelog.md" ]; then
+            cat changelog.md >> new_changelog.md
+          fi
+          mv new_changelog.md changelog.md
+
+      - name: Commit and push changelog
+        if: steps.generate-changelog.outputs.HAS_FRAGMENTS == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add changelog.md
+          git rm -r changelog
+          # Check if there are any changes to commit before committing
+          if ! git diff --staged --quiet; then
+            git commit -m "docs(changelelog): update changelog from fragments"
+            git push
+          else
+            echo "No changes to the changelog."
+          fi

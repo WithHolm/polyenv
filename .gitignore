@@ -1,9 +1,6 @@
-
-.env*
-.flaskenv*
-!.env.project
-!.env.vaultopts
-!.env.vault
 /dist
-local.env
-local.env.polyenv
+/.ssh
+**/*.env*
+
+**/*env.secret*
+**/*.polyenv.toml

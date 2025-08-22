@@ -2,9 +2,12 @@
 
 version: 2
 project_name: polyenv
+
 before:
   hooks:
     - go mod tidy
+    - go mod download
+
 builds:
   - id: polyenv
     binary: polyenv
@@ -17,38 +20,52 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
+      - GOFLAGS={{ if isEnvSet "CI" }}-buildvcs=false{{ end }}
     ignore:
       - goos: windows
         goarch: arm64
       - goos: windows
         goarm: "7"
-    ldflags: -s -w -X main.Version=v{{ .Version }} -X main.CommitSHA={{ .Commit }}
+    # flags are passed to the 'go build' command.
+    # buildvcs removes any git metadata from the binary,
+    # making sure its not required when running outide of the git repo.
+    # flags:
+    #   - -buildvcs=false
+    # ldflags are passed to the linker.
+    ldflags:
+      - -s -w
+      - >-
+        {{- if not (isEnvSet "CI") }}
+        -X "github.com/withholm/polyenv/cmd.version=dev" -X "github.com/withholm/polyenv/cmd.commit=local" -X "github.com/withholm/polyenv/cmd.date=$(date +'%Y-%m-%d')"
+        {{- else }}
+        -X "github.com/withholm/polyenv/cmd.version={{.Version}}" -X "github.com/withholm/polyenv/cmd.commit={{.Commit}}" -X "github.com/withholm/polyenv/cmd.date={{.Date}}"
+        {{- end }}
 archives:
-  - format_overrides:
+  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    format_overrides:
       - goos: windows
-        format: zip
-    wrap_in_directory: false
+        formats: ["zip"]
     files:
       - LICENSE
-      - docs/*
       - README.md
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- .Version }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
 checksum:
   name_template: "checksums.txt"
+  algorithm: sha256
 snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+  version_template: "nightly-{{ .ShortCommit }}"
+release:
+  github:
+      owner: WithHolm
+      name: polyenv
+  prerelease: auto
+  draft: true
 source:
   enabled: true
+  format: tar.gz
 changelog:
   sort: asc
-  use: git
   filters:
     exclude:
       - '^docs:'
       - '^test:'
+      - '^chore:'
