@@ -16,7 +16,7 @@ require (
 	github.com/charmbracelet/huh v0.7.0
 	github.com/charmbracelet/huh/spinner v0.0.0-20250714122654-40d2b68703eb
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/charmbracelet/log v0.4.0
+	github.com/charmbracelet/log v0.4.2
 	github.com/denormal/go-gitignore v0.0.0-20180930084346-ae8ad1d07817
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.8.1
