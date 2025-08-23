@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Unshallow
+        run: git fetch --prune --unshallow
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -24,22 +26,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
       
-      - name: ref
-        run: |
-          echo "ref: ${{ github.ref }}"
-          echo "ref_name: ${{ github.ref_name }}"
-          echo "ref_type: ${{ github.ref_type }}"
-          echo "sha: ${{ github.sha }}"
-          echo "event_name: ${{ github.event_name }}"
-          echo "event.ref: ${{ github.event.ref }}"
-          echo "event.inputs.ref: ${{ github.event.inputs.ref }}"
-          echo "github.ref: ${{ github.ref }}"
-          echo "github.ref_name: ${{ github.ref_name }}"
-          echo "github.ref_type: ${{ github.ref_type }}"
-          echo "github.sha: ${{ github.sha }}"
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "github.event.ref: ${{ github.event.ref }}"
-          echo "github.event.inputs.ref: ${{ github.event.inputs.ref }}"
+
       # - name: Go mod tidy
       #   run: |
       #       go mod tidy -v
@@ -56,22 +43,22 @@ jobs:
       #     git tag ${{ github.ref_name }}
       #     git commit -m "go mod tidy for tag ${{ github.ref_name }}"
 
-      # - name: Install GoReleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   with:
-      #     version: ${{ env.goreleaser_version }}
-      #     distribution: ${{ env.goreleaser_dist }}
-      #     install-only: true
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
+          install-only: true
 
-      # - name: Build and release
-      #   id: goreleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     version: ${{ env.goreleaser_version }}
-      #     distribution: ${{ env.goreleaser_dist }}
-      #     args: release --clean --verbose --draft
+      - name: Build and release
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: ${{ env.goreleaser_version }}
+          distribution: ${{ env.goreleaser_dist }}
+          args: release --clean --verbose --draft
 
 
 
