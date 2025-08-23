@@ -1,8 +1,7 @@
 on:
   push:
-    branches: [ "main" ]
     tags:
-      - "v*.*.*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - "v*.*.*" # This workflow will now ONLY run when a tag matching v*.*.* is pushed
 
 env:
   goreleaser_version: ~> v2
@@ -20,11 +19,27 @@ jobs:
       - name: Unshallow
         run: git fetch --prune --unshallow
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-          cache: true
+      - name: Verify tag is on main branch
+        run: |
+          git fetch origin main:main
+          if ! git merge-base --is-ancestor ${{ github.sha }} main; then
+            echo "Error: The tag ${{ github.ref_name }} is not on the main branch."
+            exit 1
+          fi
+
+      - name: output git stuff
+        run: |
+          git status
+          git log -1
+          ref name: ${{ github.ref_name }}
+          ref: ${{ github.ref }}
+
+
+      # - name: Set up Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version-file: "go.mod"
+      #     cache: true
       
 
       # - name: Go mod tidy
