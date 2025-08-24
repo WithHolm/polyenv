@@ -1,7 +1,8 @@
-name: Go CI
+name: pull request actions
 
 on:
   pull_request:
+    branches: [dev]
     types: [opened, synchronize, reopened]
 
 jobs:
