@@ -4,3 +4,5 @@
 
 **/*env.secret*
 **/*.polyenv.toml
+
+**/*.local.*
