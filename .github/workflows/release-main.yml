@@ -15,55 +15,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Unshallow
-        run: git fetch --prune --unshallow
-
-      - name: Verify tag is on main branch
-        run: |
-          git fetch origin main:main
-          if ! git merge-base --is-ancestor ${{ github.sha }} main; then
-            echo "Error: The tag ${{ github.ref_name }} is not on the main branch."
-            exit 1
-          fi
-
-      - name: output git stuff
-        run: |
-          git status
-          git log -1
-          ref name: ${{ github.ref_name }}
-          ref: ${{ github.ref }}
-
-
-      # - name: Set up Go
-      #   uses: actions/setup-go@v5
-      #   with:
-      #     go-version-file: "go.mod"
-      #     cache: true
-      
-
-      # - name: Go mod tidy
-      #   run: |
-      #       go mod tidy -v
-
-      # - name: Go mod vendor
-      #   run: |
-      #     go mod vendor -v
-
-      # - name: git add any changes with tag
-      #   run: |
-      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --global user.name "github-actions[bot]"
-      #     git add .
-      #     git tag ${{ github.ref_name }}
-      #     git commit -m "go mod tidy for tag ${{ github.ref_name }}"
-
-      # - name: Install GoReleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   with:
-      #     version: ${{ env.goreleaser_version }}
-      #     distribution: ${{ env.goreleaser_dist }}
-      #     install-only: true
+      - uses: actions/checkout@v5
 
       # - name: Build and release
       #   id: goreleaser
