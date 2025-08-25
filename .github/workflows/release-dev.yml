@@ -51,6 +51,11 @@ jobs:
           version=$(jq -r '.version' ./dist/metadata.json)
           echo "verson:$version"
           echo "version=$version" >> $GITHUB_OUTPUT
+      - name: Grab changelog files
+        id: changelog
+        run: |
+          echo "changelog=$(ls ./changelog/current/*.md)" 
+        
       # - name: Upload Artifacts
       #   uses: actions/upload-artifact@v4
       #   with:
