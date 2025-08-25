@@ -54,7 +54,9 @@ jobs:
       - name: Grab changelog files
         id: changelog
         run: |
-          echo "changelog=$(ls ./changelog/current/*.md)" 
+          changelog=$(ls ./changelog/current/*.md)
+          echo "changelog=$changelog" >> $GITHUB_OUTPUT
+          echo "changelog: $changelog"
         
       # - name: Upload Artifacts
       #   uses: actions/upload-artifact@v4
