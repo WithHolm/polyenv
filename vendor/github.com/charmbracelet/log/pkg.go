@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/muesli/termenv"
@@ -17,25 +18,27 @@ var (
 	registry = sync.Map{}
 
 	// defaultLogger is the default global logger instance.
+	defaultLogger     atomic.Pointer[Logger]
 	defaultLoggerOnce sync.Once
-	defaultLogger     *Logger
 )
 
 // Default returns the default logger. The default logger comes with timestamp enabled.
 func Default() *Logger {
-	defaultLoggerOnce.Do(func() {
-		if defaultLogger != nil {
-			// already set via SetDefault.
-			return
-		}
-		defaultLogger = NewWithOptions(os.Stderr, Options{ReportTimestamp: true})
-	})
-	return defaultLogger
+	dl := defaultLogger.Load()
+	if dl == nil {
+		defaultLoggerOnce.Do(func() {
+			defaultLogger.CompareAndSwap(
+				nil, NewWithOptions(os.Stderr, Options{ReportTimestamp: true}),
+			)
+		})
+		dl = defaultLogger.Load()
+	}
+	return dl
 }
 
 // SetDefault sets the default global logger.
 func SetDefault(logger *Logger) {
-	defaultLogger = logger
+	defaultLogger.Store(logger)
 }
 
 // New returns a new logger with the default options.
@@ -49,7 +52,7 @@ func NewWithOptions(w io.Writer, o Options) *Logger {
 		b:               bytes.Buffer{},
 		mu:              &sync.RWMutex{},
 		helpers:         &sync.Map{},
-		level:           int32(o.Level),
+		level:           int64(o.Level),
 		reportTimestamp: o.ReportTimestamp,
 		reportCaller:    o.ReportCaller,
 		prefix:          o.Prefix,

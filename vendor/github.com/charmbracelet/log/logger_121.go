@@ -10,11 +10,22 @@ import (
 	"sync/atomic"
 )
 
+// type aliases for slog.
+type (
+	slogAttr      = slog.Attr
+	slogValue     = slog.Value
+	slogLogValuer = slog.LogValuer
+)
+
+var slogAnyValue = slog.AnyValue
+
+const slogKindGroup = slog.KindGroup
+
 // Enabled reports whether the logger is enabled for the given level.
 //
 // Implements slog.Handler.
 func (l *Logger) Enabled(_ context.Context, level slog.Level) bool {
-	return atomic.LoadInt32(&l.level) <= int32(fromSlogLevel[level])
+	return atomic.LoadInt64(&l.level) <= int64(level)
 }
 
 // Handle handles the Record. It will only be called if Enabled returns true.
@@ -27,13 +38,13 @@ func (l *Logger) Handle(ctx context.Context, record slog.Record) error {
 
 	fields := make([]interface{}, 0, record.NumAttrs()*2)
 	record.Attrs(func(a slog.Attr) bool {
-		fields = append(fields, a.Key, a.Value.String())
+		fields = append(fields, a.Key, a.Value)
 		return true
 	})
 	// Get the caller frame using the record's PC.
 	frames := runtime.CallersFrames([]uintptr{record.PC})
 	frame, _ := frames.Next()
-	l.handle(fromSlogLevel[record.Level], l.timeFunc(record.Time), []runtime.Frame{frame}, record.Message, fields...)
+	l.handle(Level(record.Level), l.timeFunc(record.Time), []runtime.Frame{frame}, record.Message, fields...)
 	return nil
 }
 
