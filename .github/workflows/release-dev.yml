@@ -47,7 +47,7 @@ jobs:
       - name: Grab dev release version from metadata
         id: version
         run: |
-          jq  ./dist/metadata.json
+          jq . ./dist/metadata.json
           version=$(jq -r '.version' ./dist/metadata.json)
           echo "verson:$version"
           echo "version=$version" >> $GITHUB_OUTPUT
