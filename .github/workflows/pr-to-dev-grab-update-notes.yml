@@ -2,11 +2,11 @@ name: Create changelog fragments from PR
 
 on:
   pull_request_target:
-    branches-ignore: [main]
+    branches: [dev]
     types:
       - opened
       - edited
-      - ready_for_review
+      - ready_for_review 
 
 jobs:
   create-fragment:

@@ -1,5 +1,14 @@
 on:
-  
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        type: choice
+        required: true
+        default: 'patch'
+        options:
+          - minor
+          - patch
   # push:
   #   branches: [ "main" ]
   #   tags:
@@ -18,6 +27,12 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
+      - name: Check for correct repository
+        if: ${{ github.event_name != 'workflow_dispatch' && github.repository != 'withholm/polyenv' }}
+        run: |
+          echo "Should only run in the withholm/polyenv repository"
+          exit 1
+
       - uses: actions/checkout@v5
 
       - name: Set up Go
