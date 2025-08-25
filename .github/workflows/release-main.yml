@@ -21,7 +21,6 @@ env:
 
 name: Build and Release
 
-
 jobs:
   build:
     name: build
@@ -35,28 +34,15 @@ jobs:
 
       - uses: actions/checkout@v5
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-          cache: true
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: ${{ env.goreleaser_version }}
-          distribution: ${{ env.goreleaser_dist }}
-          install-only: true
-
-      - name: Build and release
-        id: goreleaser
-        uses: goreleaser/goreleaser-action@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          version: ${{ env.goreleaser_version }}
-          distribution: ${{ env.goreleaser_dist }}
-          args: release --clean --verbose --draft
+      # - name: Build and release
+      #   id: goreleaser
+      #   uses: goreleaser/goreleaser-action@v6
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     version: ${{ env.goreleaser_version }}
+      #     distribution: ${{ env.goreleaser_dist }}
+      #     args: release --clean --verbose --draft
 
 
 
