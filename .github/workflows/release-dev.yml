@@ -1,4 +1,4 @@
-name: Nightly if new stuff is pushed
+name: Dev - Nightly if new stuff is pushed
 
 on: 
   schedule:
@@ -43,10 +43,11 @@ jobs:
         with:
           version: "~> v2"
           distribution: goreleaser
-          args: release --snapshot --clean --verbose
+          args: release --snapshot --clean
       - name: Grab dev release version from metadata
         id: version
         run: |
+          jq  ./dist/metadata.json
           version=$(jq -r '.version' ./dist/metadata.json)
           echo "verson:$version"
           echo "version=$version" >> $GITHUB_OUTPUT
