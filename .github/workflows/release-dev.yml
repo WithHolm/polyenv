@@ -60,7 +60,10 @@ jobs:
             # Append the content of each file.
             # You might want to add a header for each file for better readability,
             # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n"
+            PrNumber=$(basename "$file" .md)
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}## $PrNumber\n\n"
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}[link](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
           done
 
           # Set the combined content as a multi-line environment variable
