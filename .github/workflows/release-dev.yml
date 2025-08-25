@@ -73,24 +73,26 @@ jobs:
       - name: write out
         run: |
           echo "$CHANGELOG_DETAILS"
-      # - name: Upload Artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: polyenv-dev
-      #     path: dist/*
-      # - name: Upload Contents to Release
-      #   uses: svenstaro/upload-release-action@v2
-      #   with:
-      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
-      #     file: dist/*
-      #     tag: ${{ steps.version.outputs.version }}
-      #     release_name: Dev Release ${{ steps.version.outputs.version }}
-      #     file_glob: true
-      #     prerelease: true
-      #     overwrite: true
-      #     body: |
-      #       # DEV RELEASE
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: polyenv-dev
+          path: dist/*
+      - name: Upload Contents to Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          tag: nightly
+          release_name: Nightly release
+          file_glob: true
+          prerelease: true
+          overwrite: true
+          body: |
+            # DEV RELEASE
 
-      #       release created by github action @ ${{ github.event.head_commit.timestamp }}
-      #       THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
-      #     make_latest: false
+            release created by github action @ ${{ github.event.head_commit.timestamp }}
+            THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
+
+            ${{ env.CHANGELOG_DETAILS }}
+          make_latest: false
