@@ -55,7 +55,8 @@ jobs:
         id: changelog
         run: |
           CHANGELOG_DETAILS=""
-          for file in changelog/current/*.md; do
+          for file in ./changelog/current/*.md; do
+            echo "Processing file: $file"
             # Append the content of each file.
             # You might want to add a header for each file for better readability,
             # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
