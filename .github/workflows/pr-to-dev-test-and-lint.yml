@@ -1,4 +1,4 @@
-name: pull request actions
+name: Dev - Pull Request
 
 on:
   pull_request:

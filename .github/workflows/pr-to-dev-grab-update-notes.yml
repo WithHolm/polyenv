@@ -1,4 +1,4 @@
-name: Create changelog fragments from PR
+name: Dev - Create changelog from PR
 
 on:
   pull_request_target:

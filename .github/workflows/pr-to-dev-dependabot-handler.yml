@@ -1,4 +1,4 @@
-name: Dependabot Go Module Handler
+name: Dev - Dependabot Handler
 
 on:
   pull_request_target:
