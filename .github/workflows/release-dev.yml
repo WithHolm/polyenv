@@ -61,8 +61,7 @@ jobs:
             # You might want to add a header for each file for better readability,
             # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
             PrNumber=$(basename "$file" .md)
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}## $PrNumber\n\n"
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}[link](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}## [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
             CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
           done
 
