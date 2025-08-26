@@ -68,8 +68,7 @@ jobs:
             }
 
             core.setOutput('last_release_sha', lastReleaseSha);
-            # Step 2: Check for new commits
-      
+      # Step 2: Check for new commits
       #Check if there are any new commits since the last successful build
       - name: Check for new commits
         id: check-commits
