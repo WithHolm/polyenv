@@ -19,6 +19,10 @@ on:
 permissions:
   contents: write
 
+env:
+  release_name: Nightly release
+  release_tag : nightly
+
 jobs:
   build-dev:
     name: build
@@ -27,7 +31,64 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+            # Step 1: Get the SHA of the last successful run of THIS workflow on 'dev'
+      - name: Get last nightly release commit SHA
+        id: get-last-release-sha
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            let lastReleaseSha = '';
+
+            try {
+              // List releases, filter by 'nightly' tag or name, and get the latest
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner,
+                repo,
+                per_page: 100 // Fetch enough releases to find the latest 'nightly'
+              });
+
+              const nightlyRelease = releases.find(release => release.tag_name === '${{ env.release_tag }}' || release.name === '${{ env.release_name }}');
+
+              if (nightlyRelease) {
+                // Get the commit SHA associated with this release's tag
+                const { data: tag } = await github.rest.git.getRef({
+                  owner,
+                  repo,
+                  ref: `tags/${nightlyRelease.tag_name}`,
+                });
+                lastReleaseSha = tag.object.sha;
+                console.log(`Last 'nightly' release SHA: ${lastReleaseSha}`);
+              } else {
+                console.log('No "nightly" release found.');
+              }
+            } catch (error) {
+              console.error(`Error fetching releases: ${error.message}`);
+            }
+
+            core.setOutput('last_release_sha', lastReleaseSha);
+            # Step 2: Check for new commits
       
+      #Check if there are any new commits since the last successful build
+      - name: Check for new commits
+        id: check-commits
+        run: |
+          CURRENT_SHA="${{ github.sha }}"
+          LAST_SUCCESSFUL_SHA="${{ steps.get-last-release-sha.outputs.last_release_sha }}"
+
+          echo "Current dev branch SHA: $CURRENT_SHA"
+          echo "Last successful build SHA: $LAST_SUCCESSFUL_SHA"
+
+          if [ -z "$LAST_SUCCESSFUL_SHA" ]; then
+            echo "No previous successful build found. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "$CURRENT_SHA" == "$LAST_SUCCESSFUL_SHA" ]; then
+            echo "No new commits since last successful build. Skipping build."
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "New commits detected. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -61,7 +122,7 @@ jobs:
             # You might want to add a header for each file for better readability,
             # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
             PrNumber=$(basename "$file" .md)
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}## [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}### [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
             CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
           done
 
@@ -83,15 +144,15 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*
-          tag: nightly
-          release_name: Nightly release
+          tag: ${{ env.release_tag }}
+          release_name: ${{ env.release_name }}
           file_glob: true
           prerelease: true
           overwrite: true
           body: |
             # DEV RELEASE
 
-            release created by github action @ ${{ github.event.head_commit.timestamp }}
+            release created by github action
             THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
 
             ${{ env.CHANGELOG_DETAILS }}
