@@ -160,6 +160,7 @@ jobs:
           file_glob: true
           prerelease: true
           overwrite: true
+          target_commit: ${{ github.sha }}
           body: |
             # DEV RELEASE
 
