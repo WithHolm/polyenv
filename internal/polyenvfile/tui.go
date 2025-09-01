@@ -163,49 +163,56 @@ func (p *File) TuiAddSecret(vaultName string) {
 
 	// select secrets
 	var selectedSecrets []model.Secret
-	f := huh.NewForm(
-		huh.NewGroup(
-			huh.NewMultiSelect[model.Secret]().
-				Title("Select secret(s)").
-				Description("Multiple secrets can be selected. secrets with '!' are not enabled.").
-				OptionsFunc(func() (opt []huh.Option[model.Secret]) {
-					e := v.ListElevate()
-					if e != nil {
-						slog.Error("failed to elevate permissions", "error", e)
-						os.Exit(1)
-					}
 
-					list, err := v.List()
-					if err != nil {
-						slog.Error("failed to list secrets: " + err.Error())
-						os.Exit(1)
-					}
+	// if vault had its own secret selection form, use that
+	handledByVault := v.SecretSelectionHandler(&selectedSecrets)
 
-					pre := make([]huh.Option[model.Secret], 0)
-					for _, secret := range list {
-						localSecret, hasLocalSecret := p.GetSecretInfo(secret.RemoteKey, vaultName)
-
-						slog.Debug("secret", "name", secret.RemoteKey, "enabled", secret.Enabled, "local", hasLocalSecret)
-
-						secretName := secret.RemoteKey
-						if !secret.Enabled {
-							secretName = "!" + secretName
+	// otherwise use the default form
+	if !handledByVault {
+		f := huh.NewForm(
+			huh.NewGroup(
+				huh.NewMultiSelect[model.Secret]().
+					Title("Select secret(s)").
+					Description("Multiple secrets can be selected. secrets with '!' are not enabled.").
+					OptionsFunc(func() (opt []huh.Option[model.Secret]) {
+						e := v.ListElevate()
+						if e != nil {
+							slog.Error("failed to elevate permissions", "error", e)
+							os.Exit(1)
 						}
-						s := fmt.Sprintf("%s (%s)", secretName, secret.ContentType)
-						o := huh.NewOption(s, secret)
-						if hasLocalSecret {
-							o.Key += fmt.Sprintf(" (%s)", localSecret.LocalKey)
-							o = o.Selected(true)
-							pre = append(pre, o)
-							continue
+
+						list, err := v.List()
+						if err != nil {
+							slog.Error("failed to list secrets: " + err.Error())
+							os.Exit(1)
 						}
-						opt = append(opt, o)
-					}
-					return slices.Concat(pre, opt)
-				}, nil).Value(&selectedSecrets),
-		),
-	)
-	tui.RunHuh(f)
+
+						pre := make([]huh.Option[model.Secret], 0)
+						for _, secret := range list {
+							localSecret, hasLocalSecret := p.GetSecretInfo(secret.RemoteKey, vaultName)
+
+							slog.Debug("secret", "name", secret.RemoteKey, "enabled", secret.Enabled, "local", hasLocalSecret)
+
+							secretName := secret.RemoteKey
+							if !secret.Enabled {
+								secretName = "!" + secretName
+							}
+							s := fmt.Sprintf("%s (%s)", secretName, secret.ContentType)
+							o := huh.NewOption(s, secret)
+							if hasLocalSecret {
+								o.Key += fmt.Sprintf(" (%s)", localSecret.LocalKey)
+								o = o.Selected(true)
+								pre = append(pre, o)
+								continue
+							}
+							opt = append(opt, o)
+						}
+						return slices.Concat(pre, opt)
+					}, nil).Value(&selectedSecrets),
+			),
+		)
+		tui.RunHuh(f)
+	}
 
 	//process secrets
 	if p.Secrets == nil {

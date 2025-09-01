@@ -17,6 +17,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	azsec "github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/withholm/polyenv/internal/model"
 )
 
 type azsecretsClient interface {
@@ -76,6 +77,10 @@ func (cli *Client) DisplayName() string {
 
 func (cli *Client) String() string {
 	return fmt.Sprintf("%s/%s", cli.Tenant, cli.Uri)
+}
+
+func (c *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
+	return false
 }
 
 // Validate the secret name from input

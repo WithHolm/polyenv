@@ -83,6 +83,10 @@ func (c *Client) DisplayName() string {
 	return "Development Vault"
 }
 
+func (c *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
+	return false
+}
+
 func (c *Client) Warmup() error {
 	if c.store.Name == "" {
 		for _, v := range stores {

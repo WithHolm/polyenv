@@ -4,16 +4,17 @@ on:
   schedule:
     #every day at midnight
     - cron: '0 0 * * *'
+    
   workflow_dispatch:
-    inputs:
-      version_bump:
-        description: 'Version bump type'
-        type: choice
-        required: true
-        default: 'patch'
-        options:
-          - minor
-          - patch
+    # inputs:
+      # version_bump:
+      #   description: 'Version bump type'
+      #   type: choice
+      #   required: true
+      #   default: 'patch'
+      #   options:
+      #     - minor
+      #     - patch
 
     
 permissions:
@@ -30,8 +31,9 @@ jobs:
     outputs:
       should_build: ${{ steps.check-commits.outputs.should_build }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
+          ref: dev
           fetch-depth: 0
       - name: Get last nightly release commit SHA
         id: get-last-release-sha
@@ -95,9 +97,10 @@ jobs:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: dev
             # Step 1: Get the SHA of the last successful run of THIS workflow on 'dev'
       
       - name: Set up Go

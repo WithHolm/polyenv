@@ -152,7 +152,9 @@ func (v *TestVault) Push(s SecretContent) error {
 	v.PushCalled = true
 	return nil
 }
-func (v *TestVault) PullElevate() error { return nil }
+func (v *TestVault) SecretSelectionHandler(s *[]Secret) bool { return false }
+func (v *TestVault) SupportsVaults() bool                    { return false }
+func (v *TestVault) PullElevate() error                      { return nil }
 func (v *TestVault) Pull(s Secret) (SecretContent, error) {
 	return SecretContent{Value: v.PullValue}, nil
 }
