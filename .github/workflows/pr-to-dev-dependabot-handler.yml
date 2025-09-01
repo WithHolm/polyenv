@@ -39,9 +39,6 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           PR_TITLE="${{ github.event.pull_request.title }}"
           
-          # Example: Extracting dependency name and version from Dependabot PR title
-          # Dependabot titles often look like "Bump <dependency-name> from <old-version> to <new-version>"
-          # This is a basic regex, adjust if your Dependabot titles vary.
           if [[ "$PR_TITLE" =~ ^Bump\ (.+)\ from\ (.+)\ to\ (.+)$ ]]; then
             DEPENDENCY_NAME="${BASH_REMATCH[1]}"
             OLD_VERSION="${BASH_REMATCH[2]}"
