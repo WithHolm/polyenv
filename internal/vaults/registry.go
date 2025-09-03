@@ -19,8 +19,6 @@ var reg = map[string]func() model.Vault{
 var regMu sync.RWMutex
 var logOnce sync.Once
 
-// var logged = false
-
 // returns a new instance of the vault
 func NewVaultInstance(vaultType string) (model.Vault, error) {
 	regMu.RLock()

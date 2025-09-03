@@ -29,15 +29,15 @@ var outputs = []string{
 
 func generateEnvCommand() *cobra.Command {
 	var envCmd = &cobra.Command{
-		Use:   "env",
-		Short: "list all current environment variables read from .env files",
+		Use:   "export",
+		Short: "export environment variables to a given format and destination",
 		Long: `
-		list all current environment variables read from .env files from git root and all sub-folders
+		export environment variables to a given format and destination. defaults to json output to stdout
 	`,
 		Run: listEnv,
 	}
 	envCmd.Flags().BoolVar(&stats, "stats", false, "output stats for current dotenv key-val pairs (no values)")
-	envCmd.Flags().StringVarP(&output, "output", "o", outputs[0], fmt.Sprintf("outputs env variables to a given format: %s", outputs))
+	envCmd.Flags().StringVar(&output, "to", outputs[0], fmt.Sprintf("where to output to:", outputs))
 	err := envCmd.RegisterFlagCompletionFunc("output", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return outputs, cobra.ShellCompDirectiveKeepOrder
 	})
