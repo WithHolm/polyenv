@@ -27,10 +27,25 @@ type File struct {
 	Secrets  map[string]model.Secret   `toml:"secret"`
 }
 
-//region file
+func ValidateEnvName(name string) error {
+	NotAllowed := []string{".", "..", ".git", "polyenv", "env", ".env.secret"}
+	for _, n := range NotAllowed {
+		if strings.Contains(name, n) {
+			return fmt.Errorf("name cannot be %s", n)
+		}
+	}
+	return nil
+}
 
+// //region file
+
+// region open file
 // open vault from env tag
 func OpenFile(env string) (File, error) {
+	e := ValidateEnvName(env)
+	if e != nil {
+		return File{}, e
+	}
 	slog.Debug("opening polyenv file", "env", env)
 	root, e := tools.GetGitRootOrCwd()
 	if e != nil {
@@ -111,6 +126,9 @@ func OpenFile(env string) (File, error) {
 	return vaultFile, nil
 }
 
+// region save file
+
+// Save polyenv file struct to disk
 func (file *File) Save() {
 	file.VaultMap = make(map[string]map[string]any)
 	for k, v := range file.Vaults {
@@ -140,18 +158,19 @@ func (file *File) Save() {
 	}
 }
 
-func (file *File) String() string {
-	if file.Name == "" {
-		return "<none>"
-	}
-	return file.Name
-}
+// func (file *File) String() string {
+// 	if file.Name == "" {
+// 		return "<none>"
+// 	}
+// 	return file.Name
+// }
 
+// returns the full path to the polyenv file
 func (file *File) Fullname() string {
 	return filepath.Join(file.Path, file.Name+".polyenv.toml")
 }
 
-// Get the vault by name
+// Get the vault in file by name
 func (file *File) GetVault(name string) (model.Vault, error) {
 	vault, ok := file.Vaults[name]
 	if !ok {
@@ -160,6 +179,7 @@ func (file *File) GetVault(name string) (model.Vault, error) {
 	return vault, nil
 }
 
+// list all vaults in file
 func (file *File) GetVaultNames() []string {
 	out := make([]string, 0)
 	for k := range file.Vaults {
@@ -200,7 +220,12 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 	if err != nil {
 		return nil, err
 	}
-	allfiles, err := tools.GetAllFiles(cwd, []string{f.Name + ".env", ".env." + f.Name}, tools.MatchNameIExact)
+	filter := []string{f.Name + ".env", ".env." + f.Name, ".env.secret." + f.Name}
+	if f.Name == "" {
+		filter = []string{".env", ".env.secret"}
+	}
+
+	allfiles, err := tools.GetAllFiles(cwd, filter, tools.MatchNameIExact)
 	if err != nil {
 		return nil, err
 	}
@@ -211,15 +236,15 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 	})
 
 	for _, fl := range allfiles {
-		environ := tools.ExtractNameFromDotenv(filepath.Base(fl))
+		environ, err := tools.ExtractNameFromDotenv(filepath.Base(fl))
+		if err != nil {
+			slog.Error("failed to extract name from dotenv", "error", err)
+			os.Exit(1)
+		}
 		if environ != f.Name {
+			slog.Debug("skipping dotenv", "file", fl, "file env", environ, "env", f.Name)
 			continue
 		}
-		// {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
-		// if !strings.Contains(fl, f.Name) {
-		// 	continue
-		// }
-
 		slog.Debug("found dotenv", "file", fl)
 
 		m, e := godotenv.Read(fl)

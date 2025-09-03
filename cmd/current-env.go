@@ -24,6 +24,7 @@ var outputs = []string{
 	"azdevops",
 	"github",
 	"azas",
+	"pwshSb",
 }
 
 func generateEnvCommand() *cobra.Command {
@@ -155,6 +156,11 @@ func listEnv(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		fmt.Println(string(jsonBytes))
+	case "pwshSb":
+		for k, v := range out {
+			slog.Debug("setting env", "key", k)
+			fmt.Printf("set-item 'env:%s' -Value '%s'\n", k, v)
+		}
 	default:
 		slog.Error("unhandeled output case", "case", output)
 		os.Exit(1)

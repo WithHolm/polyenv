@@ -423,21 +423,32 @@ func TuiNewFile(env string) (p *File) {
 						}
 						o := []string{}
 						for _, f := range a {
-							o = append(o, tools.ExtractNameFromDotenv(filepath.Base(f)))
+							s, err := tools.ExtractNameFromDotenv(filepath.Base(f))
+							if err != nil {
+								slog.Error("failed to extract name from dotenv", "error", err)
+								os.Exit(1)
+							}
+							o = append(o, s)
 						}
 						return o
 					}, newFileName).
 					Value(&newFileName).
-					Validate(func(env string) error {
-						if strings.Contains(env, " ") {
+					Validate(func(input string) error {
+						if strings.Contains(input, " ") {
 							return fmt.Errorf("environment name cannot contain spaces")
 						}
-
-						return FileExists(tools.ExtractNameFromDotenv(env))
+						s, err := tools.ExtractNameFromDotenv(input)
+						if err != nil {
+							return err
+						}
+						return FileExists(s)
 					}),
 				huh.NewNote().DescriptionFunc(func() string {
-					filter := tools.ExtractNameFromDotenv(newFileName)
-					return tuiSelectEnvNote(filter)
+					s, err := tools.ExtractNameFromDotenv(newFileName)
+					if err != nil {
+						return err.Error()
+					}
+					return tuiSelectEnvNote(s)
 				}, &newFileName),
 			).WithHide(newFileType != "new"),
 			huh.NewGroup(
@@ -468,26 +479,37 @@ func TuiNewFile(env string) (p *File) {
 					}, nil).
 					Validate(func(s string) error {
 						filename := filepath.Base(s)
-						env := tools.ExtractNameFromDotenv(filename)
+						env, err := tools.ExtractNameFromDotenv(filename)
+						if err != nil {
+							return err
+						}
 						if strings.Contains(env, " ") {
 							return fmt.Errorf("environment name cannot contain spaces")
 						}
-						return FileExists(tools.ExtractNameFromDotenv(filename))
+						return FileExists(env)
 					}).
 					Value(&existingFile),
 				huh.NewNote().DescriptionFunc(func() string {
-					filter := tools.ExtractNameFromDotenv(existingFile)
+					filter, err := tools.ExtractNameFromDotenv(existingFile)
+					if err != nil {
+						return err.Error()
+					}
 					return tuiSelectEnvNote(filter)
 				}, &existingFile),
 			).WithHide(newFileType != "existing"),
 		)
 		tui.RunHuh(form)
 
+		var err error
 		switch newFileType {
 		case "new":
-			env = tools.ExtractNameFromDotenv(newFileName)
+			env, err = tools.ExtractNameFromDotenv(newFileName)
 		case "existing":
-			env = tools.ExtractNameFromDotenv(filepath.Base(existingFile))
+			env, err = tools.ExtractNameFromDotenv(filepath.Base(existingFile))
+		}
+		if err != nil {
+			slog.Error("failed to extract name from dotenv", "error", err)
+			os.Exit(1)
 		}
 	} else {
 		if strings.Contains(env, " ") {
@@ -524,7 +546,11 @@ func tuiSelectEnvNote(env string) string {
 
 	o := "Will match the following files:"
 	for _, f := range allFiles {
-		fname := tools.ExtractNameFromDotenv(filepath.Base(f))
+		fname, err := tools.ExtractNameFromDotenv(filepath.Base(f))
+		if err != nil {
+			slog.Error("failed to extract name from dotenv", "error", err)
+			os.Exit(1)
+		}
 		cwdpath, err := filepath.Rel(cwd, f)
 		if err != nil {
 			slog.Error("failed to get relative path: " + err.Error())

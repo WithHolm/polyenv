@@ -12,6 +12,10 @@ import (
 	"sync"
 )
 
+var (
+	ErrFileNotEnvFile = errors.New("file is not a env or env-secret file")
+)
+
 // returns the path to the vault file
 func GetVaultFilePath(path string) string {
 	if strings.HasSuffix(path, ".polyenv") {
@@ -24,12 +28,10 @@ func GetVaultFilePath(path string) string {
 func TestVaultFileExists(envfile string) error {
 	// vaultFile := GetVaultOptsPath(envfile)
 	file, err := os.Stat(envfile)
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("env file does not exist")
-	}
 	if err != nil {
-		return fmt.Errorf("failed to find env file: %s", err)
+		return err
 	}
+
 	slog.Debug("found env file", "file", envfile, "size", file.Size(), "file", file)
 	return nil
 }
@@ -61,21 +63,11 @@ const (
 	MatchNameIExact
 )
 
-// type FileFilter struct {
-// 	Value []string
-// 	Type  Matchtype
-// }
-
-// func (f FileFilter) String() string {
-// 	slices.Sort(f.Value)
-// 	return fmt.Sprintf("%d:%s", f.Type, strings.Join(f.Value, "-"))
-// }
-
 // get all files recurcivley in the given root directory
 func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err error) {
 	slices.Sort(filter)
 	//cache cause i know i have some files im searching for multiple times.. saves hot path calls
-	key := fmt.Sprintf("%s|%d:%s", root, typ, strings.Join(filter, "-"))
+	key := fmt.Sprintf("%s|%d[%s]", root, typ, strings.Join(filter, "|"))
 	// slog.Debug("cache", "key", key)
 
 	globalFileCache.mu.RLock()
@@ -145,22 +137,25 @@ func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err
 	return out, nil
 }
 
-func ExtractNameFromDotenv(filename string) string {
-	//.env|file.env|.env.file
-
-	//.env.file
-	diff := strings.TrimPrefix(filename, ".env.")
-	if diff != filename {
-		return diff
+// removes .env|.env.secret|.env.{name}|.env.secret.{name} from filename
+func ExtractNameFromDotenv(filename string) (string, error) {
+	if !strings.Contains(filename, ".env") && !strings.Contains(filename, ".env.secret") {
+		return "", ErrFileNotEnvFile
 	}
+	StartsWithEnv := strings.HasPrefix(filename, ".env")
+	IsEnvSecret := strings.Contains(filename, ".env.secret")
 
-	// file.env
-	diff = strings.TrimSuffix(filename, ".env")
-	if diff != filename {
-		if strings.HasSuffix(diff, ".") {
-			return strings.TrimSuffix(diff, ".")
+	// if its a {name}.env or {name}.env.secret
+	if !StartsWithEnv {
+		if IsEnvSecret {
+			return strings.TrimSuffix(filename, ".env.secret"), nil
 		}
-		return diff
+		return strings.TrimSuffix(filename, ".env"), nil
 	}
-	return diff
+
+	// else .env|.env.{name}|.env.secret|.env.secret.{name}
+	if IsEnvSecret {
+		return strings.TrimPrefix(filename, ".env.secret"), nil
+	}
+	return strings.TrimPrefix(filename, ".env"), nil
 }
