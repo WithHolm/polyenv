@@ -19,6 +19,8 @@ no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool t
 
 check release page [here](https://github.com/WithHolm/polyenv/releases) to download the application
 
+nightly releases are available [here](https://github.com/WithHolm/polyenv/releases/tag/nightly)
+
 ## Usage
 
 ### Commands
