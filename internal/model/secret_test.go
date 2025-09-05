@@ -59,7 +59,7 @@ func TestDetectSecret(t *testing.T) {
 		},
 		{
 			name:         "Generic Base64",
-			env:          StoredEnv{Key: "API", Value: "12345678901234567890123456789012", File: ""},
+			env:          StoredEnv{Key: "API", Value: "dGhpc0lzQVN1cGVyTG9uZ0Jhc2U2NFN0cmluZ1dpdGhNb3JlVGhhbkZvcnR5Q2hhcnM=", File: ""},
 			expectSecret: true,
 			expectReason: "Generic Base64 (40+)",
 		},
