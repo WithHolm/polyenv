@@ -1,11 +1,17 @@
 package plugin
 
-import "fmt"
+import (
+	"os"
+)
 
 type StdOutWriter struct{}
 
 func (e *StdOutWriter) Write(data []byte) error {
-	fmt.Println(string(data))
+	_, err := os.Stdout.Write(data)
+	if err != nil {
+		return err
+	}
+	// fmt.Println(string(data))
 	return nil
 }
 

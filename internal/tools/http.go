@@ -48,7 +48,7 @@ func (c *PolyenvHttpClient) Post(ctx context.Context, url string, body interface
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "polyenv-cli-ty-for-making-an-awesome-product") // Good practice to set a User-Agent
 
-	slog.Debug("request", "url", url)
+	slog.DebugContext(ctx, "request", "host", req.URL.Host)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
