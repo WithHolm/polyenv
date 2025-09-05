@@ -54,6 +54,7 @@ func init() {
 
 		if acceptAll && accept[len(accept)-1] != "*" {
 			slog.Error("* acceptance must be the last item in the accept list", "writer", k)
+			os.Exit(1)
 		}
 
 		if denyAll {

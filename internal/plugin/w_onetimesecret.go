@@ -136,6 +136,9 @@ func (e *OtsWriter) Write(data []byte) error {
 
 	var usingTTL *duration.Duration
 	usingTTL, err = e.GetTTL(ttl)
+	if err != nil {
+		return fmt.Errorf("failed to get TTL: %w", err)
+	}
 
 	secret.TTL = float64(usingTTL.ToTimeDuration().Seconds())
 
@@ -163,7 +166,7 @@ func (e *OtsWriter) Write(data []byte) error {
 	out := []string{
 		"generated via 'ots' plugin for polyenv (github.com/withholm/polyenv)",
 		fmt.Sprintf("url: https://eu.onetimesecret.com/secret/%s", resp.Record.Secret.Identifier),
-		fmt.Sprintf("it will expire in %s", exp.Format("2006-01-02 15:04:05z")),
+		fmt.Sprintf("it will expire in %s", exp.Format("2006-01-02 15:04:05Z")),
 		"if you already have polyenv, you can run 'polyenv !{yourenv} import {link or slug}' to import the secret to your env",
 	}
 	fmt.Println(strings.Join(out, "\n"))
