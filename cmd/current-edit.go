@@ -16,9 +16,9 @@ package cmd
 // func generateEditCommand() *cobra.Command {
 // 	var pullCmd = &cobra.Command{
 // 		Use:   "edit",
-// 		Short: "edit secrets",
+// 		Short: "edit environment variables",
 // 		Long: `
-// 		edit secrets in remote vaults.
+// 		edit curent env variables
 // 	`,
 // 		Run: pull,
 // 	}
