@@ -55,11 +55,6 @@ func ExportEnv(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	out := make(map[string]interface{})
-	for _, v := range list {
-		out[v.Key] = v.Value
-	}
-
 	slog.Debug("output", "as", formatFlag, "to", writerFlag)
 
 	wFunc, ok := tools.InequalFindInMap(plugin.Writers, writerFlag)
