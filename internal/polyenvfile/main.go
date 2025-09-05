@@ -255,10 +255,18 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 
 		for k, v := range m {
 			slog.Debug("dotenv value", "key", k)
+			isSecret := false
+			for _, s := range f.Secrets {
+				if s.LocalKey == k {
+					isSecret = true
+					break
+				}
+			}
 			out = append(out, model.StoredEnv{
-				Key:   k,
-				Value: v,
-				File:  fl,
+				Key:      k,
+				Value:    v,
+				File:     fl,
+				IsSecret: isSecret,
 			})
 		}
 	}
