@@ -19,6 +19,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/denormal/go-gitignore v0.0.0-20180930084346-ae8ad1d07817
 	github.com/joho/godotenv v1.5.1
+	github.com/sosodev/duration v1.3.1
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/zalando/go-keyring v0.2.6

@@ -207,6 +207,9 @@ github.com/pkg/browser
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
+# github.com/sosodev/duration v1.3.1
+## explicit; go 1.17
+github.com/sosodev/duration
 # github.com/spf13/cobra v1.8.1
 ## explicit; go 1.15
 github.com/spf13/cobra
