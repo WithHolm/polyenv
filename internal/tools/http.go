@@ -39,6 +39,19 @@ func (c *PolyenvHttpClient) Post(ctx context.Context, url string, body interface
 		return fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
+	var tReflect reflect.Type
+	//validate target
+	if target != nil {
+		tReflect = reflect.TypeOf(target)
+		if tReflect.Kind() != reflect.Ptr {
+			return fmt.Errorf("target must be a pointer")
+		}
+
+		// Get the type of the value stored in the interface
+		tReflect = tReflect.Elem()
+
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -70,14 +83,12 @@ func (c *PolyenvHttpClient) Post(ctx context.Context, url string, body interface
 	// Unmarshal the response body if a target is provided
 	// slog.Debug("response", "body", string(bodyBytes))
 	if target != nil {
-		// Get the type of the value stored in the interface
-		t := reflect.TypeOf(target)
 
-		// If the type is a pointer, get the element type it points to
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
+		// allow 204/empty body
+		if len(bodyBytes) == 0 {
+			return nil
 		}
-		slog.Debug("unmarshalling response body to", "target", t.Name())
+		slog.Debug("unmarshalling response body to", "target", tReflect.Name())
 		if err := json.Unmarshal(bodyBytes, target); err != nil {
 			return fmt.Errorf("failed to unmarshal response body: %w", err)
 		}
