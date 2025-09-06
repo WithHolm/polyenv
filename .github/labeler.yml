@@ -1,46 +1,42 @@
 # Label for changes in root configuration and metadata files
 Configuration:
   - changed-files:
-      - '.gitignore'
-      - 'go.mod'
-      - 'go.sum'
+      - any-glob-to-any-file: ['.gitignore','go.mod','go.sum']
 
 # Label for changes in documentation files
 Documentation:
   - changed-files:
-    - 'docs/**'
-    - '**/*.md'
+      - any-glob-to-any-file: ['docs/**','**/*.md']
 
 vault:
   - changed-files:
-    - 'internal/vaults/**'
+      - any-glob-to-any-file: ['internal/vaults/**']
 
 cmd:
   - changed-files:
-    - 'cmd/**'
+      - any-glob-to-any-file: ['cmd/**']
 
 # Label for changes in source code
 go:
   - changed-files:
-    - '**/*.go'
+      - any-glob-to-any-file: ['**/*.go']
 
 #label for changes in vendor
 vendor-changes:
   - changed-files:
-    - 'vendor/**'
+      - any-glob-to-any-file: ['vendor/**']
 
 # Label for specific tooling or scripts
 tools:
   - changed-files:
-    - 'internal/tools/**'
+      - any-glob-to-any-file: ['internal/tools/**']
 
 # Label for test and assets related changes
 test:
   - changed-files:
-    - '**/*_test.go'
+      - any-glob-to-any-file: ['**/*_test.go']
   
 # Label for GitHub workflows and configuration
 ci:
   - changed-files:
-    - '.github/**'
-    - '.goreleaser.yaml'
+      - any-glob-to-any-file: ['.github/**','.goreleaser.yaml']
