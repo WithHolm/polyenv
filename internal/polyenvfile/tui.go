@@ -114,7 +114,11 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 	p.Vaults[vaultDisplayName] = vault
 	p.Save()
 
-	vault.Warmup()
+	err = vault.Warmup()
+	if err != nil {
+		slog.Error("failed to warmup vault", "error", err)
+		os.Exit(1)
+	}
 
 	if addSecret {
 		p.TuiAddSecret(vaultDisplayName)
@@ -159,7 +163,11 @@ func (p *File) TuiAddSecret(vaultName string) {
 		slog.Error("vault not found", "vault", vaultName)
 		os.Exit(1)
 	}
-	v.Warmup() //making sure its ready to use
+	err := v.Warmup() //making sure its ready to use
+	if err != nil {
+		slog.Error("failed to warmup vault", "error", err)
+		os.Exit(1)
+	}
 
 	// select secrets
 	var selectedSecrets []model.Secret
@@ -615,7 +623,13 @@ func (p *File) TuiAddGitIgnore() error {
 	if err != nil {
 		return fmt.Errorf("failed to open gitignore: %w", err)
 	}
-	defer file.Close()
+
+	defer func() {
+		e := file.Close()
+		if e != nil {
+			slog.Error("failed to close file", "error", e)
+		}
+	}()
 
 	if _, err = file.WriteString("\n**/*env.secret*"); err != nil {
 		return err

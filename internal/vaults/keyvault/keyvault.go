@@ -45,12 +45,15 @@ type Client struct {
 	listElevateOnce sync.Once `toml:"-"`
 }
 
-var ctx context.Context
+// var ctx context.Context
 
 func init() {
 	// Only enable verbose logging if explicitly requested
 	if os.Getenv("AZURE_SDK_GO_LOGGING") == "" && os.Getenv("DEBUG") == "true" {
-		os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		err := os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		if err != nil {
+			panic(err)
+		}
 	}
 	azlog.SetListener(func(cls azlog.Event, msg string) {
 		//remove package stack when posting err

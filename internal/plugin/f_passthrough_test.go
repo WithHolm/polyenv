@@ -52,7 +52,7 @@ func TestPassthroughFormatter_OutputFormat(t *testing.T) {
 			}
 
 			// Unmarshal both to compare content, ignoring formatting differences
-			var gotInterface, wantInterface interface{}/
+			var gotInterface, wantInterface interface{}
 
 			if err := json.Unmarshal(got, &gotInterface); err != nil {
 				t.Fatalf("Failed to unmarshal actual output: %v\nOutput: %s", err, string(got))

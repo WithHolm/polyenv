@@ -64,7 +64,10 @@ func (e *OtsWriter) GetTTL(s string) (*duration.Duration, error) {
 
 	if !strings.HasPrefix(s, "P") {
 		days := 0
-		fmt.Sscanf(s, "%d", &days)
+		_, err := fmt.Sscanf(s, "%d", &days)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse days from input: %w", err)
+		}
 		slog.Debug("got days from input, converting to duration", "days", days)
 		s = "P" + s + "D"
 	}

@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/withholm/polyenv/internal/model"
 )
@@ -35,14 +36,24 @@ func (f *JsonFormatter) Detect(data []byte) bool {
 }
 
 func (f *JsonFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
+	if len(data) == 0 {
+		return fmt.Errorf("empty input"), model.InputFormatError
+	}
+
 	if data[0] == '{' {
 		var out map[string]any
-		json.Unmarshal(data, &out)
+		err := json.Unmarshal(data, &out)
+		if err != nil {
+			return err, model.InputFormatError
+		}
 		return out, model.InputFormatMap
 	}
 
 	var out []string
-	json.Unmarshal(data, &out)
+	err := json.Unmarshal(data, &out)
+	if err != nil {
+		return err, model.InputFormatError
+	}
 	return out, model.InputFormatStrSlice
 }
 

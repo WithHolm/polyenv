@@ -197,9 +197,8 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 					return ret
 				}, &cli.wiz.Subscription).Value(&cli.wiz.Uri),
 			)
-		} else {
-			//TODO: make check if vault exists
 		}
+		//TODO: else check if vault exists
 
 		return huh.NewForm(
 			huh.NewGroup(

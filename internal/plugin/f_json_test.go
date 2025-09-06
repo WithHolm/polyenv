@@ -23,7 +23,7 @@ func TestJsonFormatter_OutputFormat(t *testing.T) {
 				{Key: "KEY1", Value: "VALUE1"},
 				{Key: "KEY2", Value: "VALUE2"},
 			},
-			want:    `{
+			want: `{
   "KEY1": "VALUE1",
   "KEY2": "VALUE2"
 }`,
@@ -74,7 +74,7 @@ func TestJsonFormatter_OutputFormat(t *testing.T) {
 			}
 
 			// Unmarshal both to compare content, ignoring formatting differences
-			var gotInterface, wantInterface interface{}/
+			var gotInterface, wantInterface interface{}
 
 			if err := json.Unmarshal(got, &gotInterface); err != nil {
 				t.Fatalf("Failed to unmarshal actual output: %v\nOutput: %s", err, string(got))

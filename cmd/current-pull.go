@@ -94,7 +94,7 @@ func pull(cmd *cobra.Command, args []string) {
 		spn := spinner.Points
 		spn.FPS = time.Second / 15
 		sp := spinner.New().Title(k + " pulling").Type(spn)
-		sp.Action(func() {
+		err := sp.Action(func() {
 			prefix := fmt.Sprintf(" %d/%d - %s -> ", cnt, len(PolyenvFile.Secrets), k)
 			// get vault from file
 			slog.Debug("pulling", "secret", v.RemoteKey, "vault", v.Vault)
@@ -133,6 +133,10 @@ func pull(cmd *cobra.Command, args []string) {
 				Key:   v.LocalKey,
 			})
 		}).Run()
+		if err != nil {
+			slog.Error("failed to run spinner", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	//region pull:write files

@@ -124,9 +124,9 @@ var (
 		"SECRET", "PASSWORD", "PASS", "PWORD",
 		"PRIVATE_KEY", "CLIENT_SECRET", "DB_PASSWORD",
 	}
-	sensitiveFilenames = []string{
-		"secret", "credential", ".pem", ".key",
-	}
+	// sensitiveFilenames = []string{
+	// 	"secret", "credential", ".pem", ".key",
+	// }
 	// secretRegexes is a map of a secret's description to its regex pattern.
 	secretRegexes = map[string]*regexp.Regexp{
 		"JWT":                  regexp.MustCompile(`ey[A-Za-z0-9_-]{10,}.[A-Za-z0-9_-]{10,}.[A-Za-z0-9_-]{10,}`),

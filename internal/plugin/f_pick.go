@@ -58,7 +58,6 @@ func (f *PickFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 	tui.RunHuh(form)
 	slog.Debug("selected", "env", len(selectedEnv))
 
-	slog.Debug("should show format select form?", "bool", !(len(outputFormats) != 1))
 	selectedFormat := outputFormats[0]
 	form = huh.NewForm(
 		huh.NewGroup(
@@ -75,7 +74,7 @@ func (f *PickFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 					}
 					return out
 				}, nil).Value(&selectedFormat),
-		).WithHide(!(len(outputFormats) != 1)),
+		).WithHide(len(outputFormats) == 1),
 	)
 	tui.RunHuh(form)
 

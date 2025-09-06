@@ -76,7 +76,7 @@ func ExportEnv(cmd *cobra.Command, args []string) {
 			slog.Error("failed to get auto format", "error", err)
 			os.Exit(1)
 		}
-	} else if !AcceptedFormatter && !(acceptedformatters[0] == "*") {
+	} else if !AcceptedFormatter && acceptedformatters[0] != "*" {
 		//if format is not accepted by writer by val and the only accepted format is not *
 		slog.Error("writer does not support format", "writer", writerFlag, "format", formatFlag)
 		os.Exit(1)
