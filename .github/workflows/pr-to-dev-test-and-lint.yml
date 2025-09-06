@@ -22,7 +22,6 @@ jobs:
         with:
           version: latest
 
-
   changed-packages:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -56,19 +55,15 @@ jobs:
       - name: Get unique directories for changed .go files
         id: unique-directories
         run: |
-          DIRS=$(echo '${{ steps.changed-go-files.outputs.all_changed_files }}' \
-          | jq -r '.[]' \
-          | xargs -I {} dirname {} \
-          | sort -u \
-          | grep -v '^.$'\
-          | jq -R -s -c 'split("\n")[:-1]')
-
+          DIRS=$(echo '${{ steps.changed-go-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
           echo "unique directories: $DIRS"
           echo "directories=$DIRS" >> $GITHUB_OUTPUT
-
-  run_tests:
+  
+    
+  # only run if go.mod or go.sum changed..
+  full-test:
     needs: [changed-packages]
-    if: github.actor != 'dependabot[bot]' && (needs.changed-packages.outputs.go_files_changed == 'true' || needs.changed-packages.outputs.go_mod_changed == 'true')
+    if: github.actor != 'dependabot[bot]' && needs.changed-packages.outputs.go_mod_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -77,30 +72,34 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-
-      - name: Run tests based on changes
+      - name: Run tests
         run: |
-          if [ "${{ needs.changed-packages.outputs.go_mod_changed }}" == 'true' ]; then
-            echo "go.mod or go.sum changed, running tests for cmd and internal directories..."
-            go test -v -race ./cmd/... ./internal/...
-          else
-            echo "Running tests for changed packages..."
-            for pkg in $(echo '${{ fromJSON(needs.changed-packages.outputs.matrix) }}' | jq -r '.[]'); do
-              echo "Testing package: $pkg"
-              go test -v -race "./$pkg"
-            done
+          go test -v -race ./cmd/... ./internal/...
+
+  # only run if mod has not changed and *.go files have changed
+  run_tests:
+    needs: [changed-packages]
+    if: github.actor != 'dependabot[bot]' && (needs.changed-packages.outputs.go_files_changed == 'true' || needs.changed-packages.outputs.go_mod_changed == 'false')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Run tests for ${{ matrix.packages }}
+        run: |
+          if [ "${{ matrix.packages }}" != "." ]; then
+          go test -v -race "./${{ matrix.packages }}"
           fi
 
       - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          if [ "${{ needs.changed-packages.outputs.go_mod_changed }}" == 'true' ]; then
-            echo "go.mod or go.sum changed, running govulncheck for cmd and internal..."
-            govulncheck ./cmd/... ./internal/...
-          else
-            echo "Running govulncheck for changed packages..."
-            for pkg in $(echo '${{ fromJSON(needs.changed-packages.outputs.matrix) }}' | jq -r '.[]'); do
-              echo "Checking package: $pkg"
-              govulncheck "./$pkg"
-            done
-          fi
+          govulncheck "./${{ matrix.packages }}"
