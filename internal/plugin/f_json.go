@@ -35,26 +35,26 @@ func (f *JsonFormatter) Detect(data []byte) bool {
 	return json.Valid(data)
 }
 
-func (f *JsonFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
+func (f *JsonFormatter) InputFormat(data []byte) (*model.InputData, error) {
 	if len(data) == 0 {
-		return fmt.Errorf("empty input"), model.InputFormatError
+		return nil, fmt.Errorf("empty input")
 	}
 
 	if data[0] == '{' {
 		var out map[string]any
 		err := json.Unmarshal(data, &out)
 		if err != nil {
-			return err, model.InputFormatError
+			return nil, err
 		}
-		return out, model.InputFormatMap
+		return &model.InputData{IsMap: true, Value: out}, nil
 	}
 
 	var out []string
 	err := json.Unmarshal(data, &out)
 	if err != nil {
-		return err, model.InputFormatError
+		return nil, err
 	}
-	return out, model.InputFormatStrSlice
+	return &model.InputData{IsSlice: true, Value: out}, nil
 }
 
 // format as json main

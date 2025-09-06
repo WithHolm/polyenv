@@ -22,8 +22,8 @@ func (f *StatsFormatter) Detect(data []byte) bool {
 	return false
 }
 
-func (f *StatsFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
-	return nil, 0
+func (f *StatsFormatter) InputFormat(data []byte) (*model.InputData, error) {
+	return nil, nil
 }
 
 func (f *StatsFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {

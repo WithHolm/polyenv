@@ -16,12 +16,12 @@ func (f *DotenvFormatter) Detect(data []byte) bool {
 	return err == nil
 }
 
-func (f *DotenvFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
+func (f *DotenvFormatter) InputFormat(data []byte) (*model.InputData, error) {
 	out, err := godotenv.UnmarshalBytes(data)
 	if err != nil {
-		return err, model.InputFormatError
+		return nil, err
 	}
-	return out, model.InputFormatMap
+	return &model.InputData{IsMap: true, Value: out}, nil
 }
 
 func (f *DotenvFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
@@ -32,6 +32,9 @@ func (f *DotenvFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 	str, err := godotenv.Marshal(outmap)
 	if err != nil {
 		return nil, err
+	}
+	if len(str) > 0 {
+		str = str + "\n"
 	}
 	return []byte(str), nil
 }

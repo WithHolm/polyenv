@@ -14,8 +14,8 @@ func (f *AzDevopsFormatter) Detect(data []byte) bool {
 	return false
 }
 
-func (f *AzDevopsFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
-	return nil, 0
+func (f *AzDevopsFormatter) InputFormat(data []byte) (*model.InputData, error) {
+	return nil, nil
 }
 
 func (f *AzDevopsFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {

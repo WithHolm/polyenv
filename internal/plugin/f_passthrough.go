@@ -13,8 +13,8 @@ func (f *PassthroughFormatter) Detect(data []byte) bool {
 	return false
 }
 
-func (f *PassthroughFormatter) InputFormat(data []byte) (any, model.InputFormatType) {
-	return nil, 0
+func (f *PassthroughFormatter) InputFormat(data []byte) (*model.InputData, error) {
+	return nil, nil
 }
 
 func (f *PassthroughFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
