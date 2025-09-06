@@ -42,8 +42,7 @@ func MapKeySlice[Map ~map[K]V, K comparable, V any](m Map) []K {
 }
 
 // finds string f in map m
-func InequalFindInMap[Map ~map[string]V, V any](m Map, f string) (V, bool) {
-
+func InequalFindInMap[Map ~map[string]V, V any](m Map, f string) (value V, found bool) {
 	for k, v := range m {
 		if strings.EqualFold(k, f) {
 			return v, true
@@ -54,7 +53,8 @@ func InequalFindInMap[Map ~map[string]V, V any](m Map, f string) (V, bool) {
 	return zero, false
 }
 
-func InequalFindInStrSlice(s []string, f string) (bool, int) {
+// finds string f in slice s with a case insensitive search
+func InequalFindInStrSlice(s []string, f string) (found bool, index int) {
 	for i, v := range s {
 		if strings.EqualFold(v, f) {
 			return true, i
