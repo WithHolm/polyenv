@@ -1,15 +1,43 @@
 name: Dev - Create changelog from PR
-
 on:
   pull_request_target:
     branches: [dev]
-    types:
-      - opened
-      - edited
-      - ready_for_review 
+    types: [opened, synchronize, reopened]
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  # CHANGELOG_FRAGMENT_EXISTS: false
+  REF: ${{ github.event.pull_request.head.sha }}
+  REPO: ${{ github.event.pull_request.head.repo.full_name }}
+  AUTHOR: ${{ github.event.pull_request.user.login }}
+  FRAGMENT_CONTENT: ""
 
 jobs:
-  create-fragment:
+  exsisting-fragment:
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.validate-fragment.outputs.exists }}
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.REF }}
+          repository: ${{ env.REPO }}
+
+      - name: Validate changelog fragment
+        id: validate-fragment
+        run: |
+          # Check if the changelog fragment file exists
+          if [ -f "changelog/current/${{ env.PR_NUMBER }}.md" ]; then
+            echo "changelog fragment found for this PR."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+  create-fragment-from-pr:
+    needs: exsisting-fragment
+    if: needs.exsisting-fragment.outputs.exists == 'false'
     runs-on: ubuntu-latest
     permissions:
       # Required to read PR details
@@ -26,9 +54,9 @@ jobs:
       - name: Extract changelog from PR body
         id: extract-changelog
         run: |
-          # Use awk to extract content between "## Description" and the next "##" heading
+          # Use awk to extract content between "## Changes" and the next "##" heading
           # This is safer than just reading the whole body
-          content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Description/{flag=1; next} /^##/{flag=0} flag' | sed 's/<!--.*-->//g' | xargs)
+          content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | sed 's/<!--.*-->//g' | xargs)
 
           if [ -n "$content" ]; then
             echo "Changelog content found."
@@ -43,17 +71,16 @@ jobs:
       - name: Create or Update changelog fragment file
         if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
           mkdir -p changelog
-          echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${PR_NUMBER}.md"
+          echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
+          echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${{ env.PR_NUMBER }}.md"
 
       - name: Commit and push changelog fragment
         if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add "changelog/${PR_NUMBER}.md"
+          git add "changelog/current/${{ env.PR_NUMBER }}.md"
           # Check if there are any changes to commit before committing
           if ! git diff --staged --quiet; then
             git commit -m "docs(changelog): create/update fragment for PR #${PR_NUMBER}"
