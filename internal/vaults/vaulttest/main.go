@@ -50,6 +50,9 @@ func TestVault(t *testing.T, v model.Vault, newVault func() model.Vault) {
 			t.Fatal("Marshal() returned nil")
 		}
 
+		t.Log("Marshal() returned the following map:")
+		t.Log(m)
+
 		newV := newVault()
 		err := newV.Unmarshal(m)
 		if err != nil {
