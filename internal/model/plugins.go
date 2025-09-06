@@ -10,19 +10,26 @@ type Formatter interface {
 	//detect if the formatter can handle the given data
 	Detect(data []byte) bool
 	//convert input data
-	InputFormat(data []byte) (any, InputFormatType)
+	InputFormat(data []byte) (*InputData, error)
 	//convert output data
 	OutputFormat([]StoredEnv) ([]byte, error)
 }
 
-type InputFormatType int
+type InputData struct {
+	IsMap    bool
+	IsSlice  bool
+	IsString bool
+	Value    any
+}
 
-const (
-	InputFormatMap InputFormatType = iota
-	InputFormatString
-	InputFormatStrSlice
-	InputFormatError
-)
+// type InputFormatType int
+
+// const (
+// 	InputFormatMap InputFormatType = iota
+// 	InputFormatString
+// 	InputFormatStrSlice
+// 	InputFormatError
+// )
 
 // output formatted bytes to a chosen channel
 type Writer interface {
