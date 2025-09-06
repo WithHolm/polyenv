@@ -32,6 +32,7 @@ jobs:
             echo "changelog fragment found for this PR."
             echo "exists=true" >> $GITHUB_OUTPUT
           else
+            echo "changelog fragment not found for this PR. creating!"
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
@@ -59,7 +60,9 @@ jobs:
           content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | sed 's/<!--.*-->//g' | xargs)
 
           if [ -n "$content" ]; then
-            echo "Changelog content found."
+            echo "Changelog content found:"
+            echo "$content"
+            
             # Format the content as a markdown list item for the final changelog
             echo "FRAGMENT_CONTENT=- $content" >> $GITHUB_ENV
             echo "CONTENT_FOUND=true" >> $GITHUB_ENV
@@ -69,7 +72,7 @@ jobs:
           fi
 
       - name: Create or Update changelog fragment file
-        if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
+        if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true' && needs.exsisting-fragment.outputs.exists == 'false'
         run: |
           mkdir -p changelog
           echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
