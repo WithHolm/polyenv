@@ -1,8 +1,13 @@
 # Pull Request
 
 <!-- First of all, THANK YOU for the contribution. i really appreciate any amount of help you can give to the project :) -->
-
 ## Description
+
+<!--
+general description of the changes you made.
+-->
+
+## Changes
 
 <!-- 
 Please provide a general list of your changes. 
@@ -11,7 +16,9 @@ If you dont want to add a changelog (in cases where you bugfixed something curre
 - Fixed wizard for x 
 - Done other thing
   - Done sub of other thing
+THIS IS ONLY FOR APP UPDATES
 -->
+
 
 ## Type of change
 
