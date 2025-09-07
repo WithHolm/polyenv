@@ -66,10 +66,10 @@ jobs:
             mkdir -p changelog
             echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
             echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${{ env.PR_NUMBER }}.md
-            echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=true" > $GITHUB_OUTPUT
           else
             echo "No changelog content found under ## Description."
-            echo "CONTENT_FOUND=false" >> $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=false" > $GITHUB_OUTPUT
           fi
 
       - name: Commit and push changelog fragment
