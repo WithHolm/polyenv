@@ -69,7 +69,7 @@ jobs:
             echo "write changelog fragment content"
             echo "@${{env.AUTHOR}}" > "changelog/current/${{ env.PR_NUMBER }}.md"
             echo "" >> "changelog/current/${{ env.PR_NUMBER }}.md"
-            echo "${{ env.FRAGMENT_CONTENT }}" >> "changelog/current/${{ env.PR_NUMBER }}.md
+            echo "$content" >> "changelog/current/${{ env.PR_NUMBER }}.md
 
             echo "setting output"
             echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
