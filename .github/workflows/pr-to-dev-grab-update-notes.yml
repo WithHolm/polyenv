@@ -55,7 +55,7 @@ jobs:
       - name: Extract changelog from PR body
         id: extract-changelog
         run: |
-          # Use awk to extract content between "## Changes" and the next "##" heading
+          # Use awk to extract content between "## Changes" and the next "##" heading. remove multiline comments
           # This is safer than just reading the whole body
           content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
 
