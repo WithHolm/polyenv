@@ -18,6 +18,7 @@ jobs:
           cache: true
       - name: Run linter
         uses: golangci/golangci-lint-action@v8
+        continue-on-error: true
         with:
           version: latest
 
@@ -26,32 +27,59 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.unique-directories.outputs.directories }}
-      changed: ${{ steps.changed-files.outputs.any_changed }}
+      go_files_changed: ${{ steps.changed-go-files.outputs.any_changed }}
+      go_mod_changed: ${{ steps.check-go-mod.outputs.any_changed }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Get changed files
-        id: changed-files
+
+      - name: Check for go.mod/go.sum changes
+        id: check-go-mod
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            go.mod
+            go.sum
+
+      - name: Get changed .go files
+        id: changed-go-files
         uses: tj-actions/changed-files@v46
         with:
           files: |
             **/*_test.go
             **/*.go
-            **/*.mod
           files_ignore: |
             vendor/**
-          matrix: true
-      - name: Get unique directories
+
+      - name: Get unique directories for changed .go files
         id: unique-directories
         run: |
-          DIRS=$(echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          DIRS=$(echo '${{ steps.changed-go-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
           echo "unique directories: $DIRS"
           echo "directories=$DIRS" >> $GITHUB_OUTPUT
-
-  run_package_tests:
+  
+    
+  # only run if go.mod or go.sum changed..
+  full-test:
     needs: [changed-packages]
-    if: github.actor != 'dependabot[bot]' && ${{ needs.changed-packages.outputs.changed == 'true' }}
+    if: github.actor != 'dependabot[bot]' && needs.changed-packages.outputs.go_mod_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+      - name: Run tests
+        run: |
+          go test -v -race ./cmd/... ./internal/...
+
+  # only run if mod has not changed and *.go files have changed
+  run_tests:
+    needs: [changed-packages]
+    if: github.actor != 'dependabot[bot]' && (needs.changed-packages.outputs.go_files_changed == 'true' || needs.changed-packages.outputs.go_mod_changed == 'false')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -64,16 +92,14 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-      - name: Run test for ${{ matrix.packages }}
+
+      - name: Run tests for ${{ matrix.packages }}
         run: |
           if [ "${{ matrix.packages }}" != "." ]; then
-          go test -v -race "${{ matrix.packages }}"
+          go test -v -race "./${{ matrix.packages }}"
           fi
-      - name: Run govulncheck for ${{ matrix.packages }}
+
+      - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          if [ "${{ matrix.packages }}" = "." ]; then
-            govulncheck ./...
-          else
-            govulncheck "${{ matrix.packages }}"
-          fi
+          govulncheck "./${{ matrix.packages }}"

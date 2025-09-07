@@ -6,10 +6,11 @@ on:
 
 env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
-  # CHANGELOG_FRAGMENT_EXISTS: false
-  REF: ${{ github.event.pull_request.head.sha }}
+  COMMIT_REF: ${{ github.event.pull_request.head.sha }}
+  BRANCH_REF: ${{ github.event.pull_request.head.ref }}
   REPO: ${{ github.event.pull_request.head.repo.full_name }}
   AUTHOR: ${{ github.event.pull_request.user.login }}
+  PR_BODY: ${{ github.event.pull_request.body }}
   FRAGMENT_CONTENT: ""
 
 jobs:
@@ -21,7 +22,7 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v5
         with:
-          ref: ${{ env.REF }}
+          ref: ${{ env.COMMIT_REF }}
           repository: ${{ env.REPO }}
 
       - name: Validate changelog fragment
@@ -49,15 +50,15 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ env.BRANCH_REF }}
+          repository: ${{ env.REPO }}
 
       - name: Extract changelog from PR body
         id: extract-changelog
         run: |
           # Use awk to extract content between "## Changes" and the next "##" heading. remove multiline comments
           # This is safer than just reading the whole body
-          content=$(echo "${{ github.event.pull_request.body }}" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
+          content=$(echo "${{ env.PR_BODY }}" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
 
           if [ -n "$content" ]; then
             echo "Changelog content found:"
@@ -65,21 +66,21 @@ jobs:
             
             echo "preparting folder structure"
             mkdir -p changelog/current
-            echo "create changelog fragment file"
-            touch changelog/current/${{ env.PR_NUMBER }}.md
 
             echo "write changelog fragment content"
-            echo "@${{env.AUTHOR}} \n" > "changelog/current/${{ env.PR_NUMBER }}.md"
-            echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/current/${{ env.PR_NUMBER }}.md
+            echo "@${{env.AUTHOR}}" > "changelog/current/${{ env.PR_NUMBER }}.md"
+            echo "" >> "changelog/current/${{ env.PR_NUMBER }}.md"
+            echo "$content" >> "changelog/current/${{ env.PR_NUMBER }}.md"
 
             echo "setting output"
-            echo "CONTENT_FOUND=true" > $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
           else
             echo "No changelog content found under ## Description."
-            echo "CONTENT_FOUND=false" > $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Commit and push changelog fragment
+        id: commit-changelog
         if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
