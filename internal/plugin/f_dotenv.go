@@ -38,5 +38,3 @@ func (f *DotenvFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 	}
 	return []byte(str), nil
 }
-
-//upd
