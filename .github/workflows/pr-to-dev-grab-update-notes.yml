@@ -63,9 +63,16 @@ jobs:
             echo "Changelog content found:"
             echo "$content"
             
-            mkdir -p changelog
-            echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
-            echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${{ env.PR_NUMBER }}.md
+            echo "preparting folder structure"
+            mkdir -p changelog/current
+            echo "create changelog fragment file"
+            touch changelog/current/${{ env.PR_NUMBER }}.md
+
+            echo "write changelog fragment content"
+            echo "@${{env.AUTHOR}} \n" > "changelog/current/${{ env.PR_NUMBER }}.md"
+            echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/current/${{ env.PR_NUMBER }}.md
+
+            echo "setting output"
             echo "CONTENT_FOUND=true" > $GITHUB_OUTPUT
           else
             echo "No changelog content found under ## Description."
