@@ -65,21 +65,21 @@ jobs:
             
             echo "preparting folder structure"
             mkdir -p changelog/current
-            echo "create changelog fragment file"
-            touch changelog/current/${{ env.PR_NUMBER }}.md
 
             echo "write changelog fragment content"
-            echo "@${{env.AUTHOR}} \n" > "changelog/current/${{ env.PR_NUMBER }}.md"
-            echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/current/${{ env.PR_NUMBER }}.md
+            echo "@${{env.AUTHOR}}" > "changelog/current/${{ env.PR_NUMBER }}.md"
+            echo "" >> "changelog/current/${{ env.PR_NUMBER }}.md"
+            echo "${{ env.FRAGMENT_CONTENT }}" >> "changelog/current/${{ env.PR_NUMBER }}.md
 
             echo "setting output"
-            echo "CONTENT_FOUND=true" > $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
           else
             echo "No changelog content found under ## Description."
-            echo "CONTENT_FOUND=false" > $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Commit and push changelog fragment
+        id: commit-changelog
         if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
