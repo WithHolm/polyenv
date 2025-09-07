@@ -185,6 +185,7 @@ func (file *File) GetVaultNames() []string {
 	for k := range file.Vaults {
 		out = append(out, k)
 	}
+	sort.Strings(out)
 	return out
 }
 
