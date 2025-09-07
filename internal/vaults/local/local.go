@@ -59,8 +59,7 @@ func (c *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
 	err := keyring.Set(c.Service, key, val)
 
 	if err != nil {
-		fmt.Errorf("failed to set data to local cred-store during warmup: %w", err)
-		// slog.Error("failed to set key to local cred-store", "error", err)
+		slog.Error("failed to set key to local cred-store", "error", err)
 		os.Exit(1)
 	}
 	*sec = append(*sec, model.Secret{
@@ -215,7 +214,11 @@ func (c *Client) Pull(s model.Secret) (model.SecretContent, error) {
 			),
 		)
 		tui.RunHuh(form)
-		keyring.Set(c.Service, s.RemoteKey, val)
+		err = keyring.Set(c.Service, s.RemoteKey, val)
+		if err != nil {
+			return sec, fmt.Errorf("failed to set data to local cred-store during pull: %w", err)
+		}
+
 	} else if err != nil {
 		return sec, err
 	}

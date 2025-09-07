@@ -104,7 +104,7 @@ func (c *Client) Warmup() error {
 func (c *Client) Marshal() map[string]any {
 	return map[string]any{
 		"type":  vaultName,
-		"store": c.Name,
+		"store": c.store.Name,
 	}
 }
 

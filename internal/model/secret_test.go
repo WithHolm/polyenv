@@ -8,6 +8,78 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
+func TestDetectSecret(t *testing.T) {
+	testCases := []struct {
+		name         string
+		env          StoredEnv
+		expectSecret bool
+		expectReason string
+	}{
+		{
+			name:         "Not a secret",
+			env:          StoredEnv{Key: "USERNAME", Value: "testuser", File: ""},
+			expectSecret: false,
+			expectReason: "",
+		},
+		{
+			name:         "Empty Value",
+			env:          StoredEnv{Key: "SOME_KEY", Value: "", File: ""},
+			expectSecret: false,
+			expectReason: "",
+		},
+		{
+			name:         "Keyword match in key",
+			env:          StoredEnv{Key: "DB_PASSWORD", Value: "12345", File: ""},
+			expectSecret: true,
+			expectReason: "Keyword 'PASSWORD' in key",
+		},
+		{
+			name:         "GitHub Token by Regex",
+			env:          StoredEnv{Key: "GHA_TOKEN", Value: "ghp_abcdefghijklmnopqrstuvwxyz1234567890", File: ""},
+			expectSecret: true,
+			expectReason: "GitHub Token",
+		},
+		{
+			name:         "Slack Token by Regex",
+			env:          StoredEnv{Key: "BotToken", Value: "xoxp-12345-67890-12345-67890-12345-abcdef", File: ""},
+			expectSecret: true,
+			expectReason: "Slack Token",
+		},
+		{
+			name:         "High Entropy Value",
+			env:          StoredEnv{Key: "SESSION_ID", Value: "z9s1vFpQLmN8DsB5fVbTjR2cW3aY4xZ6", File: ""},
+			expectSecret: true,
+			expectReason: "High entropy value",
+		},
+		{
+			name:         "PEM Key by Regex",
+			env:          StoredEnv{Key: "CERT", Value: "-----BEGIN RSA PRIVATE KEY-----", File: ""},
+			expectSecret: true,
+			expectReason: "PEM private key",
+		},
+		{
+			name:         "Generic Base64",
+			env:          StoredEnv{Key: "API", Value: "dGhpc0lzQVN1cGVyTG9uZ0Jhc2U2NFN0cmluZ1dpdGhNb3JlVGhhbkZvcnR5Q2hhcnM=", File: ""},
+			expectSecret: true,
+			expectReason: "Generic Base64 (40+)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			isSecret, reason := tc.env.DetectSecret()
+
+			if isSecret != tc.expectSecret {
+				t.Errorf("Expected isSecret to be %v, but got %v", tc.expectSecret, isSecret)
+			}
+
+			if reason != tc.expectReason {
+				t.Errorf("Expected reason to be '%s', but got '%s'", tc.expectReason, reason)
+			}
+		})
+	}
+}
+
 func TestSecret_ToString(t *testing.T) {
 	s := Secret{
 		RemoteKey:   "my-secret",
@@ -25,7 +97,11 @@ func TestStoredEnv_Save(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	filePath := filepath.Join(tmpDir, ".env")
 
@@ -34,9 +110,6 @@ func TestStoredEnv_Save(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create file: %v", err)
 	}
-	// if err := f.Close(); err != nil {
-	// 	t.Fatalf("failed to close file: %v", err)
-	// }
 
 	se := StoredEnv{
 		Key:   "MY_KEY",
@@ -65,7 +138,11 @@ func TestStoredEnv_Remove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	filePath := filepath.Join(tmpDir, ".env")
 

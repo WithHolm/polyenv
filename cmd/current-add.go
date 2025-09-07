@@ -12,7 +12,8 @@ import (
 var addSecretCmds []*cobra.Command
 var addVaultCmds []*cobra.Command
 var addCmds []*cobra.Command
-var addVaultArgs []string
+
+// var addVaultArgs []string
 
 func generateAddCommand() *cobra.Command {
 	var addVaultCmd = &cobra.Command{
