@@ -66,20 +66,11 @@ jobs:
             mkdir -p changelog
             echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
             echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${{ env.PR_NUMBER }}.md
-            # # Format the content as a markdown list item for the final changelog
-            # echo "FRAGMENT_CONTENT=- $content" >> $GITHUB_OUTPUT
-            # echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
+            echo "CONTENT_FOUND=true" >> $GITHUB_OUTPUT
           else
             echo "No changelog content found under ## Description."
             echo "CONTENT_FOUND=false" >> $GITHUB_OUTPUT
           fi
-
-      # - name: Create or Update changelog fragment file
-      #   if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true' && needs.exsisting-fragment.outputs.exists == 'false'
-      #   run: |
-      #     mkdir -p changelog
-      #     echo "@${{env.AUTHOR}} \n" > "changelog/${{ env.PR_NUMBER }}.md"
-      #     echo "${{ env.FRAGMENT_CONTENT }}" > "changelog/${{ env.PR_NUMBER }}.md"
 
       - name: Commit and push changelog fragment
         if: steps.extract-changelog.outputs.CONTENT_FOUND == 'true'
