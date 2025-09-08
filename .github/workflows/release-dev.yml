@@ -1,20 +1,12 @@
-name: Dev - Nightly if new stuff is pushed
+name: Release dev - Nigtly sceduled
 
 on: 
   schedule:
     #every day at midnight
     - cron: '0 0 * * *'
+      
     
   workflow_dispatch:
-    # inputs:
-      # version_bump:
-      #   description: 'Version bump type'
-      #   type: choice
-      #   required: true
-      #   default: 'patch'
-      #   options:
-      #     - minor
-      #     - patch
 
     
 permissions:
@@ -70,7 +62,6 @@ jobs:
             }
 
             core.setOutput('last_release_sha', lastReleaseSha);
-      # Step 2: Check for new commits
       #Check if there are any new commits since the last successful build
       - name: Check for new commits
         id: check-commits
@@ -91,6 +82,7 @@ jobs:
             echo "New commits detected. Proceeding with build."
             echo "should_build=true" >> $GITHUB_OUTPUT
           fi
+  #   
   build-dev:
     name: build
     runs-on: ubuntu-latest
@@ -100,9 +92,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: dev
-            # Step 1: Get the SHA of the last successful run of THIS workflow on 'dev'
-      
+          ref: dev      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -128,9 +118,11 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
       - name: Grab changelog md from current
         id: changelog
+        env:
+          ChangelogPath: ./changelog/current
         run: |
           CHANGELOG_DETAILS=""
-          for file in ./changelog/current/*.md; do
+          for file in $ChangelogPath/*.md; do
             echo "Processing file: $file"
             # Append the content of each file.
             # You might want to add a header for each file for better readability,
@@ -145,14 +137,20 @@ jobs:
           echo "CHANGELOG_DETAILS<<EOF" >> $GITHUB_ENV
           echo -e "$CHANGELOG_DETAILS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-      - name: write out
-        run: |
-          echo "$CHANGELOG_DETAILS"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: polyenv-dev
           path: dist/*
+      - name: Delete old tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          #delete old tag
+          git push --delete origin ${{ env.release_tag }} || true
+          #delete old release
+          gh release delete ${{ env.release_tag }}--yes || true
       - name: Upload Contents to Release
         uses: svenstaro/upload-release-action@v2
         with:
