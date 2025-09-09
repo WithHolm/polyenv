@@ -1,0 +1,42 @@
+name: Changelog - Create Bump Fragment on Dependabot Merge
+
+# about pr close: this happens after merge, so reference is "dev" directly
+on:
+  pull_request:
+    types: [closed]
+    paths: 
+      - go.mod
+      - go.sum
+    branches:
+      - dev
+
+# i wanted to do some magic here.. but you know.. 
+# the title of prs from dependabot are really good, so i'll just use that
+# feeling lazy, might change later..
+# becaute the "event trigger path" is go mod, its most likely a golang bump.. i wont log actions bumps
+
+jobs:
+  create-bump-fragment:
+    if: github.event.pull_request.merged == true && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: check if PR is a dependabot bump
+        id: is-bump
+        run: |
+          if [[ "${{ github.event.pull_request.title }}" =~ ^Bump\ (.+)\ from\ (.+)\ to\ (.+)$ ]]; then
+            echo "is_bump=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_bump=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: create fragment
+        id: create_fragment
+        uses: ./.github/workflows/shared/generate-changelog-file.yaml
+        with:
+          changelog-text: ${{ steps.get_entry.outputs.changelog_entry }}
+          repo: ${{ github.event.pull_request.head.repo.full_name }}
+          pr-number: ${{ github.event.pull_request.number }}
+          commit-ref: "dev"
+          dependabot-pr: true

@@ -1,0 +1,42 @@
+name: Shared - Test
+
+on:
+  workflow_call:
+    inputs:
+      full_test:
+        type: boolean
+        required: false
+        default: false
+      path:
+        type: string
+        required: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check
+        if: inputs.path == '' && !inputs.full_test
+        run: |
+          echo "something is wrong"
+          exit 1
+      - uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+      - name: install tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run full test
+        if: inputs.full_test
+        run: |
+          go test -v -race ./cmd/... ./internal/...
+      - name: Run tests
+        if: inputs.path != '' && !inputs.full_test
+        run: |
+          go test -v -race "./${{ inputs.path }}"
+      - name: Run govulncheck
+        run: |
+          govulncheck "./${{ matrix.packages }}"
