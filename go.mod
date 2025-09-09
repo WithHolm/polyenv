@@ -1,6 +1,6 @@
 module github.com/withholm/polyenv
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.1
 
@@ -12,12 +12,13 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.4.0
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/bubbles v0.21.0
-	github.com/charmbracelet/bubbletea v1.3.6
+	github.com/charmbracelet/bubbletea v1.3.8
 	github.com/charmbracelet/huh v0.7.0
 	github.com/charmbracelet/huh/spinner v0.0.0-20250714122654-40d2b68703eb
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/denormal/go-gitignore v0.0.0-20180930084346-ae8ad1d07817
+	github.com/google/go-cmp v0.7.0
 	github.com/joho/godotenv v1.5.1
 	github.com/sosodev/duration v1.3.1
 	github.com/spf13/cobra v1.8.1
@@ -34,7 +35,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
-	github.com/charmbracelet/x/ansi v0.9.3 // indirect
+	github.com/charmbracelet/x/ansi v0.10.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
@@ -46,7 +47,6 @@ require (
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -65,7 +65,6 @@ require (
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
 )
