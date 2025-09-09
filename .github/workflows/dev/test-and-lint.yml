@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [dev]
     types: [opened, synchronize, reopened]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
 
 jobs:
   lint:
