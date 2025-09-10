@@ -6,6 +6,8 @@ on:
     branches: [dev]
 
 env:
+  author: ${{ github.event.pull_request.user.login }}
+  title : ${{ github.event.pull_request.title }}
   header: "## Changes"
 
 jobs:
@@ -35,9 +37,10 @@ jobs:
         id: extract-changelog
         run: |
           # Use awk to extract content between "${{ github.event.pull_request.body}}" and the next "##" heading. remove multiline comments
-          content=$(echo "${{ github.event.pull_request.body}}" | awk '/^${{env.header}}/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
+          content_body=$(echo "${{ github.event.pull_request.body}}" | awk '/^${{env.header}}/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
 
           if [ -n "$content" ]; then
+            content="- @${{ env.author }}  -> ${{ env.title }} \n $content_body"
             echo "Changelog content found:"
             echo "$content"
             
