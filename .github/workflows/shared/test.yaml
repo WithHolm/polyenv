@@ -43,7 +43,6 @@ jobs:
         if: inputs.full_test
         run: |
           staticcheck "${{ steps.concat-path.outputs.path }}"
-    
       - name: Run tests
         if: inputs.path != '' && !inputs.full_test
         run: |
