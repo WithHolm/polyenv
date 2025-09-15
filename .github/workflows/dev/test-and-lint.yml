@@ -26,6 +26,7 @@ jobs:
         with:
           version: latest
 
+  
   changed-packages:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -70,7 +71,7 @@ jobs:
     if: github.actor != 'dependabot[bot]' && needs.changed-packages.outputs.go_mod_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: full-test
+      - name: full test
         uses: ./.github/workflows/shared/test.yaml
         with:
           full_test: true
@@ -85,7 +86,7 @@ jobs:
         packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
       fail-fast: false
     steps:
-      - name: full-test
+      - name: Package test
         uses: ./.github/workflows/shared/test.yaml
         with:
           path: ${{ matrix.packages }}
