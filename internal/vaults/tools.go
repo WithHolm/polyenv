@@ -15,7 +15,7 @@ const (
 	constExtension = ".polyenv"
 )
 
-// get path to .polyenv file. will return same path if it already has .polyenv or not
+// gets path to .polyenv file. will return same path if it already has .polyenv or not
 func GetVaultPath(path string) string {
 	if strings.HasSuffix(path, constExtension) {
 		return path
@@ -26,7 +26,7 @@ func GetVaultPath(path string) string {
 	return path
 }
 
-// check if vault options item exist on path
+// checks if vault options item exist on path
 func VaultPathExists(path string) bool {
 	vaultPath := GetVaultPath(path)
 
@@ -40,7 +40,7 @@ func VaultPathExists(path string) bool {
 	return true
 }
 
-// read the vault file. return a map of all keys
+// reads the vault file. return a map of all keys
 func ReadFile(path string) (map[string]string, error) {
 	vaultPath := GetVaultPath(path)
 

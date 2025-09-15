@@ -9,6 +9,10 @@ import (
 type GithubWriter struct {
 }
 
+func (e *GithubWriter) Name() string {
+	return "github"
+}
+
 func (e *GithubWriter) AcceptedFormats() (accepted []string, deny []string) {
 	return []string{"dotenv"}, []string{}
 }

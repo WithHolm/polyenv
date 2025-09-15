@@ -9,7 +9,7 @@ import (
 	"github.com/withholm/polyenv/internal/model"
 )
 
-func (c *Client) Push(s model.SecretContent) error {
+func (cli *Client) Push(s model.SecretContent) error {
 	secretparam := azsecrets.SetSecretParameters{
 		Value: &s.Value,
 	}
@@ -17,10 +17,10 @@ func (c *Client) Push(s model.SecretContent) error {
 		secretparam.ContentType = &s.ContentType
 	}
 
-	if c.client == nil {
+	if cli.client == nil {
 		return fmt.Errorf("client not initialized. warmup first")
 	}
-	res, err := c.client.SetSecret(context.Background(), s.RemoteKey, secretparam, nil)
+	res, err := cli.client.SetSecret(context.Background(), s.RemoteKey, secretparam, nil)
 
 	if err != nil {
 		return fmt.Errorf("failed to set secret %s: %w", s.RemoteKey, err)
@@ -29,8 +29,8 @@ func (c *Client) Push(s model.SecretContent) error {
 	return nil
 }
 
-func (c *Client) PushElevate() error {
-	c.pushElevateOnce.Do(func() {
+func (cli *Client) PushElevate() error {
+	cli.pushElevateOnce.Do(func() {
 		slog.Debug("Keyvault PIM elevate not implemented yet")
 	})
 	return nil

@@ -10,6 +10,10 @@ import (
 type AzDevopsFormatter struct {
 }
 
+func (f *AzDevopsFormatter) Name() string {
+	return "azdevops"
+}
+
 func (f *AzDevopsFormatter) Detect(data []byte) bool {
 	return false
 }

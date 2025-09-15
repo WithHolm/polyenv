@@ -1,3 +1,4 @@
+// Package model contains all models for polyenv
 package model
 
 import "github.com/charmbracelet/huh"

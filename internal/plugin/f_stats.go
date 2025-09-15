@@ -18,6 +18,10 @@ type StatsFormatter struct {
 	PolyenvFile *polyenvfile.File
 }
 
+func (f *StatsFormatter) Name() string {
+	return "stats"
+}
+
 func (f *StatsFormatter) Detect(data []byte) bool {
 	return false
 }

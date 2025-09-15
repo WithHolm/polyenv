@@ -9,6 +9,10 @@ import (
 type PassthroughFormatter struct {
 }
 
+func (f *PassthroughFormatter) Name() string {
+	return "passthrough"
+}
+
 func (f *PassthroughFormatter) Detect(data []byte) bool {
 	return false
 }

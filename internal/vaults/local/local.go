@@ -1,3 +1,4 @@
+// Package local contains a local vault that connects to a local cred-store
 package local
 
 import (

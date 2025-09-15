@@ -1,3 +1,4 @@
+// Package tools contains various tools and helpers for polyenv
 package tools
 
 import (
@@ -8,7 +9,7 @@ import (
 )
 
 // // returns whatever data as json, indented. for readability and debugging
-func ToIndentedJson(data any) string {
+func ToIndentedJSON(data any) string {
 	j, err := json.Marshal(data)
 	if err != nil {
 		panic(fmt.Errorf("failed to marshal json: %s", err))

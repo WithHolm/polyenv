@@ -1,3 +1,4 @@
+// Package vaults contains all vaults that polyenv supports
 package vaults
 
 import (

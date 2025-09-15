@@ -20,7 +20,7 @@ import (
 //region Vault
 
 // TuiAddVault adds a new vault to the polyenv file via the tui
-func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
+func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 	// var vaultType vaults.VaultType
 	if vaultTypeStr == "" {
 		form := huh.NewForm(
@@ -83,7 +83,7 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 				Placeholder(vault.DisplayName()).
 				CharLimit(512).
 				Validate(func(s string) error {
-					for k, v := range p.Vaults {
+					for k, v := range file.Vaults {
 						if k == s {
 							return fmt.Errorf("vault name already exists: %s", v.String())
 						}
@@ -108,11 +108,11 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 		vaultDisplayName = vault.DisplayName()
 	}
 
-	if p.Vaults == nil {
-		p.Vaults = make(map[string]model.Vault)
+	if file.Vaults == nil {
+		file.Vaults = make(map[string]model.Vault)
 	}
-	p.Vaults[vaultDisplayName] = vault
-	p.Save()
+	file.Vaults[vaultDisplayName] = vault
+	file.Save()
 
 	err = vault.Warmup()
 	if err != nil {
@@ -121,7 +121,7 @@ func (p *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
 	}
 
 	if addSecret {
-		p.TuiAddSecret(vaultDisplayName)
+		file.TuiAddSecret(vaultDisplayName)
 	}
 }
 
@@ -153,12 +153,12 @@ func (file *File) TuiSelectVault() string {
 
 // region secret
 // add a new secret to the polyenv file via the tui. requires displayname of already existing vault
-func (p *File) TuiAddSecret(vaultName string) {
+func (file *File) TuiAddSecret(vaultName string) {
 	if vaultName == "" {
 		slog.Error("secret name cannot be empty")
 		os.Exit(1)
 	}
-	v, ok := p.Vaults[vaultName]
+	v, ok := file.Vaults[vaultName]
 	if !ok {
 		slog.Error("vault not found", "vault", vaultName)
 		os.Exit(1)
@@ -197,7 +197,7 @@ func (p *File) TuiAddSecret(vaultName string) {
 
 						pre := make([]huh.Option[model.Secret], 0)
 						for _, secret := range list {
-							localSecret, hasLocalSecret := p.GetSecretInfo(secret.RemoteKey, vaultName)
+							localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
 
 							slog.Debug("secret", "name", secret.RemoteKey, "enabled", secret.Enabled, "local", hasLocalSecret)
 
@@ -223,11 +223,11 @@ func (p *File) TuiAddSecret(vaultName string) {
 	}
 
 	//process secrets
-	if p.Secrets == nil {
-		p.Secrets = make(map[string]model.Secret)
+	if file.Secrets == nil {
+		file.Secrets = make(map[string]model.Secret)
 	}
 	for _, secret := range selectedSecrets {
-		localSecret, hasLocalSecret := p.GetSecretInfo(secret.RemoteKey, vaultName)
+		localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
 		var displayname string
 		f := huh.NewForm(
 			huh.NewGroup(
@@ -246,19 +246,19 @@ func (p *File) TuiAddSecret(vaultName string) {
 						return secret.RemoteKey
 					}, nil).
 					Validate(func(s string) error {
-						v, ok := p.Secrets[s]
+						v, ok := file.Secrets[s]
 						if ok {
 							return fmt.Errorf("secret name already exists: %s", v.ToString())
 						}
-						return p.ValidateSecretName(s)
+						return file.ValidateSecretName(s)
 					}).Value(&displayname),
 				huh.NewNote().TitleFunc(func() string {
 					if displayname == "" && hasLocalSecret {
-						return p.Options.ConvertString(localSecret.LocalKey)
+						return file.Options.ConvertString(localSecret.LocalKey)
 					} else if displayname == "" {
-						return p.Options.ConvertString(secret.RemoteKey)
+						return file.Options.ConvertString(secret.RemoteKey)
 					}
-					return p.Options.ConvertString(displayname)
+					return file.Options.ConvertString(displayname)
 				}, &displayname),
 			),
 		)
@@ -269,17 +269,17 @@ func (p *File) TuiAddSecret(vaultName string) {
 			displayname = secret.RemoteKey
 		}
 		secret.Vault = vaultName
-		displayname = p.Options.ConvertString(displayname)
+		displayname = file.Options.ConvertString(displayname)
 
 		if hasLocalSecret {
-			delete(p.Secrets, localSecret.LocalKey)
+			delete(file.Secrets, localSecret.LocalKey)
 		}
 		secret.LocalKey = displayname
-		p.Secrets[displayname] = secret
+		file.Secrets[displayname] = secret
 	}
 
 	//remove secrets from local that where de-selected during selection
-	for k, secret := range p.Secrets {
+	for k, secret := range file.Secrets {
 		if secret.Vault != vaultName {
 			continue
 		}
@@ -293,10 +293,10 @@ func (p *File) TuiAddSecret(vaultName string) {
 		}
 		if remove {
 			slog.Debug("removing secret from local", "name", k)
-			delete(p.Secrets, k)
+			delete(file.Secrets, k)
 		}
 	}
-	p.Save()
+	file.Save()
 
 }
 
@@ -304,16 +304,16 @@ func (p *File) TuiAddSecret(vaultName string) {
 
 // TODO: add indivitial checks for each option
 // add options to the polyenv file
-func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
+func (file *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 	if opts != nil {
-		p.Options = *opts
+		file.Options = *opts
 	}
 
 	l := list.New()
 	bold := lipgloss.NewStyle().Bold(true)
 	green := lipgloss.NewStyle().Foreground(lipgloss.Color("#40a02b"))
 	red := lipgloss.NewStyle().Foreground(lipgloss.Color("#d20f39"))
-	for _, o := range p.Options.GetVaultOptionHelper() {
+	for _, o := range file.Options.GetVaultOptionHelper() {
 		bolstr := bold.Render(fmt.Sprintf("%t", o.Value))
 		if b, ok := o.Value.(bool); ok {
 			slog.Debug(o.Name+" is bool", "value", b)
@@ -333,7 +333,7 @@ func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 
 		f := huh.NewForm(
 			huh.NewGroup(
-				huh.NewNote().Title("Environment options for "+p.Name).DescriptionFunc(func() string {
+				huh.NewNote().Title("Environment options for "+file.Name).DescriptionFunc(func() string {
 					return fmt.Sprint(l)
 				}, nil),
 
@@ -347,13 +347,13 @@ func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 				huh.NewConfirm().
 					Title("Global: Do you want to use dot secret file for secrets?").
 					Description(strings.Join([]string{
-						"Any secrets you pull will be stored in a .env.secret." + p.Name + " file instead of .env file.",
+						"Any secrets you pull will be stored in a .env.secret." + file.Name + " file instead of .env file.",
 						"This makes it easier to add them to gitignore. while being accessible with any .env import system",
 						"I HIGLY SUGGEST YOU USE THIS",
 					}, "\n")).
 					Affirmative("Yes").
 					Negative("No").
-					Value(&p.Options.UseDotSecretFileForSecrets),
+					Value(&file.Options.UseDotSecretFileForSecrets),
 			).WithHide(keepDefaults),
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -361,7 +361,7 @@ func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 					Description("convert remote secret name 'my-secret' to 'my_secret' locally").
 					Affirmative("Yes").
 					Negative("No").
-					Value(&p.Options.HyphenToUnderscore),
+					Value(&file.Options.HyphenToUnderscore),
 			).WithHide(keepDefaults),
 			huh.NewGroup(
 				huh.NewConfirm().
@@ -369,26 +369,26 @@ func (p *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 					Description("convert remote vault name 'my-secret' to 'MY-SECRET' locally").
 					Affirmative("Yes").
 					Negative("No").
-					Value(&p.Options.UppercaseLocally),
+					Value(&file.Options.UppercaseLocally),
 			).WithHide(keepDefaults),
 		)
 		tui.RunHuh(f)
 	}
 
-	p.Save()
+	file.Save()
 }
 
 //region other
 
 // New file via tui. returns the polyenv file that is saved to disk
-func TuiNewFile(env string) (p *File) {
+func TuiNewFile(env string) (file *File) {
 	c, e := tools.GetGitRootOrCwd()
 	if e != nil {
 		slog.Error("failed to get project root: " + e.Error())
 		os.Exit(1)
 	}
 
-	p = &File{
+	file = &File{
 		VaultMap: make(map[string]map[string]any),
 		Secrets:  make(map[string]model.Secret),
 		Vaults:   make(map[string]model.Vault),
@@ -532,8 +532,8 @@ func TuiNewFile(env string) (p *File) {
 		os.Exit(1)
 	}
 
-	p.Name = env
-	p.Path = c
+	file.Name = env
+	file.Path = c
 	// p.Save()
 	return
 }
@@ -583,8 +583,8 @@ func tuiSelectEnvNote(env string) string {
 	return o
 }
 
-func (p *File) TuiAddGitIgnore() error {
-	if !p.Options.UseDotSecretFileForSecrets {
+func (file *File) TuiAddGitIgnore() error {
+	if !file.Options.UseDotSecretFileForSecrets {
 		return nil
 	}
 
@@ -619,19 +619,19 @@ func (p *File) TuiAddGitIgnore() error {
 	}
 
 	//normally os.O_CREATE for opening files, however i want it to error if gitignore is not found..
-	file, err := os.OpenFile(filepath.Join(root, ".gitignore"), os.O_APPEND|os.O_WRONLY, 0600)
+	openedFile, err := os.OpenFile(filepath.Join(root, ".gitignore"), os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open gitignore: %w", err)
 	}
 
 	defer func() {
-		e := file.Close()
+		e := openedFile.Close()
 		if e != nil {
 			slog.Error("failed to close file", "error", e)
 		}
 	}()
 
-	if _, err = file.WriteString("\n**/*env.secret*"); err != nil {
+	if _, err = openedFile.WriteString("\n**/*env.secret*"); err != nil {
 		return err
 	}
 

@@ -54,20 +54,21 @@ type fcache struct {
 
 var globalFileCache = NewFileCache()
 
-type Matchtype int
+type Matchtype string
 
 const (
 	//Name of file must contain the given string
-	MatchNameContains Matchtype = iota
+	MatchNameContains Matchtype = "contains"
 	//Name of file must indifferent match the given string (ignore case)
-	MatchNameIExact
+	MatchNameIExact = "iexact"
 )
 
 // get all files recurcivley in the given root directory
 func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err error) {
+	slog.Debug("search", "root", root, "filter", filter, "typ", typ)
 	slices.Sort(filter)
 	//cache cause i know i have some files im searching for multiple times.. saves hot path calls
-	key := fmt.Sprintf("%s|%d[%s]", root, typ, strings.Join(filter, "|"))
+	key := fmt.Sprintf("%s|%s[%s]", root, typ, strings.Join(filter, "|"))
 	// slog.Debug("cache", "key", key)
 
 	globalFileCache.mu.RLock()
@@ -107,12 +108,12 @@ func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err
 			switch typ {
 			case MatchNameContains:
 				if strings.Contains(d.Name(), f) {
-					slog.Debug("search: appending contains-match", "path", path, "name", d.Name(), "filter", f)
+					slog.Debug("search: contains", "path", path, "filter", f)
 					out = append(out, path)
 				}
 			case MatchNameIExact:
 				if strings.EqualFold(d.Name(), f) {
-					slog.Debug("search: appending iexact-match", "path", path, "name", d.Name(), "filter", f)
+					slog.Debug("search: iexact", "path", path, "filter", f)
 					out = append(out, path)
 				}
 			}
@@ -129,7 +130,7 @@ func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err
 		return nil, err
 	}
 
-	slog.Debug("search: file cache add", "key", key, "out", out)
+	// slog.Debug("search: file cache add", "key", key, "out", out)
 	globalFileCache.cache[key] = fcache{
 		out: out,
 		err: nil,
@@ -154,8 +155,12 @@ func ExtractNameFromDotenv(filename string) (string, error) {
 	}
 
 	// else .env|.env.{name}|.env.secret|.env.secret.{name}
-	if IsEnvSecret {
-		return strings.TrimPrefix(filename, ".env.secret"), nil
-	}
-	return strings.TrimPrefix(filename, ".env"), nil
+	// var ret string
+	ret := strings.TrimPrefix(filename, ".env")
+
+	ret = strings.TrimPrefix(ret, ".secret")
+
+	ret = strings.TrimPrefix(ret, ".")
+
+	return ret, nil
 }

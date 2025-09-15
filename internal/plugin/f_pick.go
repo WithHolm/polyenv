@@ -14,6 +14,10 @@ import (
 type PickFormatter struct {
 }
 
+func (f *PickFormatter) Name() string {
+	return "pick"
+}
+
 func (f *PickFormatter) Detect(data []byte) bool {
 	return false
 }

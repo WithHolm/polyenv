@@ -18,8 +18,12 @@ type OtsWriter struct {
 	concealOpts *otsOptions
 }
 
+func (e *OtsWriter) Name() string {
+	return "ots"
+}
+
 type otsOptions struct {
-	Url           string
+	URL           string
 	ConcealMaxTTL *duration.Duration
 }
 
@@ -86,7 +90,7 @@ func (e *OtsWriter) GetOptions() (*otsOptions, error) {
 		return nil, fmt.Errorf("failed to get TTL: %w", err)
 	}
 	return &otsOptions{
-		Url:           "eu.onetimesecret.com",
+		URL:           "eu.onetimesecret.com",
 		ConcealMaxTTL: d,
 	}, nil
 }
@@ -150,7 +154,7 @@ func (e *OtsWriter) Write(data []byte) error {
 	}
 	resp := otsConcealResponse{}
 
-	httpClient := tools.NewPolyenvHttpClient()
+	httpClient := tools.NewPolyenvHTTPClient()
 	err = httpClient.Post(context.Background(), "https://eu.onetimesecret.com/api/v2/secret/conceal", body, &resp)
 	if err != nil {
 		return fmt.Errorf("failed to post to OneTimeSecret: %w", err)

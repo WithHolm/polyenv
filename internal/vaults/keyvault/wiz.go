@@ -16,7 +16,7 @@ type (
 		Tenants       []string
 		Subscription  string
 		Subscriptions []string
-		Uri           string
+		URI           string
 		Name          string
 		state         int
 	}
@@ -24,9 +24,9 @@ type (
 	GraphQueryItem struct {
 		Name           string
 		ResourceGroup  string
-		SubscriptionId string
-		TenantId       string
-		VaultUri       string
+		SubscriptionID string
+		TenantID       string
+		VaultURI       string
 		Location       string
 	}
 )
@@ -36,7 +36,7 @@ func (cli *Client) WizWarmup(m map[string]any) error {
 	cli.wiz = Wizard{
 		Tenant:       "",
 		Subscription: "",
-		Uri:          "",
+		URI:          "",
 		Name:         "",
 		state:        0,
 	}
@@ -153,20 +153,20 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 				slog.Error("no subscriptions found. please auth to tenant: az login --tenant " + cli.wiz.Tenant)
 				os.Exit(1)
 			}
-			regexGuid := regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
-			isGuid := regexGuid.MatchString(cli.wiz.Subscription)
+			regexGUID := regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
+			isGUID := regexGUID.MatchString(cli.wiz.Subscription)
 			found := false
 			for _, sub := range subscriptions {
 				slog.Debug("checking subscription", "id", *sub.SubscriptionID, "name", *sub.DisplayName)
 				//look for guid
-				if isGuid && strings.EqualFold(*sub.SubscriptionID, cli.wiz.Subscription) {
+				if isGUID && strings.EqualFold(*sub.SubscriptionID, cli.wiz.Subscription) {
 					slog.Debug("found subscription", "id", *sub.SubscriptionID, "name", *sub.DisplayName)
 					cli.wiz.Subscription = *sub.SubscriptionID
 					found = true
 					break
 				}
 				//look for display name
-				if !isGuid && strings.EqualFold(*sub.DisplayName, cli.wiz.Subscription) {
+				if !isGUID && strings.EqualFold(*sub.DisplayName, cli.wiz.Subscription) {
 					slog.Debug("found subscription", "id", *sub.SubscriptionID, "name", *sub.DisplayName)
 					cli.wiz.Subscription = *sub.SubscriptionID
 					found = true
@@ -174,7 +174,7 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 				}
 			}
 			if !found {
-				slog.Error("subscription not found", "value", cli.wiz.Subscription, "is guid", isGuid)
+				slog.Error("subscription not found", "value", cli.wiz.Subscription, "is guid", isGUID)
 				os.Exit(1)
 			}
 
@@ -191,11 +191,11 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 						os.Exit(1)
 					}
 					for _, vault := range vaults {
-						opt := huh.NewOption(vault.Name, vault.VaultUri)
+						opt := huh.NewOption(vault.Name, vault.VaultURI)
 						ret = append(ret, opt)
 					}
 					return ret
-				}, &cli.wiz.Subscription).Value(&cli.wiz.Uri),
+				}, &cli.wiz.Subscription).Value(&cli.wiz.URI),
 			)
 		}
 		//TODO: else check if vault exists
@@ -212,7 +212,7 @@ func (cli *Client) WizNext() (*huh.Form, error) {
 
 func (cli *Client) WizComplete() error {
 	cli.Tenant = cli.wiz.Tenant
-	cli.Uri = cli.wiz.Uri
+	cli.URI = cli.wiz.URI
 	err := cli.Warmup()
 	if err != nil {
 		return fmt.Errorf("failed to warmup vault: %w", err)

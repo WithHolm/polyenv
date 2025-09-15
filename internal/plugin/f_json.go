@@ -13,11 +13,18 @@ var bracketPairs = map[rune]rune{
 	'[': ']',
 }
 
-type JsonFormatter struct {
+type JSONFormatter struct {
 	AsArray bool
 }
 
-func (f *JsonFormatter) Detect(data []byte) bool {
+func (f *JSONFormatter) Name() string {
+	if f.AsArray {
+		return "jsonArr"
+	}
+	return "json"
+}
+
+func (f *JSONFormatter) Detect(data []byte) bool {
 	if len(data) == 0 {
 		return false
 	}
@@ -35,7 +42,7 @@ func (f *JsonFormatter) Detect(data []byte) bool {
 	return json.Valid(data)
 }
 
-func (f *JsonFormatter) InputFormat(data []byte) (*model.InputData, error) {
+func (f *JSONFormatter) InputFormat(data []byte) (*model.InputData, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty input")
 	}
@@ -58,7 +65,7 @@ func (f *JsonFormatter) InputFormat(data []byte) (*model.InputData, error) {
 }
 
 // format as json main
-func (f *JsonFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
+func (f *JSONFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 	if f.AsArray {
 		return f.OutputFormatAsArray(data)
 	}
@@ -67,7 +74,7 @@ func (f *JsonFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 }
 
 // format as json map
-func (f *JsonFormatter) OutputFormatAsMap(data []model.StoredEnv) ([]byte, error) {
+func (f *JSONFormatter) OutputFormatAsMap(data []model.StoredEnv) ([]byte, error) {
 	out := make(map[string]any)
 	for _, v := range data {
 		out[v.Key] = v.Value
@@ -80,7 +87,7 @@ func (f *JsonFormatter) OutputFormatAsMap(data []model.StoredEnv) ([]byte, error
 }
 
 // format as json array
-func (f *JsonFormatter) OutputFormatAsArray(data []model.StoredEnv) ([]byte, error) {
+func (f *JSONFormatter) OutputFormatAsArray(data []model.StoredEnv) ([]byte, error) {
 	var out []map[string]any
 	for _, v := range data {
 		out = append(out, map[string]any{

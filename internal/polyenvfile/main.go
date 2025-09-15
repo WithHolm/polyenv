@@ -1,3 +1,4 @@
+// Package polyenvfile contains all functions related to the polyenv file
 package polyenvfile
 
 import (
@@ -214,15 +215,16 @@ func (file *File) GetSecretInfo(remoteKey string, vault string) (model.Secret, b
 
 // return all dotenv keys in the project in files that include current environment
 // {env}.env || .env.{env} || .env.secret.{env} || {env}.env.secret
-func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
-	slog.Debug("getting all dotenv values within", "env", f.Name)
+func (file *File) AllDotenvValues() (out []model.StoredEnv, err error) {
+	configEnv := file.Name
+	slog.Debug("getting all dotenv values within", "env", configEnv)
 	// get all files
 	cwd, err := tools.GetGitRootOrCwd()
 	if err != nil {
 		return nil, err
 	}
-	filter := []string{f.Name + ".env", ".env." + f.Name, ".env.secret." + f.Name}
-	if f.Name == "" {
+	filter := []string{configEnv + ".env", ".env." + configEnv, ".env.secret." + configEnv}
+	if configEnv == "" {
 		filter = []string{".env", ".env.secret"}
 	}
 
@@ -236,14 +238,16 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 		return strings.Count(allfiles[i], "/") > strings.Count(allfiles[j], "/")
 	})
 
+	slog.Debug("filtering dotenv for", "env", configEnv)
+
 	for _, fl := range allfiles {
-		environ, err := tools.ExtractNameFromDotenv(filepath.Base(fl))
+		fileEnv, err := tools.ExtractNameFromDotenv(filepath.Base(fl))
 		if err != nil {
 			slog.Error("failed to extract name from dotenv", "error", err)
 			os.Exit(1)
 		}
-		if environ != f.Name {
-			slog.Debug("skipping dotenv", "file", fl, "file env", environ, "env", f.Name)
+		if fileEnv != configEnv {
+			slog.Debug("skipping dotenv", "file", fl, "detected file env", fileEnv, "config env", configEnv)
 			continue
 		}
 		slog.Debug("found dotenv", "file", fl)
@@ -257,7 +261,7 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 		for k, v := range m {
 			slog.Debug("dotenv value", "key", k)
 			isSecret := false
-			for _, s := range f.Secrets {
+			for _, s := range file.Secrets {
 				if s.LocalKey == k {
 					isSecret = true
 					break
@@ -276,9 +280,9 @@ func (f *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 }
 
 // generate a new file name based on the current file name
-func (f *File) GenerateFileName(extension string) string {
+func (file *File) GenerateFileName(extension string) string {
 	// extension = strings.TrimPrefix(extension, ".")
 	extension = strings.TrimSuffix(extension, ".")
 
-	return extension + "." + f.Name
+	return extension + "." + file.Name
 }

@@ -8,6 +8,10 @@ import (
 type DotenvFormatter struct {
 }
 
+func (f *DotenvFormatter) Name() string {
+	return "dotenv"
+}
+
 func (f *DotenvFormatter) Detect(data []byte) bool {
 	if len(data) == 0 {
 		return false

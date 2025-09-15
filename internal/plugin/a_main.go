@@ -1,3 +1,4 @@
+// Package plugin contains the polyenv plugin
 package plugin
 
 import (
@@ -19,14 +20,14 @@ var Sources = map[string]func() model.Source{
 }
 
 var InputFormatters = map[string]func() model.Formatter{
-	"json":    func() model.Formatter { return &JsonFormatter{} },
-	"jsonArr": func() model.Formatter { return &JsonFormatter{AsArray: true} },
+	"json":    func() model.Formatter { return &JSONFormatter{} },
+	"jsonArr": func() model.Formatter { return &JSONFormatter{AsArray: true} },
 	"dotenv":  func() model.Formatter { return &DotenvFormatter{} },
 }
 
 var OutputFormatters = map[string]func() model.Formatter{
-	"json":     func() model.Formatter { return &JsonFormatter{} },
-	"jsonArr":  func() model.Formatter { return &JsonFormatter{AsArray: true} },
+	"json":     func() model.Formatter { return &JSONFormatter{} },
+	"jsonArr":  func() model.Formatter { return &JSONFormatter{AsArray: true} },
 	"pwsh":     func() model.Formatter { return &PwshFormatter{} },
 	"stats":    func() model.Formatter { return &StatsFormatter{} },
 	"dotenv":   func() model.Formatter { return &DotenvFormatter{} },
@@ -93,9 +94,10 @@ func init() {
 	}
 }
 
+// check if writer accepts a given format
 func AcceptsFormat(writer model.Writer, format string) bool {
 	whitelist, blacklist := writer.AcceptedFormats()
-	if whitelist[0] == "*" {
+	if slices.Contains(whitelist, "*") {
 		return true
 	}
 
@@ -110,7 +112,7 @@ func AcceptsFormat(writer model.Writer, format string) bool {
 // used when user-defined format is 'auto'.
 func AutoOutputFormat(writer model.Writer) (string, error) {
 	acceptedformatters, denyformatters := writer.AcceptedFormats()
-	slog.Debug("writer formatters", "allowed", acceptedformatters, "deny", denyformatters)
+	slog.Debug("writer allow/denies:", "allowed", acceptedformatters, "deny", denyformatters)
 	if slices.Contains(acceptedformatters, "*") && len(acceptedformatters) > 1 {
 		slog.Debug("writer has * and more than one accepted format. selecting first one", "selected", acceptedformatters[0])
 		//if it has * and more than one 'accepted' item, select the first one
@@ -119,7 +121,6 @@ func AutoOutputFormat(writer model.Writer) (string, error) {
 		slog.Debug("writer has just *, selecting first formatter in registry that is not in deny list")
 		//if it has just *, select first formatter in registry that is not in deny list
 		for k := range OutputFormatters {
-
 			if !slices.Contains(denyformatters, k) {
 				return k, nil
 			}

@@ -47,8 +47,8 @@ func TestFormatters(t *testing.T) {
 
 	formatters := []formatterTest{
 		{name: "dotenv", formatter: &DotenvFormatter{}},
-		{name: "json", formatter: &JsonFormatter{AsArray: false}},
-		{name: "json_array", formatter: &JsonFormatter{AsArray: true}},
+		{name: "json", formatter: &JSONFormatter{AsArray: false}},
+		{name: "json_array", formatter: &JSONFormatter{AsArray: true}},
 		{name: "azdevops", formatter: &AzDevopsFormatter{}},
 		{name: "pwsh", formatter: &PwshFormatter{}},
 		{name: "passthrough", formatter: &PassthroughFormatter{}},

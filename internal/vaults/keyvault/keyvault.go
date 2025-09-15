@@ -1,6 +1,8 @@
 /*
 notify:@withholm
 */
+
+// Package keyvault contains a vault implementation for Azure Key Vault
 package keyvault
 
 import (
@@ -34,7 +36,7 @@ type Client struct {
 	Tenant string `toml:"tenant"`
 
 	//uri of the keyvault
-	Uri string `toml:"uri"`
+	URI string `toml:"uri"`
 
 	client azsecretsClient `toml:"-"`
 
@@ -79,10 +81,10 @@ func (cli *Client) DisplayName() string {
 }
 
 func (cli *Client) String() string {
-	return fmt.Sprintf("%s/%s", cli.Tenant, cli.Uri)
+	return fmt.Sprintf("%s/%s", cli.Tenant, cli.URI)
 }
 
-func (c *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
+func (cli *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
 	return false
 }
 
@@ -123,7 +125,7 @@ func (cli *Client) Marshal() map[string]any {
 	return map[string]any{
 		"type":   "keyvault",
 		"tenant": cli.Tenant,
-		"uri":    cli.Uri,
+		"uri":    cli.URI,
 	}
 }
 
@@ -138,12 +140,12 @@ func (cli *Client) Unmarshal(m map[string]any) error {
 	}
 
 	cli.Tenant = tenant
-	cli.Uri = uri
+	cli.URI = uri
 	return nil
 }
 
 func (cli *Client) Warmup() error {
-	slog.Debug("warming up vault client", "tenant", cli.Tenant, "uri", cli.Uri)
+	slog.Debug("warming up vault client", "tenant", cli.Tenant, "uri", cli.URI)
 	err := checkAzCliInstalled()
 	if err != nil {
 		return err
@@ -160,7 +162,7 @@ func (cli *Client) Warmup() error {
 		return err
 	}
 
-	newCli, err := azsec.NewClient(cli.Uri, cred, nil)
+	newCli, err := azsec.NewClient(cli.URI, cred, nil)
 	if err != nil {
 		return err
 	}

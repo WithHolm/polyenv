@@ -1,3 +1,4 @@
+// Package vaulttest contains a generic test suite for the model.Vault interface.
 package vaulttest
 
 import (

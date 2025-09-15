@@ -1,5 +1,6 @@
 //go:build !omitdevpackage
 
+// Package devvault contains a development vault that can be used for testing
 package devvault
 
 import (

@@ -12,6 +12,10 @@ import (
 type PwshFormatter struct {
 }
 
+func (f *PwshFormatter) Name() string {
+	return "pwsh"
+}
+
 func (f *PwshFormatter) Detect(data []byte) bool {
 	return false
 }

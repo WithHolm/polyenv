@@ -15,21 +15,21 @@ import (
 // DefaultTimeout is the default timeout for the HTTP client.
 const DefaultTimeout = 30 * time.Second
 
-// PolyenvHttpClient is a wrapper around http.PolyenvHttpClient to provide convenience methods.
-type PolyenvHttpClient struct {
+// PolyenvHTTPClient is a wrapper around http.PolyenvHTTPClient to provide convenience methods.
+type PolyenvHTTPClient struct {
 	httpClient *http.Client
 }
 
-// NewPolyenvHttpClient creates a new HTTP client with default settings.
-func NewPolyenvHttpClient() *PolyenvHttpClient {
-	return &PolyenvHttpClient{
+// NewPolyenvHTTPClient creates a new HTTP client with default settings.
+func NewPolyenvHTTPClient() *PolyenvHTTPClient {
+	return &PolyenvHTTPClient{
 		httpClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
 	}
 }
 
-func (c *PolyenvHttpClient) ValidateTarget(target interface{}) (reflect.Type, error) {
+func (c *PolyenvHTTPClient) ValidateTarget(target interface{}) (reflect.Type, error) {
 	if target == nil {
 		return nil, nil
 	}
@@ -43,7 +43,7 @@ func (c *PolyenvHttpClient) ValidateTarget(target interface{}) (reflect.Type, er
 }
 
 // create httprequest client with some default values
-func (c *PolyenvHttpClient) NewRequest(ctx context.Context, method string, url string, body interface{}) (*http.Request, error) {
+func (c *PolyenvHTTPClient) NewRequest(ctx context.Context, method string, url string, body interface{}) (*http.Request, error) {
 	var bod io.Reader = nil
 
 	if body != nil {
@@ -67,7 +67,7 @@ func (c *PolyenvHttpClient) NewRequest(ctx context.Context, method string, url s
 }
 
 // Get sends a GET request and unmarshals the response into a target struct.
-func (c *PolyenvHttpClient) Get(ctx context.Context, url string, target interface{}) error {
+func (c *PolyenvHTTPClient) Get(ctx context.Context, url string, target interface{}) error {
 	req, err := c.NewRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (c *PolyenvHttpClient) Get(ctx context.Context, url string, target interfac
 // Post sends a POST request with a JSON body and unmarshals the response into a target struct.
 // 'body' is the data to be marshalled into the request body.
 // 'target' is the struct to unmarshal the JSON response into. If nil, the response body is discarded.
-func (c *PolyenvHttpClient) Post(ctx context.Context, url string, body interface{}, target interface{}) error {
+func (c *PolyenvHTTPClient) Post(ctx context.Context, url string, body interface{}, target interface{}) error {
 	req, err := c.NewRequest(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return err
