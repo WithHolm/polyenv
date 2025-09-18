@@ -1,0 +1,2 @@
+##vso[task.setvariable variable=A;issecret=false]1
+##vso[task.setvariable variable=B;issecret=true]2

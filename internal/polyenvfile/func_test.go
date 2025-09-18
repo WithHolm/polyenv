@@ -15,7 +15,11 @@ func TestListEnvironments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	//generate dummy files
 	files := []string{
@@ -35,8 +39,14 @@ func TestListEnvironments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current working directory: %v", err)
 	}
-	defer os.Chdir(originalWd)
-	os.Chdir(tmpDir)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Fatalf("failed to restore working directory: %v", err)
+		}
+	}()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
 
 	//list all environments
 	envs, err := ListEnvironments()
@@ -71,7 +81,11 @@ func TestFileExists(t *testing.T) {
 		t.Fatalf("failed to create temp dir: %v\n", err)
 	}
 
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	//generate 'dev' dummy file
 	err = os.WriteFile(filepath.Join(tmpDir, "dev.polyenv.toml"), []byte(""), 0644)
@@ -84,8 +98,14 @@ func TestFileExists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current working directory: %v", err)
 	}
-	defer os.Chdir(originalWd)
-	os.Chdir(tmpDir)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Fatalf("failed to restore working directory: %v", err)
+		}
+	}()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
 	l, _ := os.Getwd()
 	slog.Debug("cwd", "cwd", l)
 	//check that dev file should exist

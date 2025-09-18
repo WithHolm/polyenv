@@ -33,7 +33,32 @@ jobs:
           exit 1
 
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+      
+      - name: get latest tag that is v.*.*
+        id: get-latest-tag
+        run: |
+          latest_tag=$(git tag --sort=committerdate | tail -1)
+          echo "latest_tag=$latest_tag"
+          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+
+      # - name: Build and release
+      #   id: goreleaser
+      #   uses: goreleaser/goreleaser-action@v6
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     CI: true
+      #   with:
+      #     version: "~> v2"
+      #     distribution: goreleaser
+      #     args: release --clean
       # - name: Build and release
       #   id: goreleaser
       #   uses: goreleaser/goreleaser-action@v6

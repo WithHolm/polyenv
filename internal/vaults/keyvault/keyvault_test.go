@@ -19,7 +19,7 @@ func TestKeyVault(t *testing.T) {
 }
 
 type mockAzsecretsClient struct {
-	azsecretsClient
+	// azsecretsClient
 	SetSecretCalled bool
 }
 

@@ -1,0 +1,2 @@
+Set-Item "env:A" -value "1"
+Set-Item "env:B" -value "2"

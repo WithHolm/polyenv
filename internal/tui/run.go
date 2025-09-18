@@ -1,3 +1,4 @@
+// Package tui contains helper functions for the tui
 package tui
 
 import (

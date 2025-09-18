@@ -3,9 +3,20 @@ init:
 	@go mod download
 
 test: init
-	@go test ./internal/... ./cmd/... -coverprofile=coverage.out
-	@go tool cover -html=coverage.out -o coverage.html
-	
+	@go test ./internal/... ./cmd/... -race
+# -coverprofile=.\.local\coverage.out
+# 	@go tool cover -html=.\.local\coverage.out -o .\.local\coverage.html
+
+check:
+	@echo "==> Running golangci-lint..."
+	@golangci-lint run
+	@echo "==> Running staticcheck..."
+	@go install honnef.co/go/tools/cmd/staticcheck@latest
+	@staticcheck ./...
+	@echo "==> Running govulncheck..."
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	@govulncheck ./...
+
 
 build: init
 	@goreleaser release --clean --snapshot --skip publish

@@ -5,3 +5,5 @@
 **/*env.secret*
 **/*.polyenv.toml
 **/*.local.*
+
+__azurite*

@@ -1,0 +1,92 @@
+name: Dev - Pull Request
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
+
+jobs:
+  lint:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v8
+        continue-on-error: true
+        with:
+          version: latest
+
+  
+  changed-packages:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.unique-directories.outputs.directories }}
+      go_files_changed: ${{ steps.changed-go-files.outputs.any_changed }}
+      go_mod_changed: ${{ steps.check-go-mod.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check for go.mod/go.sum changes
+        id: check-go-mod
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            go.mod
+            go.sum
+
+      - name: Get changed .go files
+        id: changed-go-files
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            **/*_test.go
+            **/*.go
+          files_ignore: |
+            vendor/**
+
+      - name: Get unique directories for changed .go files
+        id: unique-directories
+        run: |
+          DIRS=$(echo '${{ steps.changed-go-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          echo "unique directories: $DIRS"
+          echo "directories=$DIRS" >> $GITHUB_OUTPUT
+  
+    
+  # only run if go.mod or go.sum changed..
+  full-test:
+    needs: [changed-packages]
+    if: github.actor != 'dependabot[bot]' && needs.changed-packages.outputs.go_mod_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: full test
+        uses: ./.github/workflows/shared/test.yaml
+        with:
+          full_test: true
+
+  # only run if mod has not changed and *.go files have changed
+  run_tests:
+    needs: [changed-packages]
+    if: github.actor != 'dependabot[bot]' && (needs.changed-packages.outputs.go_files_changed == 'true' || needs.changed-packages.outputs.go_mod_changed == 'false')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - name: Package test
+        uses: ./.github/workflows/shared/test.yaml
+        with:
+          path: ${{ matrix.packages }}

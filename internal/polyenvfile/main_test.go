@@ -15,7 +15,11 @@ func TestOpenFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	content := `
 [options]
@@ -42,8 +46,14 @@ vault = "test-vault"
 	if err != nil {
 		t.Fatalf("failed to get current working directory: %v", err)
 	}
-	defer os.Chdir(originalWd)
-	os.Chdir(tmpDir)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Fatalf("failed to restore working directory: %v", err)
+		}
+	}()
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
 
 	f, err := OpenFile("dev")
 	if err != nil {
@@ -84,7 +94,11 @@ func TestFile_Save(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	file := File{
 		Path: tmpDir,

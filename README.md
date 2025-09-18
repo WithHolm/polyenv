@@ -2,28 +2,32 @@
 
 ![alt](/docs/logo.png)
 
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+
 polyenv is a CLI tool that allows you to manage secrets in your environment and show values from multiple env files
 
-for now only Azure Keyvault is supported, but more will be available in the future.
-
-no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool that you can use to pull secrets from your already defined
+no hidden solution, no monthlye fees, no subscriptions. just a simple CLI tool that you can use to pull secrets from your already defined enterprise vaults or secret managers.
 
 ## Features
 
-- Config file so everyone share the same secret-sources. this can be synced used with your git repo.
-- Pull secrets from a selection of remote vaults (Only Keyvault atm. I accept pr's or issues for other sources if you want to provide access and documentation to the given solution so a solution can be written).
+- Config file so everyone share the same secret-sources. this can be used with your git repo.
+- Pull secrets from a selection of remote vaults
+  - Only Keyvault and local cred store atm. see [main issue](https://github.com/WithHolm/polyenv/issues/56) to see a list of other sources that are in the pipeline
 - Load values from multiple env files within the same environment.
-- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool that should be available everywhere.
+- no subscriptions, no hidden solution, no monthly fees. just a simple cli tool, available everywhere.
 
 ## Installation
 
-check release page [here](https://github.com/WithHolm/polyenv/releases) to download the application
+### [LATEST RELEASE]([https://](https://github.com/WithHolm/polyenv/releases/tag/latest))
+
+### [DEV RELEASE]([https://](https://github.com/WithHolm/polyenv/releases/tag/nightly))
 
 ## Usage
 
-### Commands
+- Note: this is a work in progress.
+- Also note: I will reference `{env}` as the name of the environment you are using, but you can also use "none" environment referencing `.env` file. in these cases, for all examples you may omit the `{env}` part.
 
-#### Initialize a new environment
+### Initialize a new environment
 
 it will ask you to add vaults and secrets:
 
@@ -31,37 +35,59 @@ it will ask you to add vaults and secrets:
 - `polyenv init --type {vaultType}`: Initializes the environment with the given [vault type](#supported-vaults)
 - `polyenv init --type {vaultType} --arg key=value`: Initializes the environment with the given [vault type](#supported-vaults) and sets the given arguments set dotenv style
 
-in all cases it will create a `{env}.polyenv.toml` file in the current directory. this file can be moved anywhere within your repo.
+in all cases it will create a `{env}.polyenv.toml` file in the current directory. This file can be moved anywhere within your repo.  
+this will also be true for any env files. it uses git root (if present) and searches downwards for any `.env` file.
 
 ![init](/docs/demos/init.gif)
 
-When this is done, you can use `polyenv !{env}` to show what commands are available to manage this environment.
+When this is done, you can use `polyenv !{env}` to show what commands are available to manage this environment. or you can use `polyenv status` to show the current status of all environments.
 
-#### Add vault or secret
+### Add vault or secret
 
 - `polyenv !{env} add vault`: Adds a new vault to the environment.
 - `polyenv !{env} add secret [vault name]`: Adds a new secret to the environment
 
-#### Pull secrets from vault
+adding vault
+![adding vault](./docs/demos/add-vault.gif)
+
+adding secret
+![adding secret](./docs/demos/add-secret.gif)
+
+### Pull secrets from vault
 
 depending on your [config](#polyenv-config), this will either set secrets in `.env.secrets.{env}` file or existing uinqe keys in existing `{env}.env||.env.{env}` files
 
 - `polyenv !{env} pull`
 
-#### Show all env keys (or info about them) in current environment
+#### Export to ci or out
 
-`polyenv !{env} env`: will output all env keys in the current environment. by default it will output as a json to stdout, but you can use `--output {json|azdevops|github}` to change that.
+`polyenv !{env} export`  
+by it will output a list of all env keys in the current environment and wether they could be secrets by detecting the value and key, if no options are provided.
 
-* `azdevops` will output using `##vso[task.setvariable` to stdout. if the the env is a secret it will define the variable as secret. currently it will not use `isOutput` as i've had some issues with that, so all .
-* `github` will write the env to the `GITHUB_ENV` file.
-* `json` will output the env as json to stdout.
-* `azas` will output the env as ready made app config elements for azure app service
-  * it will output array of {key='key',value='val'} pairs. 
-  * secrets will have value `@Microsoft.KeyVault(VaultName=<vaultName>;SecretName=<secretName>)`
+you have the ability to select export format and destination:
 
-Unfortunatley i cannot provide keys to env directly for local usage, so i have to defer to the user to do that. however there are example scripts in 
+- formatters: `json`, `jsonArr`, `azdevops`, `pwsh`, `posix`|`bash`, `dotenv`, `pick`, `stats`
+- writers: `stdout`, `github-env`, `github-out`, `ots`
+
+to select a format, use `--as {format}`  
+to select a destination, use `--to {destination}`  
+both cases are case insensitive 
+
+example:
+
+``` text
+polyenv !{env} export --as jsonArr --to stdout
+```
+
+all output have default selected formats so you will get the perfect format for your destination.  
+on the flip side some writers may have formats it will not support, like any of the `github` writers that only support `dotenv` format (as github actions only supports dotenv format when storing secrets).
+
+[more details on formatters](./docs/plugins/formatter.md)  
+[more details on writers](./docs/plugins/writer.md)
 
 ### Supported vaults
+
+for all vaults, the `--arg` flags are completley optional. if you dont provide anything, the cli will ask you for the correct value.
 
 #### Azure Key Vault
 
@@ -78,11 +104,15 @@ example:
 polyenv init --type keyvault --arg tenant=mytenant.com --arg subscription=mysubscription
 ```
 
-#### Dev Vault
+#### Local Cred Store
 
 ``` text
-polyenv init --type devvault --arg store=mystore
+polyenv init --type local --arg service=my-service
 ```
+
+this will create a local cred store with the given service name.
+
+when adding secrets, it will ask you for the value (if it cannot find anything under `service:value`).
 
 ### Options
 
@@ -101,40 +131,17 @@ polyenv init --type devvault --arg store=mystore
 
 ## Developer Information
 
+more docs in the [development docs](./docs/development/readme.md) folder
+
 ### Project Structure
 
 - `cmd/`: Contains the Cobra command implementations
 - `internal/`: Internal packages
+  - `model/`: Contains all models for polyenv
+  - `plugin/`: Contains the polyenv plugin
+  - `tui/`: Contains the TUI components
+  - `polyenvfile/`: Contains all functions related to the polyenv file
   - `tools/`: Utility functions
   - `vaults/`: Vault implementations (currently Azure Key Vault)
+  - ``
 - `main.go`: Entry point of the application
-
-### Adding New Vaults
-
-To add support for a new vault type:
-
-1. Create a new package under `internal/vaults/`
-2. Implement the `Vault` interface defined in `internal/vaults/repository.go`
-3. Update the `NewInitVault` function in `repository.go` to include the new vault type
-
-### Key Files
-
-- `cmd/init.go`: Handles the initialization wizard
-- `cmd/push.go`: Implements the push command
-- `cmd/pull.go`: Implements the pull command
-- `internal/vaults/keyvault/wizard.go`: Contains the Azure Key Vault-specific wizard implementation
-- `internal/vaults/keyvault.go`: Implements the `Vault` interface for Azure Key Vault
-
-### Environment Variables
-
-The tool uses Azure SDK's DefaultAzureCredential for authentication. Make sure the appropriate environment variables or configuration files are set up for Azure authentication.
-
-## Contributing
-
-fork the project, make your changes, and submit a pull request.
-
-## License
-
-(Add license information here)
-
-This README provides an overview of the project, its commands, and essential information for developers. You may want to expand on certain sections, such as installation instructions, contribution guidelines, and licensing information, based on your specific project requirements.

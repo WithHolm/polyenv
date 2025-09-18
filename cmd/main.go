@@ -13,8 +13,11 @@ import (
 // var author string
 
 // var Path string //path to the .env file.. used by all commands
-// var Environment string
+
+// is debug mode enabled
 var Debug bool
+
+// some other thing
 var DisableTruncateDebug bool
 
 var (

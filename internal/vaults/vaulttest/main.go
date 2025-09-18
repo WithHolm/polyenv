@@ -1,3 +1,4 @@
+// Package vaulttest contains a generic test suite for the model.Vault interface.
 package vaulttest
 
 import (
@@ -49,6 +50,9 @@ func TestVault(t *testing.T, v model.Vault, newVault func() model.Vault) {
 		if m == nil {
 			t.Fatal("Marshal() returned nil")
 		}
+
+		t.Log("Marshal() returned the following map:")
+		t.Log(m)
 
 		newV := newVault()
 		err := newV.Unmarshal(m)

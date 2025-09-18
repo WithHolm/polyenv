@@ -43,10 +43,10 @@ func getTenants() (out []armsubscriptions.TenantIDDescription, err error) {
 
 // return slice of subscriptions from selected tenant.
 // remember that user needs to have logged in to the tenant using az before sdk returns any subscriptions (even if the tenant is listed in the tenants list)
-func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err error) {
+func getSubscriptions(tenantID string) (out []armsubscriptions.Subscription, err error) {
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		TenantID: tenantId,
+		TenantID: tenantID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain a credential: %w", err)
@@ -62,7 +62,7 @@ func getSubscriptions(tenantId string) (out []armsubscriptions.Subscription, err
 			return nil, fmt.Errorf("failed to list subscriptions: %w", err)
 		}
 		for _, v := range page.Value {
-			if *v.TenantID == tenantId {
+			if *v.TenantID == tenantID {
 				out = append(out, *v)
 			}
 		}
@@ -78,18 +78,18 @@ var (
 )
 
 // return a slice of keyvaults from selected subscriptions
-func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) {
-	slog.Debug("getting keyvaults", "subscription", subId, "tenant", tenId)
+func getKeyvaults(subID string, tenID string) (out []GraphQueryItem, err error) {
+	slog.Debug("getting keyvaults", "subscription", subID, "tenant", tenID)
 
 	cacheMutex.RLock()
-	cachedResult, ok := queryCache[tenId]
+	cachedResult, ok := queryCache[tenID]
 	cacheMutex.RUnlock()
 
 	if ok {
 		slog.Debug("using cached keyvaults", "count", len(cachedResult))
 		o := make([]GraphQueryItem, 0)
 		for _, v := range cachedResult {
-			if v.SubscriptionId == subId {
+			if v.SubscriptionID == subID {
 				o = append(o, v)
 			}
 		}
@@ -98,7 +98,7 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 
 	ctx := context.Background()
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		TenantID:                   tenId,
+		TenantID:                   tenID,
 		AdditionallyAllowedTenants: []string{"*"},
 	})
 	if err != nil {
@@ -170,12 +170,12 @@ func getKeyvaults(subId string, tenId string) (out []GraphQueryItem, err error) 
 	}
 
 	cacheMutex.Lock()
-	queryCache[tenId] = out
+	queryCache[tenID] = out
 	cacheMutex.Unlock()
 
 	o := make([]GraphQueryItem, 0)
 	for _, v := range out {
-		if v.SubscriptionId == subId {
+		if v.SubscriptionID == subID {
 			o = append(o, v)
 		}
 	}

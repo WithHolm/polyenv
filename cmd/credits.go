@@ -1,3 +1,4 @@
+// Package cmd contains the polyenv cli components
 package cmd
 
 import (

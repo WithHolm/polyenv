@@ -1,3 +1,4 @@
+// Package model contains all models for polyenv
 package model
 
 import "github.com/charmbracelet/huh"
@@ -17,11 +18,9 @@ type Vault interface {
 	//convert vault from marshalable map
 	Unmarshal(m map[string]any) error
 
-	// validate the incoming config
-	// ValidateConfig(options map[string]any) error
-
-	//Validate the secret name.used when new secret is made, optionally with a suggestion
-	ValidateSecretName(name string) (string, error)
+	// return true if you handled the form.
+	// false if you want to use the default form
+	SecretSelectionHandler(sec *[]Secret) bool
 
 	// list all secrets
 	List

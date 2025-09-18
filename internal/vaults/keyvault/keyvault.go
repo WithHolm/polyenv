@@ -1,6 +1,8 @@
 /*
 notify:@withholm
 */
+
+// Package keyvault contains a vault implementation for Azure Key Vault
 package keyvault
 
 import (
@@ -17,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	azsec "github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/withholm/polyenv/internal/model"
 )
 
 type azsecretsClient interface {
@@ -33,7 +36,7 @@ type Client struct {
 	Tenant string `toml:"tenant"`
 
 	//uri of the keyvault
-	Uri string `toml:"uri"`
+	URI string `toml:"uri"`
 
 	client azsecretsClient `toml:"-"`
 
@@ -44,12 +47,15 @@ type Client struct {
 	listElevateOnce sync.Once `toml:"-"`
 }
 
-var ctx context.Context
+// var ctx context.Context
 
 func init() {
 	// Only enable verbose logging if explicitly requested
 	if os.Getenv("AZURE_SDK_GO_LOGGING") == "" && os.Getenv("DEBUG") == "true" {
-		os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		err := os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		if err != nil {
+			panic(err)
+		}
 	}
 	azlog.SetListener(func(cls azlog.Event, msg string) {
 		//remove package stack when posting err
@@ -75,7 +81,11 @@ func (cli *Client) DisplayName() string {
 }
 
 func (cli *Client) String() string {
-	return fmt.Sprintf("%s/%s", cli.Tenant, cli.Uri)
+	return fmt.Sprintf("%s/%s", cli.Tenant, cli.URI)
+}
+
+func (cli *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
+	return false
 }
 
 // Validate the secret name from input
@@ -115,7 +125,7 @@ func (cli *Client) Marshal() map[string]any {
 	return map[string]any{
 		"type":   "keyvault",
 		"tenant": cli.Tenant,
-		"uri":    cli.Uri,
+		"uri":    cli.URI,
 	}
 }
 
@@ -130,12 +140,12 @@ func (cli *Client) Unmarshal(m map[string]any) error {
 	}
 
 	cli.Tenant = tenant
-	cli.Uri = uri
+	cli.URI = uri
 	return nil
 }
 
 func (cli *Client) Warmup() error {
-	slog.Debug("warming up vault client", "tenant", cli.Tenant, "uri", cli.Uri)
+	slog.Debug("warming up vault client", "tenant", cli.Tenant, "uri", cli.URI)
 	err := checkAzCliInstalled()
 	if err != nil {
 		return err
@@ -152,7 +162,7 @@ func (cli *Client) Warmup() error {
 		return err
 	}
 
-	newCli, err := azsec.NewClient(cli.Uri, cred, nil)
+	newCli, err := azsec.NewClient(cli.URI, cred, nil)
 	if err != nil {
 		return err
 	}

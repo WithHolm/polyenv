@@ -1,0 +1,49 @@
+name: Dev - Dependabot Handler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches:
+      - dev # Only trigger for PRs targeting the 'dev' branch
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  dependabot-go-modules:
+    if: github.actor == 'dependabot[bot]' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Update vendored dependencies
+        run: go mod vendor
+
+      - name: Commit and push vendor changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          git add vendor/
+          
+          # Check if there are any changes to commit
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(deps): update vendored dependencies"
+            git push
+          else
+            echo "No changes to vendor directory."
+          fi
