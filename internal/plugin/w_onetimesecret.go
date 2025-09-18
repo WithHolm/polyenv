@@ -56,7 +56,7 @@ func (r *otsConcealResponse) Expires() (time.Time, error) {
 }
 
 func (e *OtsWriter) AcceptedFormats() (accepted []string, deny []string) {
-	return []string{"pick", "dotenv", "*"}, []string{}
+	return []string{"pick", "*"}, []string{}
 }
 
 func (e *OtsWriter) GetTTL(s string) (*duration.Duration, error) {

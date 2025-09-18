@@ -108,16 +108,6 @@ func (c *Client) Unmarshal(m map[string]any) error {
 	return nil
 }
 
-func (c *Client) ValidateSecretName(name string) (string, error) {
-	if len(name) == 0 {
-		return "", fmt.Errorf("should not be empty")
-	}
-	if len(name)+len(c.Service) > 255 {
-		return "", fmt.Errorf("name too long")
-	}
-	return name, nil
-}
-
 // region Wiz
 func (c *Client) WizWarmup(m map[string]any) error {
 	err := c.Warmup()

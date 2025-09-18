@@ -37,6 +37,8 @@ func (f *DotenvFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//append newline if not empty
 	if len(str) > 0 {
 		str = str + "\n"
 	}

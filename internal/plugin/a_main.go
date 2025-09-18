@@ -26,19 +26,22 @@ var InputFormatters = map[string]func() model.Formatter{
 }
 
 var OutputFormatters = map[string]func() model.Formatter{
-	"json":     func() model.Formatter { return &JSONFormatter{} },
+	"json":     func() model.Formatter { return &JSONFormatter{AsArray: false} },
 	"jsonArr":  func() model.Formatter { return &JSONFormatter{AsArray: true} },
 	"pwsh":     func() model.Formatter { return &PwshFormatter{} },
 	"stats":    func() model.Formatter { return &StatsFormatter{} },
 	"dotenv":   func() model.Formatter { return &DotenvFormatter{} },
 	"azdevops": func() model.Formatter { return &AzDevopsFormatter{} },
 	"pick":     func() model.Formatter { return &PickFormatter{} },
+	"posix":    func() model.Formatter { return &PosixFormatter{} },
+	"bash":     func() model.Formatter { return &PosixFormatter{} },
 }
 
 var Writers = map[string]func() model.Writer{
-	"stdout": func() model.Writer { return &StdOutWriter{} },
-	"github": func() model.Writer { return &GithubWriter{} },
-	"ots":    func() model.Writer { return &OtsWriter{} },
+	"stdout":     func() model.Writer { return &StdOutWriter{} },
+	"github-env": func() model.Writer { return &GithubWriter{typ: GithubToEnv} },
+	"github-out": func() model.Writer { return &GithubWriter{typ: GithubToOutput} },
+	"ots":        func() model.Writer { return &OtsWriter{} },
 }
 
 func init() {
