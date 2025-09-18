@@ -70,10 +70,10 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^chore:'
-scoops:
-  - name: polyenv
-    url_template: "https://github.com/withholm/polyenv/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    license: MIT
-    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
-    commit_author:
-      name: goreleaserbot
+# scoops:
+#   - name: polyenv
+#     url_template: "https://github.com/withholm/polyenv/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+#     license: MIT
+#     commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+#     commit_author:
+#       name: goreleaserbot
