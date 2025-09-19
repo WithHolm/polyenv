@@ -19,7 +19,7 @@ check:
 
 
 build: init
-	@goreleaser release --clean --snapshot --skip publish
+	@goreleaser build --clean --auto-snapshot --single-target --skip validate
 
 test-release: init
 	@echo "==> Creating a temporary tag for release test..."
