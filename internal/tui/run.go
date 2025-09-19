@@ -23,7 +23,7 @@ func RunHuh(f *huh.Form) {
 		return
 	}
 	if !IsTTY() {
-		slog.Error("no no no mr hacker man.. please run your command in a interractive terminal")
+		slog.Error("cannot run interractive content in a non interractive terminal")
 		os.Exit(1)
 	}
 
