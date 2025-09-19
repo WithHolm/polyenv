@@ -1,4 +1,4 @@
-name: Changelog - Create Bump Fragment on Dependabot Merge
+name: Dev - Changelog - Create Bump Fragment on Dependabot Merge
 
 # about pr close: this happens after merge, so reference is "dev" directly
 on:

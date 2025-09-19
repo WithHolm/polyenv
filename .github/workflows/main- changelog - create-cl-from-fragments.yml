@@ -1,4 +1,4 @@
-name: Create changelog from fragments
+name: Main - Create changelog from fragments
 
 on:
   pull_request:

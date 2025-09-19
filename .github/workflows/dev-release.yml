@@ -1,4 +1,4 @@
-name: Release dev - Nigtly sceduled
+name: Dev - Release - Nigtly sceduled
 
 on: 
   schedule:
