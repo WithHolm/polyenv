@@ -9,12 +9,22 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/x/term"
 	"github.com/withholm/polyenv/internal/tools"
+	// "golang.org/x/term"
 )
+
+func IsTTY() bool {
+	return term.IsTerminal(uintptr(os.Stdout.Fd()))
+}
 
 func RunHuh(f *huh.Form) {
 	if f == nil {
 		return
+	}
+	if !IsTTY() {
+		slog.Error("no no no mr hacker man.. please run your command in a interractive terminal")
+		os.Exit(1)
 	}
 
 	theme := huh.ThemeCatppuccin()
