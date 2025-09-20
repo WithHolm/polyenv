@@ -20,7 +20,7 @@ env:
   goreleaser_dist: goreleaser
 #   Variables: .github/variables/common.env
 
-name: Build and Release
+# name: Build and Release
 
 jobs:
   build:
