@@ -46,9 +46,9 @@ jobs:
       - name: get latest tag that is v.*.*
         id: get-latest-tag
         run: |
-          latest_tag=$(git tag --sort=committerdate | tail -1)
-          echo "latest_tag=$latest_tag"
-          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+          latest_tag=$(git tag --sort="v:refname" | tail -1)
+          echo "Found latest tag: $latest_tag"
+          echo "tag=$latest_tag" >> $GITHUB_OUTPUT
 
       # - name: Build and release
       #   id: goreleaser
