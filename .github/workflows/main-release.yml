@@ -77,7 +77,7 @@ jobs:
 
           new_version="v$major.$minor.$patch"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          echo "$current_version -> $new_version"
+          echo "${{ steps.get-latest-tag.outputs.tag }} -> $new_version"
 
       # - name: Create and push tag
       #   if: ${{ github.event.inputs.version_bump != 'none' }}
