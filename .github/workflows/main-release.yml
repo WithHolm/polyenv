@@ -79,22 +79,29 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           echo "${{ steps.get-latest-tag.outputs.tag }} -> $new_version"
 
-      # - name: Create and push tag
-      #   if: ${{ github.event.inputs.version_bump != 'none' }}
-      #   run: |
-      #     git tag ${{ steps.bump_version.outputs.new_version }}
+      - name: go actions
+        run: |
+          go mod tidy
+          go mod download
+          go mod vendor
+
+      - name: Create and push tag
+        if: ${{ github.event.inputs.version_bump != 'none' }}
+        run: |
+          git add .
+          git tag ${{ steps.bump_version.outputs.new_version }}
       #     git push origin ${{ steps.bump_version.outputs.new_version }}
 
-      # - name: Build and release
-      #   id: goreleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CI: true
-      #   with:
-      #     version: "~> v2"
-      #     distribution: goreleaser
-      #     args: build --clean --verbose
+      - name: Build and release
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: true
+        with:
+          version: "~> v2"
+          distribution: goreleaser
+          args: build --clean --verbose
       # - name: Build and release
       #   id: goreleaser
       #   uses: goreleaser/goreleaser-action@v6
