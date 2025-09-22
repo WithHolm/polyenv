@@ -8,8 +8,9 @@ on:
         required: true
         default: 'patch'
         options:
-          - minor
+          - none
           - patch
+          - minor
   # push:
   #   branches: [ "main" ]
   #   tags:
@@ -18,9 +19,6 @@ on:
 env:
   goreleaser_version: ~> v2
   goreleaser_dist: goreleaser
-#   Variables: .github/variables/common.env
-
-# name: Build and Release
 
 jobs:
   build:
@@ -49,6 +47,43 @@ jobs:
           latest_tag=$(git tag --sort="v:refname" | tail -1)
           echo "Found latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_OUTPUT
+      
+      - name: Bump version
+        id: bump_version
+        run: |
+          current_version=${{ steps.get-latest-tag.outputs.tag }}
+          # Strip 'v' prefix if it exists
+          current_version=${current_version#v}
+
+          IFS='.' read -r -a version_parts <<< "$current_version"
+          major=${version_parts[0]}
+          minor=${version_parts[1]}
+          patch=${version_parts[2]}
+
+          case "${{ github.event.inputs.version_bump }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="v$major.$minor.$patch"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "version: $new_version"
+
+      # - name: Create and push tag
+      #   if: ${{ github.event.inputs.version_bump != 'none' }}
+      #   run: |
+      #     git tag ${{ steps.bump_version.outputs.new_version }}
+      #     git push origin ${{ steps.bump_version.outputs.new_version }}
 
       # - name: Build and release
       #   id: goreleaser
@@ -59,7 +94,7 @@ jobs:
       #   with:
       #     version: "~> v2"
       #     distribution: goreleaser
-      #     args: release --clean
+      #     args: build --clean --verbose
       # - name: Build and release
       #   id: goreleaser
       #   uses: goreleaser/goreleaser-action@v6
