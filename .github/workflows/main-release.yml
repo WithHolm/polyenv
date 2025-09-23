@@ -101,12 +101,12 @@ jobs:
         with:
           version: "~> v2"
           distribution: goreleaser
-          args: build --clean --verbose
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: polyenv-release
-          path: dist/*
+          args: release --clean --draft 
+      # - name: Upload Artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: polyenv-release
+      #     path: dist/*
       # - name: Build and release
       #   id: goreleaser
       #   uses: goreleaser/goreleaser-action@v6

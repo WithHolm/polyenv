@@ -60,16 +60,18 @@ release:
       name: polyenv
   prerelease: auto
   draft: true
+  replace_existing_draft: true
+  mode: replace
 source:
   enabled: true
   format: tar.gz
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
+# changelog:
+#   sort: asc
+#   filters:
+#     exclude:
+#       - '^docs:'
+#       - '^test:'
+#       - '^chore:'
 # scoops:
 #   - name: polyenv
 #     url_template: "https://github.com/withholm/polyenv/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
