@@ -11,14 +11,19 @@ on:
           - none
           - patch
           - minor
-  # push:
-  #   branches: [ "main" ]
-  #   tags:
-  #     - "v*.*.*" # Push events to matching v*, i.e. v1.0, v20.15.10
+          - major
+      commit:
+        description: 'commit to the release. updates changelog and tags'
+        type: boolean
+        required: false
+        default: false
 
 env:
   goreleaser_version: ~> v2
   goreleaser_dist: goreleaser
+
+permissions:
+  contents: write
 
 jobs:
   build:
