@@ -10,7 +10,6 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/list"
 	"github.com/withholm/polyenv/internal/model"
 	"github.com/withholm/polyenv/internal/tools"
 	"github.com/withholm/polyenv/internal/tui"
@@ -230,6 +229,7 @@ func (file *File) TuiAddSecret(vaultName string) {
 		localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
 		var displayname string
 		f := huh.NewForm(
+			//set local name for the remote secret
 			huh.NewGroup(
 				huh.NewInput().
 					Title(secret.RemoteKey).
@@ -309,70 +309,25 @@ func (file *File) TuiAddOpts(opts *VaultOptions, acceptDefaults bool) {
 		file.Options = *opts
 	}
 
-	l := list.New()
-	bold := lipgloss.NewStyle().Bold(true)
-	green := lipgloss.NewStyle().Foreground(lipgloss.Color("#40a02b"))
-	red := lipgloss.NewStyle().Foreground(lipgloss.Color("#d20f39"))
-	for _, o := range file.Options.GetVaultOptionHelper() {
-		bolstr := bold.Render(fmt.Sprintf("%t", o.Value))
-		if b, ok := o.Value.(bool); ok {
-			slog.Debug(o.Name+" is bool", "value", b)
-			if b {
-				bolstr = green.Render(bolstr)
-			} else {
-				bolstr = red.Render(bolstr)
-			}
-		}
-		l.Items(
-			fmt.Sprintf("%s: %s", o.Name, bolstr), list.New(o.Summary),
+	if !acceptDefaults {
+		keep := true
+		tui.RunHuh(
+			huh.NewForm(
+				huh.NewGroup(
+					huh.NewNote().Description(file.Options.ListCurrentOptions()),
+					huh.NewConfirm().
+						Title("Do you want to keep these or edit them?").
+						Affirmative("Keep").
+						Negative("Edit").
+						Value(&keep).WithButtonAlignment(lipgloss.Left),
+				),
+			),
 		)
+		acceptDefaults = keep
 	}
 
 	if !acceptDefaults {
-		keepDefaults := true
-
-		f := huh.NewForm(
-			huh.NewGroup(
-				huh.NewNote().Title("Environment options for "+file.Name).DescriptionFunc(func() string {
-					return fmt.Sprint(l)
-				}, nil),
-
-				huh.NewConfirm().
-					Title("Do you want to keep these or edit them?").
-					Affirmative("Keep").
-					Negative("Edit").
-					Value(&keepDefaults).WithButtonAlignment(lipgloss.Center),
-			),
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Do you want to use dot secret file for secrets?").
-					Description(strings.Join([]string{
-						"Any secrets you pull will be stored in a .env.secret." + file.Name + " file instead of .env file.",
-						"This makes it easier to add them to gitignore. while being accessible with any .env import system",
-						"I HIGLY SUGGEST YOU USE THIS",
-					}, "\n")).
-					Affirmative("Yes").
-					Negative("No").
-					Value(&file.Options.UseDotSecretFileForSecrets),
-			).WithHide(keepDefaults),
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Convert hyphens to underscores in env name when setting setting new secrets?").
-					Description("convert remote secret name 'my-secret' to 'my_secret' locally").
-					Affirmative("Yes").
-					Negative("No").
-					Value(&file.Options.HyphenToUnderscore),
-			).WithHide(keepDefaults),
-			huh.NewGroup(
-				huh.NewConfirm().
-					Title("Global: Automatically uppercase env name when setting new secrets?").
-					Description("convert remote vault name 'my-secret' to 'MY-SECRET' locally").
-					Affirmative("Yes").
-					Negative("No").
-					Value(&file.Options.UppercaseLocally),
-			).WithHide(keepDefaults),
-		)
-		tui.RunHuh(f)
+		tui.RunHuh(file.Options.TuiOpts())
 	}
 
 	file.Save()
@@ -420,6 +375,7 @@ func TuiNewFile(env string) (file *File) {
 		tui.RunHuh(form)
 
 		form = huh.NewForm(
+			// on new file
 			huh.NewGroup(
 				huh.NewInput().
 					Description("Enter the name of the environment to use. leave empty to use just '.env'").
@@ -446,19 +402,20 @@ func TuiNewFile(env string) (file *File) {
 							return fmt.Errorf("environment name cannot contain spaces")
 						}
 						s, err := tools.ExtractNameFromDotenv(input)
-						if err != nil {
+						if err != nil && err != tools.ErrFileNotEnvFile {
 							return err
 						}
 						return FileExists(s)
 					}),
 				huh.NewNote().DescriptionFunc(func() string {
 					s, err := tools.ExtractNameFromDotenv(newFileName)
-					if err != nil {
+					if err != nil && err != tools.ErrFileNotEnvFile {
 						return err.Error()
 					}
 					return tuiSelectEnvNote(s)
 				}, &newFileName),
 			).WithHide(newFileType != "new"),
+			// on existing file
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Existing file").
@@ -540,6 +497,7 @@ func TuiNewFile(env string) (file *File) {
 
 // helper for TuiNewFile
 func tuiSelectEnvNote(env string) string {
+	slog.Debug("tui select env note", "env", env)
 	cwd, err := tools.GetGitRootOrCwd()
 	if err != nil {
 		slog.Error("failed to get project root: " + err.Error())
@@ -551,8 +509,9 @@ func tuiSelectEnvNote(env string) string {
 		slog.Error("failed to get files: " + err.Error())
 		os.Exit(1)
 	}
+	// slog.Debug("all files", "files", len(allFiles))
 
-	o := "Will match the following files:"
+	matchedFiles := make([]string, 0)
 	for _, f := range allFiles {
 		fname, err := tools.ExtractNameFromDotenv(filepath.Base(f))
 		if err != nil {
@@ -567,18 +526,29 @@ func tuiSelectEnvNote(env string) string {
 		cwdpath = filepath.ToSlash(cwdpath)
 		slog.Debug(cwdpath, "filter", env, "fname", fname)
 		if env == fname {
-			o += "\n" + cwdpath
+			matchedFiles = append(matchedFiles, cwdpath)
+			// o += "\n" + cwdpath
 		}
+	}
+	o := "Will use:\n"
+	for _, f := range matchedFiles {
+		o += fmt.Sprintf("- %s\n", f)
+	}
+
+	if len(matchedFiles) > 0 {
+		o += "\n ..or "
 	}
 
 	if env == "" {
-		o += "\n ..or any file named '.env'"
+		o += "any file named '.env'"
 	} else {
 		files := []string{
 			strings.Join([]string{".env", env}, "."),
 			strings.Join([]string{env, "env"}, "."),
+			strings.Join([]string{".env.secret", env}, "."),
 		}
-		o += fmt.Sprintf("\n ..or any file named '%s'", strings.Join(files, ", "))
+
+		o += fmt.Sprintf("any file named '%s'", strings.Join(files, ", "))
 	}
 	return o
 }

@@ -18,10 +18,12 @@ func (cnt *count) increment() {
 }
 ```
 
-## casing
+## casing and naming
 
 * camelCase for private stuff
 * CamelCase for public stuff outside of the package
+
+* if you have functions that emit TUI elements, please prefix them with `Tui` before the name
 
 ## logging
 

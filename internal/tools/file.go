@@ -140,6 +140,9 @@ func GetAllFiles(root string, filter []string, typ Matchtype) (out []string, err
 
 // removes .env|.env.secret|.env.{name}|.env.secret.{name} from filename
 func ExtractNameFromDotenv(filename string) (string, error) {
+	if !strings.Contains(filename, ".") {
+		return filename, nil
+	}
 	if !strings.Contains(filename, ".env") && !strings.Contains(filename, ".env.secret") {
 		return "", ErrFileNotEnvFile
 	}
