@@ -92,9 +92,7 @@ jobs:
 
       - name: Grab changelog md from current
         id: changelog
-        uses: ./.github/workflows/shared/collect-all-changelog.yml
-        with:
-          path: ./changelog/current
+        uses: ./.github/actions/collect-changelog
   
       - name: generate changelog md
         id: generate-changelog
@@ -118,20 +116,3 @@ jobs:
           version: "~> v2"
           distribution: goreleaser
           args: release --clean --draft  --release-notes changelog.md
-      # - name: Upload Artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: polyenv-release
-      #     path: dist/*
-      # - name: Build and release
-      #   id: goreleaser
-      #   uses: goreleaser/goreleaser-action@v6
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     version: ${{ env.goreleaser_version }}
-      #     distribution: ${{ env.goreleaser_dist }}
-      #     args: release --clean --verbose --draft
-
-
-

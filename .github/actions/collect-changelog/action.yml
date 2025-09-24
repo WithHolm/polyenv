@@ -1,0 +1,33 @@
+name: 'Collect Changelogs'
+description: 'Collects all changelogs from the changelog/current directory'
+outputs:
+  data:
+    value: ${{ steps.collect_step.outputs.data }}
+    description: 'The collected changelog data'
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect all changelogs
+      id: collect_step
+      shell: bash
+      run: |
+        CHANGELOG_DETAILS=""
+        ChangeLogPath="${{ github.workspace }}/changelog/current"
+        if [ ! -d "$ChangeLogPath" ]; then
+          echo "Directory $ChangeLogPath does not exist."
+          echo 'data<<EOF' >> $GITHUB_OUTPUT
+          echo '' >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        for file in $ChangeLogPath/*.md; do
+          if [ -f "$file" ]; then
+            echo "Processing file: $file"
+            PrNumber=$(basename "$file" .md)
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}### [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
+            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
+          fi
+        done
+        echo 'data<<EOF' >> $GITHUB_OUTPUT
+        echo -e "$CHANGELOG_DETAILS" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
