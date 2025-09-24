@@ -90,6 +90,17 @@ jobs:
           go mod download
           go mod vendor
 
+      - name: Grab changelog md from current
+        id: changelog
+        uses: ./.github/workflows/shared/collect-all-changelog.yml
+        with:
+          path: ./changelog/current
+  
+      - name: generate changelog md
+        id: generate-changelog
+        run: |
+          echo "${{ steps.changelog.outputs.data }}" > changelog.md
+
       - name: Create and push tag
         if: ${{ github.event.inputs.version_bump != 'none' }}
         run: |
@@ -106,7 +117,7 @@ jobs:
         with:
           version: "~> v2"
           distribution: goreleaser
-          args: release --clean --draft 
+          args: release --clean --draft  --release-notes changelog.md
       # - name: Upload Artifacts
       #   uses: actions/upload-artifact@v4
       #   with:

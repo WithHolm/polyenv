@@ -115,25 +115,28 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
       - name: Grab changelog md from current
         id: changelog
-        env:
-          ChangelogPath: ./changelog/current
-        run: |
-          CHANGELOG_DETAILS=""
-          for file in $ChangelogPath/*.md; do
-            echo "Processing file: $file"
-            # Append the content of each file.
-            # You might want to add a header for each file for better readability,
-            # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
-            PrNumber=$(basename "$file" .md)
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}### [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
-            CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
-          done
+        uses: ./.github/workflows/shared/collect-all-changelog.yml
+        with:
+          path: ./changelog/current
+        # env:
+        #   ChangelogPath: ./changelog/current
+        # run: |
+        #   CHANGELOG_DETAILS=""
+        #   for file in $ChangelogPath/*.md; do
+        #     echo "Processing file: $file"
+        #     # Append the content of each file.
+        #     # You might want to add a header for each file for better readability,
+        #     # e.g., "## $(basename "$file" .md)\n\n$(cat "$file")\n"
+        #     PrNumber=$(basename "$file" .md)
+        #     CHANGELOG_DETAILS="${CHANGELOG_DETAILS}### [$PrNumber](https://github.com/WithHolm/polyenv/pull/$PrNumber)\n\n"
+        #     CHANGELOG_DETAILS="${CHANGELOG_DETAILS}$(cat "$file")\n\n"
+        #   done
 
-          # Set the combined content as a multi-line environment variable
-          # This makes it available to subsequent steps via ${{ env.CHANGELOG_DETAILS }}
-          echo "CHANGELOG_DETAILS<<EOF" >> $GITHUB_ENV
-          echo -e "$CHANGELOG_DETAILS" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+        #   # Set the combined content as a multi-line environment variable
+        #   # This makes it available to subsequent steps via ${{ env.CHANGELOG_DETAILS }}
+        #   echo "CHANGELOG_DETAILS<<EOF" >> $GITHUB_ENV
+        #   echo -e "$CHANGELOG_DETAILS" >> $GITHUB_ENV
+        #   echo "EOF" >> $GITHUB_ENV
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -165,5 +168,5 @@ jobs:
             release created by github action
             THIS IS A DEV RELEASE. DO NOT USE THIS IN PRODUCTION. or do.. i don't care
 
-            ${{ env.CHANGELOG_DETAILS }}
+            ${{ steps.changelog.outputs.data }}
           make_latest: false
