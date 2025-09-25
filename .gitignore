@@ -2,8 +2,9 @@
 /.ssh
 **/*.env*
 
-**/*env.secret*
+
 **/*.polyenv.toml
 **/*.local.*
 
 __azurite*
+**/*env.secret*

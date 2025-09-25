@@ -13,6 +13,8 @@ import (
 	"github.com/withholm/polyenv/internal/tools"
 )
 
+var gitIgnoreLine = "**/*env.secret*"
+
 // PolyenvFileExists checks if a polyenv file exists in the current working directory
 func FileExists(env string) error {
 	workingDir, e := tools.GetGitRootOrCwd()
@@ -86,17 +88,30 @@ func RootIsGitRepo() bool {
 }
 
 // checks if the .gitignore file matches the .env.secure file
+// will also see if .env.secret files are in .gitignore
 func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 	skipPath = append(skipPath, []string{
 		".git",
 	}...)
-	slog.Debug("check if gitignore matches .env.secret files")
 	root, err := tools.GetGitRootOrCwd()
 	if err != nil {
 		return false
 	}
 
-	// gignore, err := gitignore.NewFromFile(filepath.Join(root, ".gitignore"))
+	//chekc if .env.secret files are in .gitignore
+	gitignoreBytes, e := os.ReadFile(filepath.Join(root, ".gitignore"))
+	if e != nil {
+		slog.Debug("failed to read .gitignore file", "error", e)
+		return false
+	}
+	gitIgnore := string(gitignoreBytes)
+	gitIgnore = strings.ReplaceAll(gitIgnore, "\r\n", "\n")
+	if !strings.Contains(gitIgnore, gitIgnoreLine) {
+		slog.Debug(".env.secrets are not git ignored..yet")
+		return false
+	}
+
+	slog.Debug("check if gitignore matches .env.secret files", "root", root)
 
 	ig, err := gitignore.NewRepository(root)
 	if err != nil {
@@ -104,8 +119,7 @@ func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 		os.Exit(1)
 	}
 
-	// ignoreParent := []string{}
-	e := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	e = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
 			return nil
 		}
@@ -122,7 +136,7 @@ func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 		}
 
 		f := filepath.Join(path, ".env.secret.test")
-		// slog.Debug("checking", "file", f)
+		slog.Debug("checking", "file", f)
 		if ig.Absolute(f, false) != nil {
 			return nil
 		}
@@ -131,7 +145,7 @@ func GitignoreMatchesEnvSecret(skipPath ...string) bool {
 	})
 
 	if e != nil {
-		slog.Debug("er when procssing gitignore", "err", e)
+		slog.Debug("er when processing gitignore", "err", e)
 		return false
 	}
 

@@ -553,7 +553,10 @@ func tuiSelectEnvNote(env string) string {
 	return o
 }
 
+// TODO: rewrite
 func (file *File) TuiAddGitIgnore() error {
+	// gitIgnoreLine := "**/*env.secret*"
+
 	if !file.Options.UseDotSecretFileForSecrets {
 		return nil
 	}
@@ -561,25 +564,28 @@ func (file *File) TuiAddGitIgnore() error {
 	if !RootIsGitRepo() {
 		return nil
 	}
+	slog.Debug("root is git repo")
 
 	if GitignoreMatchesEnvSecret() {
 		return nil
 	}
+	slog.Debug("gitignore does not match .env.secret files")
 
-	var addToGitignore bool
+	addToGitignore := true
 	f := huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Title("'.env.secret' not found in .gitignore").
 				Description("Do you want me to add this to your .gitignore?").
-				Affirmative("Yes, pretty please!").
+				Affirmative("Yes, please").
 				Negative("No, I will do it myself").
-				Value(&addToGitignore),
+				Value(&addToGitignore).WithButtonAlignment(lipgloss.Left),
 		),
 	)
 	tui.RunHuh(f)
 
 	if !addToGitignore {
+		slog.Info(fmt.Sprintf("you can add the following to your .gitignore: '%s'", gitIgnoreLine))
 		return nil
 	}
 
@@ -601,7 +607,7 @@ func (file *File) TuiAddGitIgnore() error {
 		}
 	}()
 
-	if _, err = openedFile.WriteString("\n**/*env.secret*"); err != nil {
+	if _, err = openedFile.WriteString("\n" + gitIgnoreLine); err != nil {
 		return err
 	}
 
