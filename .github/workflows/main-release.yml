@@ -12,6 +12,11 @@ on:
           - patch
           - minor
           - major
+      release_candiate:
+        description: 'Release candidate'
+        type: boolean
+        required: false
+        default: false
       commit:
         description: 'commit to the release. updates changelog and tags'
         type: boolean
@@ -53,34 +58,63 @@ jobs:
           echo "Found latest tag: $latest_tag"
           echo "tag=$latest_tag" >> $GITHUB_OUTPUT
       
-      - name: Bump version
-        id: bump_version
+      - name: Bump base version
+        id: bump_base_version
         run: |
           current_version=${{ steps.get-latest-tag.outputs.tag }}
-          # Strip 'v' prefix if it exists
-          current_version=${current_version#v}
+          current_version_no_v=${current_version#v}
 
-          IFS='.' read -r -a version_parts <<< "$current_version"
+          base_version=$(echo $current_version_no_v | cut -d'-' -f1)
+          pre_release_part=$(echo $current_version_no_v | grep -o -- '-.*' || true)
+
+          IFS='.' read -r -a version_parts <<< "$base_version"
           major=${version_parts[0]}
           minor=${version_parts[1]}
           patch=${version_parts[2]}
 
           case "${{ github.event.inputs.version_bump }}" in
             major)
-              major=$((major + 1))
-              minor=0
-              patch=0
+              major=$((major + 1)); minor=0; patch=0
               ;;
             minor)
-              minor=$((minor + 1))
-              patch=0
+              minor=$((minor + 1)); patch=0
               ;;
             patch)
               patch=$((patch + 1))
               ;;
           esac
 
-          new_version="v$major.$minor.$patch"
+          new_base_version="$major.$minor.$patch"
+
+          echo "new_base_version=$new_base_version" >> $GITHUB_OUTPUT
+          echo "base_version=$base_version" >> $GITHUB_OUTPUT
+          echo "pre_release_part=$pre_release_part" >> $GITHUB_OUTPUT
+
+      - name: Handle RC version
+        id: bump_version
+        run: |
+          new_base_version="${{ steps.bump_base_version.outputs.new_base_version }}"
+          base_version="${{ steps.bump_base_version.outputs.base_version }}"
+          pre_release_part="${{ steps.bump_base_version.outputs.pre_release_part }}"
+
+          if [[ "${{ github.event.inputs.release_candiate }}" == "true" ]]; then
+            if [[ -z "$pre_release_part" ]] || [[ "$base_version" != "$new_base_version" ]]; then
+              new_version="$new_base_version-rc.1"
+            else
+              rc_number=$(echo $pre_release_part | grep -o '[0-9]*$')
+              new_rc_number=$((rc_number + 1))
+              new_version="$new_base_version-rc.$new_rc_number"
+            fi
+          else
+            if [[ -n "$pre_release_part" ]] && [[ "${{ github.event.inputs.version_bump }}" == "none" ]]; then
+              new_version="$base_version"
+            else
+              new_version="$new_base_version"
+            fi
+          fi
+
+          new_version="v$new_version"
+
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           echo "${{ steps.get-latest-tag.outputs.tag }} -> $new_version"
 
@@ -106,6 +140,7 @@ jobs:
           git add .
           git commit -m "chore(release): update for ${{ steps.bump_version.outputs.new_version }}"
           git tag ${{ steps.bump_version.outputs.new_version }} -f
+          git push
 
       - name: Build and release
         id: goreleaser
