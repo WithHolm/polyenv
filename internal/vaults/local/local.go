@@ -115,17 +115,17 @@ func (c *Client) WizWarmup(m map[string]any) error {
 		return err
 	}
 
-	if m["service"].(string) != "" {
+	if m["service"] != nil {
 		c.Service = m["service"].(string)
 	}
-	if m["s"].(string) != "" {
+	if m["s"] != nil {
 		c.Service = m["s"].(string)
 	}
 
-	if m["key"].(string) != "" {
+	if m["key"] != nil {
 		c.wizKey = m["key"].(string)
 	}
-	if m["k"].(string) != "" {
+	if m["k"] != nil {
 		c.wizKey = m["k"].(string)
 	}
 
