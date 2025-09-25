@@ -140,7 +140,6 @@ jobs:
           git add .
           git commit -m "chore(release): update for ${{ steps.bump_version.outputs.new_version }}"
           git tag ${{ steps.bump_version.outputs.new_version }} -f
-          git push
 
       - name: Build and release
         id: goreleaser
