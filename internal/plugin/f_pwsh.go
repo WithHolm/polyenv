@@ -37,7 +37,7 @@ func (f *PwshFormatter) OutputFormat(data []model.StoredEnv) ([]byte, error) {
 			val = fmt.Sprintf("\"%s\"", v.Value)
 		}
 
-		slog.Info("Setting", "env", val)
+		slog.Info("Setting", "env", v.Key)
 		out = append(out, fmt.Sprintf("Set-Item \"env:%s\" -value %s", v.Key, val))
 	}
 	return []byte(strings.Join(out, "\n")), nil
