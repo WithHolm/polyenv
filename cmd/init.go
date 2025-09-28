@@ -54,7 +54,7 @@ func init() {
 	err := initCmd.RegisterFlagCompletionFunc("vault", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return vaultTypes, cobra.ShellCompDirectiveKeepOrder
 	})
-	initCmd.Flags().BoolVar(&acceptPolyenvDefaults, "accept-default-settings", false, "Accept default settings for polyenv file")
+	// initCmd.Flags().BoolVar(&acceptPolyenvDefaults, "accept-default-settings", false, "Accept default settings for polyenv file")
 	cobra.CheckErr(err)
 	rootCmd.AddCommand(initCmd)
 }
@@ -62,7 +62,7 @@ func init() {
 func initialize(cmd *cobra.Command, args []string) {
 	file := polyenvfile.TuiNewFile(Environment)
 
-	file.TuiAddOpts(nil, acceptPolyenvDefaults)
+	file.TuiAddOpts(nil, true)
 
 	e := file.TuiAddGitIgnore()
 	if e != nil {

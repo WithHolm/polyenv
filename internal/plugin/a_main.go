@@ -41,7 +41,7 @@ var Writers = map[string]func() model.Writer{
 	"stdout":     func() model.Writer { return &StdOutWriter{} },
 	"github-env": func() model.Writer { return &GithubWriter{typ: GithubToEnv} },
 	"github-out": func() model.Writer { return &GithubWriter{typ: GithubToOutput} },
-	"ots":        func() model.Writer { return &OtsWriter{} },
+	// "ots":        func() model.Writer { return &OtsWriter{} },
 }
 
 func init() {
