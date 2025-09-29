@@ -62,6 +62,7 @@ jobs:
 
       - name: Get unique directories for changed .go files
         id: concat_paths
+
         env:
           modChanged: ${{ steps.changed_mod_files.outputs.any_changed }}
           modChangedFiles: "cmd/... ./internal/..."
@@ -74,7 +75,7 @@ jobs:
             path=$modChangedFiles
             RunTests=true
           elif [[ $goChanged == "true" ]]; then
-            path=$(echo "${goChangedFiles}" | jq -r '.[]'|xargs)
+            path=$goChangedFiles
             RunTests=true
           fi
           echo "path=$path" >> $GITHUB_OUTPUT
@@ -139,7 +140,7 @@ jobs:
               echo "Skipping non-Go file: $file"
               continue
             fi
-            
+
             echo "Checking: $file"
             if ! head -n 20 "$file" | grep -q -F -i "$LICENSE_STRING"; then
               echo "::error file=$file::File does not contain the required license header in its first 20 lines."
