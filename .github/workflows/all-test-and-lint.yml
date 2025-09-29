@@ -8,6 +8,9 @@ on:
       - 'go.sum'
       - '**/*.go'
 
+env:
+  LicenseHeaderPath: "./LicenceHeader"
+
 jobs:
   lint:
     if: github.actor != 'dependabot[bot]'
@@ -30,24 +33,25 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.unique-directories.outputs.directories }}
-      go_files_changed: ${{ steps.changed-go-files.outputs.any_changed }}
-      go_mod_changed: ${{ steps.check-go-mod.outputs.any_changed }}
+      should_test: ${{steps.concat_paths.outputs.RunTests}}
+      paths: ${{steps.concat_paths.outputs.path}}
+      mod_test: ${{steps.changed_mod_files.outputs.any_changed}}
+      go_test: ${{steps.changed_go_files.outputs.any_changed}}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Check for go.mod/go.sum changes
-        id: check-go-mod
+      - name: Changed mod files
+        id: changed_mod_files
         uses: tj-actions/changed-files@v46
         with:
           files: |
             go.mod
             go.sum
 
-      - name: Get changed .go files
-        id: changed-go-files
+      - name: Changed go files
+        id: changed_go_files
         uses: tj-actions/changed-files@v46
         with:
           files: |
@@ -57,35 +61,88 @@ jobs:
             vendor/**
 
       - name: Get unique directories for changed .go files
-        id: unique-directories
+        id: concat_paths
+        env:
+          modChanged: ${{ steps.changed_mod_files.outputs.any_changed }}
+          modChangedFiles: "cmd/... ./internal/..."
+          goChanged: ${{ steps.changed_go_files.outputs.any_changed }}
+          goChangedFiles: ${{ steps.changed_go_files.outputs.all_changed_files }}
         run: |
-          DIRS=$(echo '${{ steps.changed-go-files.outputs.all_changed_files }}' | jq -r '.[]' | xargs -I {} dirname {} | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          echo "unique directories: $DIRS"
-          echo "directories=$DIRS" >> $GITHUB_OUTPUT
+          path=""
+          RunTests=false
+          if [[$modChanged == "true"]]; then
+            path=$modChangedFiles
+            RunTests=true
+          elif [[ $goChanged == "true" ]]; then
+            path=$(echo "${goChangedFiles}" | jq -r '.[]'|xargs)
+            RunTests=true
+          fi
+          echo "path=$path" >> $GITHUB_OUTPUT
+          echo "RunTests=$RunTests" >> $GITHUB_OUTPUT
   
-    
-  # only run if go.mod or go.sum changed..
-  full-test:
+  # all paths should be set as a single string, separated by space. this wall all tests tests all files in a single pass
+  # limits any ci to a single "run" compared to the matrix strategy. saves alot of time and resources
+  test:
     needs: [changed-packages]
-    if: github.actor != 'dependabot[bot]' && needs.changed-packages.outputs.go_mod_changed == 'true'
+    if: needs.changed-packages.outputs.should_test == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: full test
-        uses: ./.github/workflows/shared/test.yaml
+      - uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          full_test: true
+          go-version-file: "go.mod"
+          cache: true
+      - name: install tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: Run staticcheck
+        id: staticcheck
+        run: |
+          staticcheck "${{ needs.changed-packages.outputs.paths }}"
+      - name: Run tests
+        id : test
+        run: |
+          go test -v -race "${{ needs.changed-packages.outputs.paths }}"
+      - name: Run govulncheck
+        id : check-vuln
+        run: |
+          govulncheck "${{ needs.changed-packages.outputs.paths }}"
 
-  # only run if mod has not changed and *.go files have changed
-  run_tests:
-    needs: [changed-packages]
-    if: github.actor != 'dependabot[bot]' && (needs.changed-packages.outputs.go_files_changed == 'true' || needs.changed-packages.outputs.go_mod_changed == 'false')
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        packages: ${{ fromJSON(needs.changed-packages.outputs.matrix) }}
-      fail-fast: false
-    steps:
-      - name: Package test
-        uses: ./.github/workflows/shared/test.yaml
-        with:
-          path: ${{ matrix.packages }}
+      - name: Check File Header for License
+        if: needs.changed-packages.outputs.mod_test == false
+        id : check-license
+        run: |
+          # 1. Validate that the path variable is set and the file exists
+          if [ -z "$LicenseHeaderPath" ]; then
+            echo "::error::Required 'LicenseHeaderPath' environment variable is not set."
+            exit 1
+          fi
+          if [ ! -f "$LicenseHeaderPath" ]; then
+            echo "::error::License header file not found at '$LicenseHeaderPath'."
+            exit 1
+          fi
+
+          # 2. Read the expected license string from the file
+          LICENSE_STRING=$(cat "$LicenseHeaderPath")
+
+          # 3. Get the space-delimited list of files to check
+          path="${{ needs.changed-packages.outputs.paths }}"
+          
+          echo "Checking for license header in the following files:"
+          echo "$path"
+          echo "---"
+
+          # 4. Loop through files and check the first 20 lines for the license string
+          for file in $path; do
+            echo "Checking: $file"
+            if ! head -n 20 "$file" | grep -q -F -i "$LICENSE_STRING"; then
+              echo "::error file=$file::File does not contain the required license header in its first 20 lines."
+              exit 1
+            fi
+          done
+          
+          echo "---"
+          echo "Success! All checked files contain the license header."
+
