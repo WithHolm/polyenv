@@ -9,7 +9,7 @@ on:
       - '**/*.go'
 
 env:
-  LicenseHeaderPath: "./LicenceHeader"
+  LicenseHeaderPath: "./LicenseHeader"
 
 jobs:
   lint:
@@ -70,7 +70,7 @@ jobs:
         run: |
           path=""
           RunTests=false
-          if [[$modChanged == "true"]]; then
+          if [[ $modChanged == "true" ]]; then
             path=$modChangedFiles
             RunTests=true
           elif [[ $goChanged == "true" ]]; then
@@ -100,18 +100,17 @@ jobs:
       - name: Run staticcheck
         id: staticcheck
         run: |
-          staticcheck "${{ needs.changed-packages.outputs.paths }}"
+          staticcheck ${{ needs.changed-packages.outputs.paths }}
       - name: Run tests
         id : test
         run: |
-          go test -v -race "${{ needs.changed-packages.outputs.paths }}"
+          go test -v -race ${{ needs.changed-packages.outputs.paths }}
       - name: Run govulncheck
         id : check-vuln
         run: |
-          govulncheck "${{ needs.changed-packages.outputs.paths }}"
+          govulncheck ${{ needs.changed-packages.outputs.paths }}
 
       - name: Check File Header for License
-        if: needs.changed-packages.outputs.mod_test == false
         id : check-license
         run: |
           # 1. Validate that the path variable is set and the file exists
@@ -136,6 +135,11 @@ jobs:
 
           # 4. Loop through files and check the first 20 lines for the license string
           for file in $path; do
+            if [[ "$file" != *.go ]]; then
+              echo "Skipping non-Go file: $file"
+              continue
+            fi
+            
             echo "Checking: $file"
             if ! head -n 20 "$file" | grep -q -F -i "$LICENSE_STRING"; then
               echo "::error file=$file::File does not contain the required license header in its first 20 lines."
