@@ -17,6 +17,8 @@ jobs:
     outputs:
       changelog_exists: ${{ steps.check_changelog.outputs.changelog_exists }}
     steps:
+      - uses: actions/checkout@v5
+
       - name: Check if changelog fragment exists
         id: check_changelog
         uses: ./.github/workflows/shared/check_changelog-file.yaml
