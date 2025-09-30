@@ -98,18 +98,34 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Prepare Package Paths
+        id: prep_packages
+        shell: bash
+        run: |
+          FILE_PATHS="${{ needs.changed-packages.outputs.paths }}"
+          PACKAGE_PATHS=""
+          # If go.mod changed, the paths are already package patterns, so use them directly.
+          if [[ "${{ needs.changed-packages.outputs.mod_test }}" == "true" ]]; then
+            PACKAGE_PATHS=$FILE_PATHS
+          else
+            # Otherwise, convert the file list to a unique, space-delimited list of directories.
+            PACKAGE_PATHS=$(echo "$FILE_PATHS" | tr ' ' '\n' | xargs -I {} dirname {} | sort -u | sed 's|.*|./&|' | xargs)
+          fi
+          echo "Prepared Package Paths: $PACKAGE_PATHS"
+          echo "package_paths=$PACKAGE_PATHS" >> "$GITHUB_OUTPUT"
       - name: Run staticcheck
         id: staticcheck
         run: |
-          staticcheck ${{ needs.changed-packages.outputs.paths }}
+          staticcheck ${{ steps.prep_packages.outputs.package_paths}}
       - name: Run tests
         id : test
         run: |
-          go test -v -race ${{ needs.changed-packages.outputs.paths }}
+          go test -v -race ${{ steps.prep_packages.outputs.package_paths}}
       - name: Run govulncheck
         id : check-vuln
         run: |
-          govulncheck ${{ needs.changed-packages.outputs.paths }}
+          govulncheck ${{ steps.prep_packages.outputs.package_paths}}
 
       - name: Check File Header for License
         id : check-license
