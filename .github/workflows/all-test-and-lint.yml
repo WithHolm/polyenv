@@ -109,8 +109,8 @@ jobs:
           if [[ "${{ needs.changed-packages.outputs.mod_test }}" == "true" ]]; then
             PACKAGE_PATHS=$FILE_PATHS
           else
-            # Otherwise, convert the file list to a unique, space-delimited list of directories.
-            PACKAGE_PATHS=$(echo "$FILE_PATHS" | tr ' ' '\n' | xargs -I {} dirname {} | sort -u | sed 's|.*|./&|' | xargs)
+            # Convert file list to a unique directory list, excluding the root directory './.'
+            PACKAGE_PATHS=$(echo "$FILE_PATHS" | tr ' ' '\n' | xargs -I {} dirname {} | sort -u | grep -v -x "\." | sed 's|.*|./&|' | xargs)
           fi
           echo "Prepared Package Paths: $PACKAGE_PATHS"
           echo "package_paths=$PACKAGE_PATHS" >> "$GITHUB_OUTPUT"

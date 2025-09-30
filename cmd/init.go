@@ -3,7 +3,6 @@
 
 package cmd
 
-
 import (
 	"fmt"
 	"log/slog"
@@ -20,7 +19,8 @@ import (
 
 var vaultType string
 var initargs []string
-var acceptPolyenvDefaults bool
+
+// var acceptPolyenvDefaults bool
 var vaultTypes []string
 
 // var checkgitignore bool
