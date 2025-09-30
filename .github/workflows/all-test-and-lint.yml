@@ -65,7 +65,7 @@ jobs:
 
         env:
           modChanged: ${{ steps.changed_mod_files.outputs.any_changed }}
-          modChangedFiles: "cmd/... ./internal/..."
+          modChangedFiles: "./cmd/... ./internal/..."
           goChanged: ${{ steps.changed_go_files.outputs.any_changed }}
           goChangedFiles: ${{ steps.changed_go_files.outputs.all_changed_files }}
         run: |
@@ -75,7 +75,7 @@ jobs:
             path=$modChangedFiles
             RunTests=true
           elif [[ $goChanged == "true" ]]; then
-            path=$goChangedFiles
+            path=$(echo "$goChangedFiles" | tr ' ' '\n' | sed 's|.*|./&|' | xargs)
             RunTests=true
           fi
           echo "path=$path" >> $GITHUB_OUTPUT
@@ -117,7 +117,7 @@ jobs:
       - name: Run staticcheck
         id: staticcheck
         run: |
-          staticcheck ./...
+          staticcheck ${{ steps.prep_packages.outputs.package_paths}}
       - name: Run tests
         id : test
         run: |
