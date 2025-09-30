@@ -125,7 +125,7 @@ jobs:
       - name: Run govulncheck
         id : check-vuln
         run: |
-          govulncheck ${{ steps.prep_packages.outputs.package_paths}}
+          govulncheck -show verbose ${{ steps.prep_packages.outputs.package_paths}}
 
       - name: Check File Header for License
         id : check-license
