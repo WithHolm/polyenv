@@ -117,7 +117,7 @@ jobs:
       - name: Run staticcheck
         id: staticcheck
         run: |
-          staticcheck ${{ steps.prep_packages.outputs.package_paths}}
+          staticcheck ./...
       - name: Run tests
         id : test
         run: |
