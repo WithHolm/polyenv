@@ -121,7 +121,7 @@ jobs:
       - name: Run tests
         id : test
         run: |
-          go test -v -race ${{ steps.prep_packages.outputs.package_paths}}
+          go test -race ${{ steps.prep_packages.outputs.package_paths}}
       - name: Run govulncheck
         id : check-vuln
         run: |
