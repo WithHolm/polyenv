@@ -10,26 +10,12 @@ env:
   title : ${{ github.event.pull_request.title }}
   header: "## Changes"
 
+  
 jobs:
-  check_if_changelog_exists:
-    if: ${{github.actor != 'dependabot[bot]'}}
-    runs-on: ubuntu-latest
-    outputs:
-      changelog_exists: ${{ steps.check_changelog.outputs.changelog_exists }}
-    steps:
-      - name: Check if changelog fragment exists
-        id: check_changelog
-        uses: ./.github/workflows/shared/check_changelog-file.yaml
-        with:
-          pr-number: ${{ github.event.pull_request.number }}
-          repo: ${{ github.event.pull_request.head.repo.full_name }}
-          commit-ref: ${{ github.event.pull_request.head.ref }}
-          check_changelog_exist: true
-          changelog-text: ""
   create-changelog-fragment:
     runs-on: ubuntu-latest
-    needs: check_if_changelog_exists
-    if: needs.check_if_changelog_exists.outputs.changelog_exists == 'false'
+    # needs: check_if_changelog_exists
+    # if: needs.check_if_changelog_exists.outputs.changelog_exists == 'false'
     permissions:
       contents: write
     steps:
