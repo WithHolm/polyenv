@@ -86,7 +86,7 @@ github.com/aymanbagabas/go-osc52/v2
 # github.com/catppuccin/go v0.3.0
 ## explicit; go 1.19
 github.com/catppuccin/go
-# github.com/charmbracelet/bubbles v0.21.0
+# github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7
 ## explicit; go 1.23.0
 github.com/charmbracelet/bubbles/cursor
 github.com/charmbracelet/bubbles/filepicker
@@ -105,7 +105,7 @@ github.com/charmbracelet/bubbletea
 # github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc
 ## explicit; go 1.18
 github.com/charmbracelet/colorprofile
-# github.com/charmbracelet/huh v0.7.0
+# github.com/charmbracelet/huh v0.8.0
 ## explicit; go 1.23.0
 github.com/charmbracelet/huh
 github.com/charmbracelet/huh/internal/accessibility
