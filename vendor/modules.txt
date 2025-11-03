@@ -131,8 +131,8 @@ github.com/charmbracelet/x/cellbuf
 # github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0
 ## explicit; go 1.19
 github.com/charmbracelet/x/exp/strings
-# github.com/charmbracelet/x/term v0.2.1
-## explicit; go 1.18
+# github.com/charmbracelet/x/term v0.2.2
+## explicit; go 1.24.0
 github.com/charmbracelet/x/term
 # github.com/danieljoos/wincred v1.2.2
 ## explicit; go 1.18
