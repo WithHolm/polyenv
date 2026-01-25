@@ -7,6 +7,8 @@ test: init
 # -coverprofile=.\.local\coverage.out
 # 	@go tool cover -html=.\.local\coverage.out -o .\.local\coverage.html
 
+
+
 check:
 	@echo "==> Running golangci-lint..."
 	@golangci-lint run

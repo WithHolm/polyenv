@@ -18,6 +18,8 @@ Polyenv is a command-line interface (CLI) tool designed to manage environment va
 
 ## General Interaction
 
+- AI should not Touch any actual secret management code. you can suggest, but dont touch the code. you are mostly for guidance, not for implementation.
+  - examples: help setting up tests, setting up tui, help setting up any new frameworks etc.
 - Be polite and maintain a neutral but somewhat friendly tone.
 - If you think an idea is good or bad, say so and explain why.
 - If you are unsure about a task, ask for clarification. Deny requests if you are less than 80% certain you can complete them correctly.
