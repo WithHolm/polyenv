@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/withholm/polyenv/internal/polyenvfile"
@@ -21,25 +20,21 @@ func init() {
 	if e != nil {
 		slog.Warn("failed to discover environments. environment scoped commands will not work.", "error", e)
 		return
-		// slog.Error("failed to list environments", "error", e)
-		// os.Exit(1)
 	}
-	// fmt.Println(env)
 	for _, v := range env {
 		V := v
 		cmd := &cobra.Command{
 			Use:   fmt.Sprintf("!%s [command] [arguments]", V),
 			Short: fmt.Sprintf("manage %s environment", V),
 			Long:  fmt.Sprintf("manage %s environment", V),
-			PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 				Environment = V
 				p, e := polyenvfile.OpenFile(V)
 				if e != nil {
-					slog.Error("failed to open polyenv file", "error", e)
-					os.Exit(1)
+					return fmt.Errorf("failed to open polyenv file: %w", e)
 				}
-				// slog.Debug("Using Polyenv file", "path", p.Fullname())
-				PolyenvFile = &p
+				PolyenvFile = p
+				return nil
 			},
 		}
 

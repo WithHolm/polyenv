@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -25,7 +26,7 @@ func generatePullCommand() *cobra.Command {
 		if option.use dot secret file is enabled it will be set in .env.secret file
 		if not, it will try to find a key set in any of your .env files. if it cannot find it, it will error out.
 	`,
-		Run: pull,
+		RunE: pull,
 	}
 	return pullCmd
 }
@@ -33,13 +34,12 @@ func generatePullCommand() *cobra.Command {
 //region !pullfunc
 
 // pull all defined secrets from vaults
-func pull(cmd *cobra.Command, args []string) {
+func pull(cmd *cobra.Command, args []string) error {
 	secretFilename := PolyenvFile.GenerateFileName(".env.secret")
 	var secretFilePath string
 	existingEnv, err := PolyenvFile.AllDotenvValues()
 	if err != nil {
-		slog.Error("failed to get existing env", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to get existing env: %w", err)
 	}
 
 	//region pull:precheck
@@ -55,34 +55,28 @@ func pull(cmd *cobra.Command, args []string) {
 				}
 			}
 			if matches == 0 {
-				slog.Error("opted out of .secret creation and cannot find a existing reference", "key", k)
-				os.Exit(1)
+				return fmt.Errorf("opted out of .secret creation and cannot find a existing reference: %s", k)
 			} else if matches > 1 {
-				slog.Error("there are multiple references to the same key in .env files. please remove all but one", "key", k)
-				os.Exit(1)
+				return fmt.Errorf("there are multiple references to the same key in .env files. please remove all but one: %s", k)
 			}
 		}
 	} else {
 		root, e := tools.GetGitRootOrCwd()
 		if e != nil {
-			slog.Error("failed to get project root", "error", e)
-			os.Exit(1)
+			return fmt.Errorf("failed to get project root: %w", e)
 		}
 
 		secretFiles, e := tools.GetAllFiles(root, []string{secretFilename}, tools.MatchNameIExact)
 		if e != nil {
-			slog.Error("failed to get files", "error", e)
-			os.Exit(1)
+			return fmt.Errorf("failed to get files: %w", e)
 		}
 		if len(secretFiles) > 1 {
-			slog.Error("multiple .env.secret files found; expected exactly one", "files", secretFiles)
-			os.Exit(1)
+			return fmt.Errorf("multiple .env.secret files found; expected exactly one: %s", secretFiles)
 		} else if len(secretFiles) == 0 {
 			secretFilePath = filepath.Join(root, secretFilename)
 			// create new file
 			if err := os.WriteFile(secretFilePath, []byte{}, 0o600); err != nil {
-				slog.Error("failed to create .env.secret file", "error", err)
-				os.Exit(1)
+				return fmt.Errorf("failed to create .env.secret file: %w", err)
 			}
 		} else {
 			secretFilePath = secretFiles[0]
@@ -97,48 +91,44 @@ func pull(cmd *cobra.Command, args []string) {
 		spn := spinner.Points
 		spn.FPS = time.Second / 15
 		sp := spinner.New().Title(k + " pulling").Type(spn)
-		err := sp.Action(func() {
+		err := sp.ActionWithErr(func(ctx context.Context) error {
 			prefix := fmt.Sprintf(" %d/%d - %s -> ", cnt, len(PolyenvFile.Secrets), k)
 			// get vault from file
 			slog.Debug("pulling", "secret", v.RemoteKey, "vault", v.Vault)
 			sp = sp.Title(prefix + " getting local vault definition")
 			vlt, ok := PolyenvFile.Vaults[v.Vault]
 			if !ok {
-				slog.Error("vault not found", "vault", v.Vault)
-				os.Exit(1)
+				return fmt.Errorf("vault not found: %s", v.Vault)
 			}
 
 			//warming up
 			sp = sp.Title(prefix + " warming up")
 			err := vlt.Warmup()
 			if err != nil {
-				slog.Error("failed to warmup vault", "vault", v.Vault, "error", err)
-				os.Exit(1)
+				return fmt.Errorf("failed to warmup vault: %w", err)
 			}
 
 			// elevate permissions
 			sp = sp.Title(prefix + " elevating permissions to " + v.Vault)
 			err = vlt.PullElevate()
 			if err != nil {
-				slog.Error("failed to elevate permissions", "vault", v.Vault, "error", err)
-				os.Exit(1)
+				return fmt.Errorf("failed to elevate permissions: %w", err)
 			}
 
 			//pulling secret
 			sp = sp.Title(prefix + " pulling from " + v.Vault)
 			content, err := vlt.Pull(v)
 			if err != nil {
-				slog.Error("failed to pull secret", "vault", v.Vault, "error", err)
-				os.Exit(1)
+				return fmt.Errorf("failed to pull secret: %w", err)
 			}
 			contents = append(contents, model.StoredEnv{
-				Value: content.Value,
+				Value: string(content.Value.Bytes()),
 				Key:   v.LocalKey,
 			})
+			return nil
 		}).Run()
 		if err != nil {
-			slog.Error("failed to run spinner", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to run pull action: %w", err)
 		}
 	}
 
@@ -150,8 +140,7 @@ func pull(cmd *cobra.Command, args []string) {
 			newEnv.File = secretFilePath
 			e := newEnv.Save()
 			if e != nil {
-				slog.Error("failed to write to .env.secret", "error", e)
-				os.Exit(1)
+				return fmt.Errorf("failed to write to .env.secret: %w", e)
 			}
 			continue
 		}
@@ -162,12 +151,11 @@ func pull(cmd *cobra.Command, args []string) {
 				v.Value = newEnv.Value
 				e := v.Save()
 				if e != nil {
-					slog.Error("failed to update existing env", "error", e)
-					os.Exit(1)
+					return fmt.Errorf("failed to update existing env: %w", e)
 				}
 				break
 			}
 		}
 	}
-
+	return nil
 }
