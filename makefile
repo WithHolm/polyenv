@@ -1,12 +1,19 @@
 init:
 	@go mod tidy
 	@go mod download
+	@go mod vendor
 
 test: init
 	@go test ./internal/... ./cmd/... -race
 # -coverprofile=.\.local\coverage.out
 # 	@go tool cover -html=.\.local\coverage.out -o .\.local\coverage.html
 
+
+update:
+	@go get -u ./...
+	@go mod tidy
+	@go mod download
+	@go mod vendor
 
 
 check:
