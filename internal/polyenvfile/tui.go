@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -155,153 +154,183 @@ func (file *File) TuiSelectVault() string {
 
 // region secret
 // add a new secret to the polyenv file via the tui. requires displayname of already existing vault
-func (file *File) TuiAddSecret(vaultName string) {
-	if vaultName == "" {
-		slog.Error("secret name cannot be empty")
-		os.Exit(1)
-	}
-	v, ok := file.Vaults[vaultName]
-	if !ok {
-		slog.Error("vault not found", "vault", vaultName)
-		os.Exit(1)
-	}
-	err := v.Warmup() //making sure its ready to use
-	if err != nil {
-		slog.Error("failed to warmup vault", "error", err)
-		os.Exit(1)
-	}
+// func (file *File) TuiAddSecret(vaultName string) error {
+// 	// if vaultName == "" {
+// 	// 	slog.Error("secret name cannot be empty")
+// 	// 	os.Exit(1)
+// 	// }
+// 	// v, ok := file.Vaults[vaultName]
+// 	// if !ok {
+// 	// 	slog.Error("vault not found", "vault", vaultName)
+// 	// 	os.Exit(1)
+// 	// }
+// 	// err := v.Warmup() //making sure its ready to use
+// 	// if err != nil {
+// 	// 	slog.Error("failed to warmup vault", "error", err)
+// 	// 	os.Exit(1)
+// 	// }
 
-	// select secrets
-	var selectedSecrets []model.Secret
+// 	// //check what kind of secret to use
+// 	// conf := v.GetAddConfig()
+// 	// opts := make([]huh.Option[string], 0)
+// 	// if conf.CanAddExisting {
+// 	// 	opts = append(opts, huh.NewOption("existing", "existing"))
+// 	// }
+// 	// if conf.CanAddNew {
+// 	// 	opts = append(opts, huh.NewOption("new", "new"))
+// 	// }
+// 	// var addSecret string
+// 	// if len(opts) > 1 {
+// 	// 	f := huh.NewForm(
+// 	// 		huh.NewGroup(
+// 	// 			huh.NewSelect[string]().
+// 	// 				Title("Add secret").
+// 	// 				Description("How do you want to add the secret?").
+// 	// 				Options(opts...).
+// 	// 				Value(&addSecret),
+// 	// 		),
+// 	// 	)
+// 	// 	tui.RunHuh(f)
+// 	// } else if len(opts) == 1 {
+// 	// 	slog.Debug("only one option, using that", "option", opts[0].Value)
+// 	// 	addSecret = opts[0].Value
+// 	// } else {
+// 	// 	return fmt.Errorf("vault does not support adding secrets")
+// 	// }
 
-	// if vault had its own secret selection form, use that
-	handledByVault := v.SecretSelectionHandler(&selectedSecrets)
+// 	// select secrets
+// 	// var selectedSecrets []model.Secret
 
-	// otherwise use the default form
-	if !handledByVault {
-		f := huh.NewForm(
-			huh.NewGroup(
-				huh.NewMultiSelect[model.Secret]().
-					Title("Select secret(s)").
-					Description("Multiple secrets can be selected. secrets with '!' are not enabled.").
-					OptionsFunc(func() (opt []huh.Option[model.Secret]) {
-						e := v.ListElevate()
-						if e != nil {
-							slog.Error("failed to elevate permissions", "error", e)
-							os.Exit(1)
-						}
+// 	// // if vault had its own secret selection form, use that
+// 	// handledByVault := v.SecretSelectionHandler(&selectedSecrets)
 
-						list, err := v.List()
-						if err != nil {
-							slog.Error("failed to list secrets: " + err.Error())
-							os.Exit(1)
-						}
+// 	// // otherwise use the default form
+// 	// if !handledByVault {
+// 	// 	f := huh.NewForm(
+// 	// 		huh.NewGroup(
+// 	// 			huh.NewMultiSelect[model.Secret]().
+// 	// 				Title("Select secret(s)").
+// 	// 				Description("Multiple secrets can be selected. secrets with '!' are not enabled.").
+// 	// 				OptionsFunc(func() (opt []huh.Option[model.Secret]) {
+// 	// 					e := v.ListElevate()
+// 	// 					if e != nil {
+// 	// 						slog.Error("failed to elevate permissions", "error", e)
+// 	// 						os.Exit(1)
+// 	// 					}
 
-						pre := make([]huh.Option[model.Secret], 0)
-						for _, secret := range list {
-							localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
+// 	// 					list, err := v.List()
+// 	// 					if err != nil {
+// 	// 						slog.Error("failed to list secrets: " + err.Error())
+// 	// 						os.Exit(1)
+// 	// 					}
 
-							slog.Debug("secret", "name", secret.RemoteKey, "enabled", secret.Enabled, "local", hasLocalSecret)
+// 	// 					pre := make([]huh.Option[model.Secret], 0)
+// 	// 					for _, secret := range list {
+// 	// 						localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
 
-							secretName := secret.RemoteKey
-							if !secret.Enabled {
-								secretName = "!" + secretName
-							}
-							s := fmt.Sprintf("%s (%s)", secretName, secret.ContentType)
-							o := huh.NewOption(s, secret)
-							if hasLocalSecret {
-								o.Key += fmt.Sprintf(" (%s)", localSecret.LocalKey)
-								o = o.Selected(true)
-								pre = append(pre, o)
-								continue
-							}
-							opt = append(opt, o)
-						}
-						return slices.Concat(pre, opt)
-					}, nil).Value(&selectedSecrets),
-			),
-		)
-		tui.RunHuh(f)
-	}
+// 	// 						slog.Debug("secret", "name", secret.RemoteKey, "enabled", secret.Enabled, "local", hasLocalSecret)
 
-	//process secrets
-	if file.Secrets == nil {
-		file.Secrets = make(map[string]model.Secret)
-	}
-	for _, secret := range selectedSecrets {
-		localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
-		var displayname string
-		f := huh.NewForm(
-			//set local name for the remote secret
-			huh.NewGroup(
-				huh.NewInput().
-					Title(secret.RemoteKey).
-					DescriptionFunc(func() string {
-						if hasLocalSecret {
-							return fmt.Sprintf("do you want to change the local name? Enter will use the current name: %s", localSecret.LocalKey)
-						}
-						return "select name to use when referencing in env? Enter will use the remote name."
-					}, nil).
-					PlaceholderFunc(func() string {
-						if hasLocalSecret {
-							return localSecret.LocalKey
-						}
-						return secret.RemoteKey
-					}, nil).
-					Validate(func(s string) error {
-						v, ok := file.Secrets[s]
-						if ok {
-							return fmt.Errorf("secret name already exists: %s", v.ToString())
-						}
-						return file.ValidateSecretName(s)
-					}).Value(&displayname),
-				huh.NewNote().TitleFunc(func() string {
-					if displayname == "" && hasLocalSecret {
-						return file.Options.ConvertString(localSecret.LocalKey)
-					} else if displayname == "" {
-						return file.Options.ConvertString(secret.RemoteKey)
-					}
-					return file.Options.ConvertString(displayname)
-				}, &displayname),
-			),
-		)
-		tui.RunHuh(f)
-		if displayname == "" && hasLocalSecret {
-			displayname = localSecret.LocalKey
-		} else if displayname == "" {
-			displayname = secret.RemoteKey
-		}
-		secret.Vault = vaultName
-		displayname = file.Options.ConvertString(displayname)
+// 	// 						secretName := secret.RemoteKey
+// 	// 						if !secret.Enabled {
+// 	// 							secretName = "!" + secretName
+// 	// 						}
+// 	// 						s := fmt.Sprintf("%s (%s)", secretName, secret.ContentType)
+// 	// 						o := huh.NewOption(s, secret)
+// 	// 						if hasLocalSecret {
+// 	// 							o.Key += fmt.Sprintf(" (%s)", localSecret.LocalKey)
+// 	// 							o = o.Selected(true)
+// 	// 							pre = append(pre, o)
+// 	// 							continue
+// 	// 						}
+// 	// 						opt = append(opt, o)
+// 	// 					}
+// 	// 					return slices.Concat(pre, opt)
+// 	// 				}, nil).Value(&selectedSecrets),
+// 	// 		),
+// 	// 	)
+// 	// 	tui.RunHuh(f)
+// 	// } else {
+// 	// 	slog.Debug("secret selection handled by vault")
+// 	// }
 
-		if hasLocalSecret {
-			delete(file.Secrets, localSecret.LocalKey)
-		}
-		secret.LocalKey = displayname
-		file.Secrets[displayname] = secret
-	}
+// 	//process secrets
+// 	// if file.Secrets == nil {
+// 	// 	file.Secrets = make(map[string]model.Secret)
+// 	// }
+// 	// for _, secret := range selectedSecrets {
+// 	// 	localSecret, hasLocalSecret := file.GetSecretInfo(secret.RemoteKey, vaultName)
+// 	// 	var displayname string
+// 	// 	f := huh.NewForm(
+// 	// 		//set local name for the remote secret
+// 	// 		huh.NewGroup(
+// 	// 			huh.NewInput().
+// 	// 				Title(secret.RemoteKey).
+// 	// 				DescriptionFunc(func() string {
+// 	// 					if hasLocalSecret {
+// 	// 						return fmt.Sprintf("do you want to change the local name? Enter will use the current name: %s", localSecret.LocalKey)
+// 	// 					}
+// 	// 					return "select name to use when referencing in env? Enter will use the remote name."
+// 	// 				}, nil).
+// 	// 				PlaceholderFunc(func() string {
+// 	// 					if hasLocalSecret {
+// 	// 						return localSecret.LocalKey
+// 	// 					}
+// 	// 					return secret.RemoteKey
+// 	// 				}, nil).
+// 	// 				Validate(func(s string) error {
+// 	// 					v, ok := file.Secrets[s]
+// 	// 					if ok {
+// 	// 						return fmt.Errorf("secret name already exists: %s", v.ToString())
+// 	// 					}
+// 	// 					return file.ValidateSecretName(s)
+// 	// 				}).Value(&displayname),
+// 	// 			huh.NewNote().TitleFunc(func() string {
+// 	// 				if displayname == "" && hasLocalSecret {
+// 	// 					return file.Options.ConvertString(localSecret.LocalKey)
+// 	// 				} else if displayname == "" {
+// 	// 					return file.Options.ConvertString(secret.RemoteKey)
+// 	// 				}
+// 	// 				return file.Options.ConvertString(displayname)
+// 	// 			}, &displayname),
+// 	// 		),
+// 	// 	)
+// 	// 	tui.RunHuh(f)
+// 	// 	if displayname == "" && hasLocalSecret {
+// 	// 		displayname = localSecret.LocalKey
+// 	// 	} else if displayname == "" {
+// 	// 		displayname = secret.RemoteKey
+// 	// 	}
+// 	// 	secret.Vault = vaultName
+// 	// 	displayname = file.Options.ConvertString(displayname)
 
-	//remove secrets from local that where de-selected during selection
-	for k, secret := range file.Secrets {
-		if secret.Vault != vaultName {
-			continue
-		}
-		//check if current secret is in selectedSecrets. if its not, remove it from local
-		remove := true
-		for _, v := range selectedSecrets {
-			if v.RemoteKey == secret.RemoteKey {
-				remove = false
-				break
-			}
-		}
-		if remove {
-			slog.Debug("removing secret from local", "name", k)
-			delete(file.Secrets, k)
-		}
-	}
-	file.Save()
+// 	// 	if hasLocalSecret {
+// 	// 		delete(file.Secrets, localSecret.LocalKey)
+// 	// 	}
+// 	// 	secret.LocalKey = displayname
+// 	// 	file.Secrets[displayname] = secret
+// 	// }
 
-}
+// 	// //remove secrets from local that where de-selected during selection
+// 	// for k, secret := range file.Secrets {
+// 	// 	if secret.Vault != vaultName {
+// 	// 		continue
+// 	// 	}
+// 	// 	//check if current secret is in selectedSecrets. if its not, remove it from local
+// 	// 	remove := true
+// 	// 	for _, v := range selectedSecrets {
+// 	// 		if v.RemoteKey == secret.RemoteKey {
+// 	// 			remove = false
+// 	// 			break
+// 	// 		}
+// 	// 	}
+// 	// 	if remove {
+// 	// 		slog.Debug("removing secret from local", "name", k)
+// 	// 		delete(file.Secrets, k)
+// 	// 	}
+// 	// }
+// 	// file.Save()
+
+// }
 
 //region opts
 

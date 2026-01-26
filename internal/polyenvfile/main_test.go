@@ -121,7 +121,10 @@ func TestFile_Save(t *testing.T) {
 		},
 	}
 
-	file.Save()
+	err = file.Save()
+	if err != nil {
+		t.Fatalf("Save() returned an error: %v", err)
+	}
 
 	filePath := filepath.Join(tmpDir, "dev.polyenv.toml")
 	_, err = os.Stat(filePath)

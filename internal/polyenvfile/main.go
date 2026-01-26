@@ -45,20 +45,20 @@ func ValidateEnvName(name string) error {
 
 // region open file
 // open vault from env tag
-func OpenFile(env string) (File, error) {
+func OpenFile(env string) (*File, error) {
 	e := ValidateEnvName(env)
 	if e != nil {
-		return File{}, e
+		return nil, e
 	}
 	slog.Debug("opening polyenv file", "env", env)
 	root, e := tools.GetGitRootOrCwd()
 	if e != nil {
-		return File{}, e
+		return nil, e
 	}
 
 	allfiles, e := tools.GetAllFiles(root, []string{env + ".polyenv.toml"}, tools.MatchNameIExact)
 	if e != nil {
-		return File{}, e
+		return nil, e
 	}
 
 	var path string
@@ -69,7 +69,7 @@ func OpenFile(env string) (File, error) {
 		}
 	}
 	if path == "" {
-		return File{}, fmt.Errorf("no env file found with name '%s'", env)
+		return nil, fmt.Errorf("no env file found with name '%s'", env)
 	}
 	slog.Debug("found polyenv file", "path", path)
 
@@ -78,7 +78,7 @@ func OpenFile(env string) (File, error) {
 	// decode the file to struct
 	meta, err := toml.DecodeFile(path, &vaultFile)
 	if err != nil {
-		return vaultFile, fmt.Errorf("failed to read vault options file: %s", err)
+		return nil, fmt.Errorf("failed to read vault options file: %w", err)
 	}
 
 	if len(meta.Undecoded()) > 0 {
@@ -94,26 +94,26 @@ func OpenFile(env string) (File, error) {
 		slog.Debug("file has vaults", "length", len(vaultFile.VaultMap))
 	}
 	for k, v := range vaultFile.VaultMap {
-		slog.Debug("processing configured vault", "key", k)
+		slog.Debug("processing", "vault", k)
 
 		// slog.Debug("vault", "options", v)
 		t, ok := v["type"]
 		if !ok {
-			return vaultFile, fmt.Errorf("vault '%s': key 'type' is missing in polyenv file", k)
+			return nil, fmt.Errorf("vault '%s': key 'type' is missing in polyenv file", k)
 		}
 
 		vaultType := fmt.Sprintf("%s", t)
 		if vaultType == "" {
-			return vaultFile, fmt.Errorf("vault '%s': vault 'type' is missing in .polyenv file", k)
+			return nil, fmt.Errorf("vault '%s': vault 'type' is missing in .polyenv file", k)
 		}
 
 		vault, err := vaults.NewVaultInstance(string(vaultType))
 		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error getting instance of vault '%s': %w", k, vaultType, err)
+			return nil, fmt.Errorf("vault '%s': error getting instance of vault '%s': %w", k, vaultType, err)
 		}
 		err = vault.Unmarshal(v)
 		if err != nil {
-			return vaultFile, fmt.Errorf("vault '%s': error unmarshalling config: %w", k, err)
+			return nil, fmt.Errorf("vault '%s': error unmarshalling config: %w", k, err)
 		}
 		vaultFile.Vaults[k] = vault
 	}
@@ -127,13 +127,13 @@ func OpenFile(env string) (File, error) {
 		vaultFile.Secrets[k] = v
 	}
 
-	return vaultFile, nil
+	return &vaultFile, nil
 }
 
 // region save file
 
 // Save polyenv file struct to disk
-func (file *File) Save() {
+func (file *File) Save() error {
 	file.VaultMap = make(map[string]map[string]any)
 	for k, v := range file.Vaults {
 		slog.Debug("marshalling vault", "displayname", k, "vault", v.String())
@@ -150,24 +150,16 @@ func (file *File) Save() {
 
 	bytes, e := toml.Marshal(file)
 	if e != nil {
-		slog.Error("failed to marshal polyenv file", "error", e)
-		os.Exit(1)
+		return fmt.Errorf("failed to marshal polyenv file: %w", e)
 	}
-	// filepath := filepath.Join(file.Path, file.Name+".polyenv.toml")
+
 	slog.Debug("saving polyenvfile", "path", file.Path, "name", file.Name)
 	err := os.WriteFile(filepath.Join(file.Path, file.Name+".polyenv.toml"), bytes, 0644)
 	if err != nil {
-		slog.Error("failed to write polyenv file", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write polyenv file: %w", err)
 	}
+	return nil
 }
-
-// func (file *File) String() string {
-// 	if file.Name == "" {
-// 		return "<none>"
-// 	}
-// 	return file.Name
-// }
 
 // returns the full path to the polyenv file
 func (file *File) Fullname() string {
@@ -204,9 +196,9 @@ func (file *File) ValidateSecretName(name string) error {
 	return nil
 }
 
+// get metadata about a existing local secret, if found
 func (file *File) GetSecretInfo(remoteKey string, vault string) (model.Secret, bool) {
 	for _, v := range file.Secrets {
-		// slog.Info("secret", "remotekey", v.RemoteKey, "vault", v.Vault)
 		if v.RemoteKey == remoteKey && v.Vault == vault {
 			return v, true
 		}
@@ -246,8 +238,7 @@ func (file *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 	for _, fl := range allfiles {
 		fileEnv, err := tools.ExtractNameFromDotenv(filepath.Base(fl))
 		if err != nil {
-			slog.Error("failed to extract name from dotenv", "error", err)
-			os.Exit(1)
+			return nil, fmt.Errorf("failed to extract name from dotenv: %w", err)
 		}
 		if fileEnv != configEnv {
 			slog.Debug("skipping dotenv", "file", fl, "detected file env", fileEnv, "config env", configEnv)
@@ -257,8 +248,7 @@ func (file *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 
 		m, e := godotenv.Read(fl)
 		if e != nil {
-			slog.Error("failed to read file", "error", e)
-			os.Exit(1)
+			return nil, fmt.Errorf("failed to read dotenv file %s: %w", fl, e)
 		}
 
 		for k, v := range m {
@@ -286,6 +276,8 @@ func (file *File) AllDotenvValues() (out []model.StoredEnv, err error) {
 func (file *File) GenerateFileName(extension string) string {
 	// extension = strings.TrimPrefix(extension, ".")
 	extension = strings.TrimSuffix(extension, ".")
-
+	if file.Name == "" {
+		return extension
+	}
 	return extension + "." + file.Name
 }
