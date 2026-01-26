@@ -6,6 +6,7 @@ package model
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/charmbracelet/huh"
@@ -189,8 +190,8 @@ func TestSecret_GetContent(t *testing.T) {
 		t.Fatalf("GetContent() returned an error: %v", err)
 	}
 
-	if content != "my-secret-value" {
-		t.Errorf("expected content to be 'my-secret-value', but got '%s'", content)
+	if slices.Compare(content.Value.Bytes(), []byte("my-secret-value")) != 0 {
+		t.Errorf("expected content to be 'my-secret-value', but got '%s'", string(content.Value.Bytes()))
 	}
 }
 
@@ -200,7 +201,10 @@ func TestSecret_SetContent(t *testing.T) {
 		RemoteKey: "my-secret",
 	}
 	content := SecretContent{
-		Value: "my-secret-value",
+		ContentType: "secret",
+		Value:       NewSecretValue("my-secret-value"),
+		RemoteKey:   "my-secret",
+		LocalKey:    "my-secret",
 	}
 
 	err := s.SetContent(v, content)
@@ -213,21 +217,23 @@ func TestSecret_SetContent(t *testing.T) {
 	}
 }
 
-// Mock vault for testing
+// region Mock vault
 type TestVault struct {
 	PullValue  string
 	PushCalled bool
 }
 
-func (v *TestVault) String() string                                 { return "" }
-func (v *TestVault) DisplayName() string                            { return "" }
-func (v *TestVault) Warmup() error                                  { return nil }
-func (v *TestVault) Marshal() map[string]any                        { return nil }
-func (v *TestVault) Unmarshal(m map[string]any) error               { return nil }
-func (v *TestVault) ValidateSecretName(name string) (string, error) { return name, nil }
-func (v *TestVault) ListElevate() error                             { return nil }
-func (v *TestVault) List() ([]Secret, error)                        { return nil, nil }
-func (v *TestVault) PushElevate() error                             { return nil }
+var _ Vault = &TestVault{}
+
+func (v *TestVault) String() string                       { return "" }
+func (v *TestVault) DisplayName() string                  { return "" }
+func (v *TestVault) Warmup() error                        { return nil }
+func (v *TestVault) Marshal() map[string]any              { return nil }
+func (v *TestVault) Unmarshal(m map[string]any) error     { return nil }
+func (v *TestVault) ValidateSecretName(name string) error { return nil }
+func (v *TestVault) ListElevate() error                   { return nil }
+func (v *TestVault) List() ([]Secret, error)              { return nil, nil }
+func (v *TestVault) PushElevate() error                   { return nil }
 func (v *TestVault) Push(s SecretContent) error {
 	v.PushCalled = true
 	return nil
@@ -236,8 +242,11 @@ func (v *TestVault) SecretSelectionHandler(s *[]Secret) bool { return false }
 func (v *TestVault) SupportsVaults() bool                    { return false }
 func (v *TestVault) PullElevate() error                      { return nil }
 func (v *TestVault) Pull(s Secret) (SecretContent, error) {
-	return SecretContent{Value: v.PullValue}, nil
+	return SecretContent{Value: NewSecretValue(v.PullValue)}, nil
 }
 func (v *TestVault) WizWarmup(map[string]any) error { return nil }
 func (v *TestVault) WizNext() (*huh.Form, error)    { return nil, nil }
 func (v *TestVault) WizComplete() error             { return nil }
+
+func (v *TestVault) AddWizard(*Secret) error      { return nil }
+func (v *TestVault) GetAddConfig() VaultAddConfig { return VaultAddConfig{} }

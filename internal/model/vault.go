@@ -30,6 +30,25 @@ type Vault interface {
 	Push
 	Pull
 	Wizard
+	Add
+}
+
+type VaultAddConfig struct {
+	//can list and link to existing remote secrets.
+	// Uses ListElevate to list secrets
+	CanAddExisting bool
+	//can add new secrets,
+	// Uses PushElevate to push secrets
+	CanAddNew bool
+	//want to handle the add existing/add new wizard itself
+	SelfHandleWizard bool
+}
+
+type Add interface {
+	GetAddConfig() VaultAddConfig
+	ValidateSecretName(string) error
+	//only used if SelfHandleWizard is true
+	AddWizard(*Secret) error
 }
 
 type List interface {
