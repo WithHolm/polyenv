@@ -22,10 +22,37 @@ type Secret struct {
 	LocalKey    string `toml:"-"`
 }
 
+// just making sure that its stored in memory as bytes..
+// makes it somewhat harder to accidentally log secrets
+type SecretValue struct {
+	b []byte
+}
+
+func NewSecretValue(s string) SecretValue {
+	return SecretValue{
+		b: []byte(s),
+	}
+}
+
+func (s SecretValue) String() string {
+	return "[REDACTED]"
+}
+
+func (s SecretValue) Bytes() []byte {
+	return s.b
+}
+
+func (s *SecretValue) Destroy() {
+	for i := range s.b {
+		s.b[i] = 0
+	}
+	s.b = make([]byte, 0)
+}
+
 // Used when pushing or pulling secrets
 type SecretContent struct {
 	ContentType string
-	Value       string
+	Value       SecretValue
 	RemoteKey   string
 	LocalKey    string
 }
@@ -47,24 +74,25 @@ type InputEnv struct {
 func (s Secret) ToString() string { return fmt.Sprintf("%s (%s)", s.RemoteKey, s.ContentType) }
 
 // Gets the secret content from the vault
-func (s Secret) GetContent(v Vault) (string, error) {
+func (s Secret) GetContent(v Vault) (*SecretContent, error) {
 	err := v.PullElevate()
 	if err != nil {
-		return "", fmt.Errorf("failed to elevate permissions: %w", err)
+		return nil, fmt.Errorf("failed to elevate permissions for pull: %w", err)
 	}
 
 	ret, er := v.Pull(s)
 	if er != nil {
-		return "", fmt.Errorf("failed to pull secret: %w", er)
+		return nil, fmt.Errorf("failed to pull secret: %w", er)
 	}
-	return ret.Value, nil
+
+	return &ret, nil
 }
 
 // Pushes the secret content to the vault
 func (s Secret) SetContent(v Vault, content SecretContent) error {
 	err := v.PushElevate()
 	if err != nil {
-		return fmt.Errorf("failed to elevate permissions: %w", err)
+		return fmt.Errorf("failed to elevate permissions for push: %w", err)
 	}
 
 	er := v.Push(content)
