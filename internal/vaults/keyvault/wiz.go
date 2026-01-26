@@ -59,14 +59,6 @@ func (cli *Client) WizWarmup(m map[string]any) error {
 		cli.wiz.Subscription = m["sub"].(string)
 	}
 
-	// if m["uri"] != nil {
-	// 	cli.wiz.Uri = m["uri"].(string)
-	// }
-
-	// if m["name"] != nil {
-	// 	cli.wiz.Name = m["name"].(string)
-	// }
-
 	for k := range m {
 		if k == "tenant" || k == "subscription" || k == "sub" || k == "uri" || k == "name" {
 			continue
@@ -226,3 +218,5 @@ func (cli *Client) WizComplete() error {
 	// 	"uri":    cli.wiz.Uri,
 	// }, nil
 }
+
+// func (cli *Client) Add() (*huh.Form, error) {

@@ -72,11 +72,13 @@ type Client struct {
 }
 
 func getVaults() (out []Store, err error) {
-	slices.SortFunc(stores, func(a, b Store) int {
+	// Return a sorted copy to avoid modifying the global 'stores' variable.
+	sortedStores := make([]Store, len(stores))
+	copy(sortedStores, stores)
+	slices.SortFunc(sortedStores, func(a, b Store) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-	// slices.Sort(stores)
-	return stores, nil
+	return sortedStores, nil
 }
 
 func (c *Client) String() string {
@@ -102,6 +104,22 @@ func (c *Client) Warmup() error {
 		return fmt.Errorf("cannot find vault '%s'", c.Name)
 	}
 
+	return nil
+}
+
+func (c *Client) AddWizard(*model.Secret) error {
+	return nil
+}
+
+func (c *Client) GetAddConfig() model.VaultAddConfig {
+	return model.VaultAddConfig{
+		CanAddExisting:   false,
+		CanAddNew:        true,
+		SelfHandleWizard: false,
+	}
+}
+
+func (c *Client) ValidateSecretName(name string) error {
 	return nil
 }
 
@@ -142,12 +160,12 @@ func (c *Client) Unmarshal(m map[string]any) error {
 	return nil
 }
 
-func (c *Client) ValidateSecretName(name string) (string, error) {
-	if len(name) == 0 {
-		return "", fmt.Errorf("should not be empty")
-	}
-	return name, nil
-}
+// func (c *Client) ValidateSecretName(name string) (string, error) {
+// 	if len(name) == 0 {
+// 		return "", fmt.Errorf("should not be empty")
+// 	}
+// 	return name, nil
+// }
 
 //region Wiz
 
@@ -160,22 +178,21 @@ func (c *Client) WizNext() (*huh.Form, error) {
 	defer func() { c.wizState++ }()
 	switch c.wizState {
 	case 0:
+		availableVaults, err := getVaults()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get vaults: %w", err)
+		}
+
+		options := make([]huh.Option[string], len(availableVaults))
+		for i, v := range availableVaults {
+			options[i] = huh.NewOption(v.Name, v.Name)
+		}
 		return huh.NewForm(
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Select a vault").
-					OptionsFunc(func() (ret []huh.Option[string]) {
-						vaults, err := getVaults()
-						if err != nil {
-							panic(fmt.Errorf("failed to get vaults: %w", err))
-						}
-						for _, v := range vaults {
-							opt := huh.NewOption(v.Name, v.Name)
-							ret = append(ret, opt)
-						}
-
-						return ret
-					}, nil).Value(&c.Name),
+					Options(options...).
+					Value(&c.Name),
 			),
 		), nil
 	}
@@ -189,7 +206,16 @@ func (c *Client) WizComplete() error {
 //region Push
 
 func (c *Client) Push(s model.SecretContent) error {
+	if c.store.Keys == nil {
+		c.store.Keys = make(map[string]Key)
+	}
 
+	c.store.Keys[s.RemoteKey] = Key{
+		ContentType: s.ContentType,
+		Value:       string(s.Value.Bytes()),
+		Enabled:     true,
+	}
+	slog.Debug("pushed secret to devvault", "store", c.store.Name, "key", s.RemoteKey)
 	return nil
 }
 
@@ -204,7 +230,7 @@ func (c *Client) Pull(s model.Secret) (model.SecretContent, error) {
 	sec.RemoteKey = s.RemoteKey
 	sec.LocalKey = s.LocalKey
 	sec.ContentType = s.ContentType
-	sec.Value = c.store.Keys[s.RemoteKey].Value
+	sec.Value = model.NewSecretValue(c.store.Keys[s.RemoteKey].Value)
 	return sec, nil
 }
 

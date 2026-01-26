@@ -11,12 +11,12 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/withholm/polyenv/internal/model"
-	"github.com/withholm/polyenv/internal/vaults/vaulttest"
+	atestVault "github.com/withholm/polyenv/internal/vaults/atestvault"
 )
 
 func TestKeyVault(t *testing.T) {
 	mock := &mockAzsecretsClient{}
-	vaulttest.TestVault(t, &Client{client: mock}, func() model.Vault {
+	atestVault.TestVault(t, &Client{client: mock}, func() model.Vault {
 		return &Client{}
 	})
 }

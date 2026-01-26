@@ -26,7 +26,7 @@ func (cli *Client) Pull(s model.Secret) (model.SecretContent, error) {
 		sec.ContentType = *kvSecret.ContentType
 	}
 	if kvSecret.Value != nil {
-		sec.Value = *kvSecret.Value
+		sec.Value = model.NewSecretValue(*kvSecret.Value)
 	}
 	sec.RemoteKey = s.RemoteKey
 	sec.LocalKey = s.LocalKey

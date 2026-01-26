@@ -2,7 +2,7 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // Package local contains a local vault that connects to a local cred-store
-package local
+package localvault
 
 import (
 	"fmt"
@@ -21,6 +21,14 @@ type Client struct {
 	Service  string `toml:"service"`
 	wizKey   string `toml:"-"`
 	wizState int    `toml:"-"`
+}
+
+func (c *Client) GetAddConfig() model.VaultAddConfig {
+	return model.VaultAddConfig{
+		CanAddExisting:   false,
+		CanAddNew:        true,
+		SelfHandleWizard: false,
+	}
 }
 
 func (c *Client) String() string {
@@ -166,7 +174,7 @@ func (c *Client) WizComplete() error {
 func (c *Client) Push(s model.SecretContent) error {
 
 	val, err := keyring.Get(c.Service, s.RemoteKey)
-	if err == nil && val == s.Value {
+	if err == nil && val == string(s.Value.Bytes()) {
 		//if value is the same, no need to push
 		return nil
 	} else if err != keyring.ErrNotFound {
@@ -177,7 +185,7 @@ func (c *Client) Push(s model.SecretContent) error {
 
 	slog.Debug("adding/updating secret in local cred-store. will be added", "service", c.Service, "key", s.RemoteKey)
 
-	err = keyring.Set(c.Service, s.RemoteKey, s.Value)
+	err = keyring.Set(c.Service, s.RemoteKey, string(s.Value.Bytes()))
 	if err != nil {
 		return fmt.Errorf("failed to set data to local cred-store during push: %w", err)
 	}
@@ -198,25 +206,13 @@ func (c *Client) Pull(s model.Secret) (model.SecretContent, error) {
 	sec.ContentType = s.ContentType
 
 	val, err := keyring.Get(c.Service, s.RemoteKey)
-	if err == keyring.ErrNotFound {
-		form := huh.NewForm(
-			huh.NewGroup(
-				huh.NewInput().
-					Title(fmt.Sprintf("Secret not in local cred-store. Enter value for %s", s.LocalKey)).
-					EchoMode(huh.EchoModePassword).
-					Value(&val),
-			),
-		)
-		tui.RunHuh(form)
-		err = keyring.Set(c.Service, s.RemoteKey, val)
-		if err != nil {
-			return sec, fmt.Errorf("failed to set data to local cred-store during pull: %w", err)
-		}
-
-	} else if err != nil {
+	if err == nil {
+		val = ""
 		return sec, err
 	}
-	sec.Value = val
+
+	sec.Value = model.NewSecretValue(val)
+	val = ""
 	return sec, nil
 }
 
@@ -236,3 +232,13 @@ func (c *Client) List() ([]model.Secret, error) {
 }
 
 //endregion
+
+// region Add
+
+func (c *Client) ValidateSecretName(name string) error {
+	return nil
+}
+
+func (c *Client) AddWizard(s *model.Secret) error {
+	return nil
+}

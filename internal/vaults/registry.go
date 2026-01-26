@@ -12,13 +12,13 @@ import (
 
 	"github.com/withholm/polyenv/internal/model"
 	"github.com/withholm/polyenv/internal/vaults/keyvault"
-	"github.com/withholm/polyenv/internal/vaults/local"
+	"github.com/withholm/polyenv/internal/vaults/localvault"
 )
 
 // registry
 var reg = map[string]func() model.Vault{
 	"keyvault": func() model.Vault { return &keyvault.Client{} },
-	"local":    func() model.Vault { return &local.Client{} },
+	"local":    func() model.Vault { return &localvault.Client{} },
 }
 var regMu sync.RWMutex
 var logOnce sync.Once

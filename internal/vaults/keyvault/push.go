@@ -13,8 +13,9 @@ import (
 )
 
 func (cli *Client) Push(s model.SecretContent) error {
+	str := string(s.Value.Bytes())
 	secretparam := azsecrets.SetSecretParameters{
-		Value: &s.Value,
+		Value: &str,
 	}
 	if s.ContentType != "" {
 		secretparam.ContentType = &s.ContentType

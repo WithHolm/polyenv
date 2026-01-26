@@ -78,6 +78,18 @@ func init() {
 
 // validate that client implemts the vault interface -> done at vaults.go to avoid circular dependency
 
+func (cli *Client) GetAddConfig() model.VaultAddConfig {
+	return model.VaultAddConfig{
+		CanAddExisting:   true,
+		CanAddNew:        true,
+		SelfHandleWizard: false,
+	}
+}
+
+func (cli *Client) AddWizard(s *model.Secret) error {
+	return nil
+}
+
 // returns the display name of the vault
 func (cli *Client) DisplayName() string {
 	return "Azure Key Vault"
@@ -92,18 +104,18 @@ func (cli *Client) SecretSelectionHandler(sec *[]model.Secret) bool {
 }
 
 // Validate the secret name from input
-func (cli *Client) ValidateSecretName(name string) (string, error) {
+func (cli *Client) ValidateSecretName(name string) error {
 	if len(name) == 0 {
-		return "", fmt.Errorf("should not be empty")
+		return fmt.Errorf("should not be empty")
 	}
 	if strings.ToLower(name) != name {
-		return cli.convertToKeyvaultName(name), fmt.Errorf("should be all lowercase")
+		return fmt.Errorf("should be all lowercase")
 	}
 	re := regexp.MustCompile(`[^a-zA-Z0-9-]`)
 	if re.MatchString(name) {
-		return cli.convertToKeyvaultName(name), fmt.Errorf("must only contain letters, numbers, and hyphens")
+		return fmt.Errorf("must only contain letters, numbers, and hyphens")
 	}
-	return name, nil
+	return nil
 }
 
 // converts a "name" to a name that can be used in keyvault
