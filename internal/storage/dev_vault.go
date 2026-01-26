@@ -3,20 +3,17 @@
 
 //go:build !omitdevpackage
 
-package vaults
+package storage
 
 import (
 	"github.com/withholm/polyenv/internal/model"
-	"github.com/withholm/polyenv/internal/vaults/devvault"
+	"github.com/withholm/polyenv/internal/storage/vault/devvault"
 )
 
+// register devvault
 func init() {
-	regMu.RLock()
-	defer regMu.RUnlock()
-	reg["devvault"] = func() model.Vault { return &devvault.Client{} }
+	NewVaultFactory().RegisterVault(
+		"devvault",
+		func() model.Vault { return &devvault.Client{} },
+	)
 }
-
-// func main() {
-// 	RegisterVault(func() model.Vault { return &devvault.Client{} }, "devvault")
-// }
-//trigger

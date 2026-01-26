@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -25,10 +26,9 @@ func generateAddCommand() *cobra.Command {
 		Long: `
 		add a new vault to the environment
 	`,
-		Run: addVault,
+		RunE: addVault,
 	}
 	//TODO: add args to addvault..
-	// addVaultCmd.Flags().StringArrayVarP(&addVaultArgs, "arg", "a", []string{}, "arguments to pass to the vault, defined dotenv syle: --arg key=value. can be used multiple times")
 
 	addVaultCmds = append(addVaultCmds, addVaultCmd)
 
@@ -38,7 +38,7 @@ func generateAddCommand() *cobra.Command {
 		Long: `
 		add a new secret to the environment
 	`,
-		Run: addSecret,
+		RunE: addSecret,
 	}
 
 	addSecretCmds = append(addSecretCmds, addSecretCmd)
@@ -49,7 +49,7 @@ func generateAddCommand() *cobra.Command {
 		Long: `
 		add will add a new secret or vault to the environment
 	`,
-		Run: add,
+		RunE: add,
 	}
 	addCmds = append(addCmds, addCmd)
 
@@ -59,7 +59,7 @@ func generateAddCommand() *cobra.Command {
 	return addCmd
 }
 
-func add(cmd *cobra.Command, args []string) {
+func add(cmd *cobra.Command, args []string) error {
 	var selected *cobra.Command
 	f := huh.NewForm(
 		huh.NewGroup(
@@ -73,13 +73,13 @@ func add(cmd *cobra.Command, args []string) {
 	)
 	tui.RunHuh(f)
 	if selected == nil {
-		slog.Error("no vault selected")
-		os.Exit(1)
+		return fmt.Errorf("no vault selected")
 	}
 	selected.Run(cmd, args)
+	return nil
 }
 
-func addSecret(cmd *cobra.Command, args []string) {
+func addSecret(cmd *cobra.Command, args []string) error {
 	var Vault string
 	if len(args) == 0 {
 		Vault = PolyenvFile.TuiSelectVault()
@@ -92,10 +92,13 @@ func addSecret(cmd *cobra.Command, args []string) {
 	}
 
 	PolyenvFile.TuiAddSecret(Vault)
-	PolyenvFile.Save()
+	return PolyenvFile.Save()
 }
 
-func addVault(cmd *cobra.Command, args []string) {
-	PolyenvFile.TuiAddVault("", map[string]any{})
-	PolyenvFile.Save()
+func addVault(cmd *cobra.Command, args []string) error {
+	err := PolyenvFile.TuiAddVault("", map[string]any{})
+	if err != nil {
+		return err //fmt.Errorf("failed to add vault: %w", err)
+	}
+	return PolyenvFile.Save()
 }

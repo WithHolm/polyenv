@@ -21,6 +21,9 @@ func init() {
 		slog.Warn("failed to discover environments. environment scoped commands will not work.", "error", e)
 		return
 	}
+
+	// for each detected environment, create a command and all sub commands
+	// ie !{env} {commands}
 	for _, v := range env {
 		V := v
 		cmd := &cobra.Command{

@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,7 +25,7 @@ func generateEnvCommand() *cobra.Command {
 		Long: `
 		export environment variables to a given format and destination. defaults to json output to stdout
 	`,
-		Run: ExportEnv,
+		RunE: ExportEnv,
 	}
 
 	envCmd.Flags().StringVar(&writerFlag, "to", "stdout", fmt.Sprintf("where to output to: %v", tools.MapKeySlice(plugin.Writers)))
@@ -51,19 +50,21 @@ func generateEnvCommand() *cobra.Command {
 	return envCmd
 }
 
-func ExportEnv(cmd *cobra.Command, args []string) {
+func ExportEnv(cmd *cobra.Command, args []string) error {
 	list, err := PolyenvFile.AllDotenvValues()
 	if err != nil {
-		slog.Error("failed to list env", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to get all dotenv values: %w", err)
+		// slog.Error("failed to list env", "error", err)
+		// os.Exit(1)
 	}
 
 	slog.Debug("output", "as", formatFlag, "to", writerFlag)
 
 	wFunc, ok := tools.InequalFindInMap(plugin.Writers, writerFlag)
 	if !ok {
-		slog.Error("failed to find output writer", "to", writerFlag)
-		os.Exit(1)
+		return fmt.Errorf("writer not found: %s", writerFlag)
+		// slog.Error("failed to find output writer", "to", writerFlag)
+		// os.Exit(1)
 	}
 	writer := wFunc()
 	plugin.SelectedWriter = writer
@@ -72,8 +73,9 @@ func ExportEnv(cmd *cobra.Command, args []string) {
 	if strings.EqualFold(formatFlag, "auto") {
 		formatFlag, err = plugin.AutoOutputFormat(writer)
 		if err != nil {
-			slog.Error("failed to get auto format", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to auto detect format: %w", err)
+			// slog.Error("failed to get auto format", "error", err)
+			// os.Exit(1)
 		}
 	}
 
@@ -83,15 +85,17 @@ func ExportEnv(cmd *cobra.Command, args []string) {
 		a, d := writer.AcceptedFormats()
 		slog.Info("accepted formats", "writer", writerFlag, "formats", a)
 		slog.Info("denied formats", "writer", writerFlag, "formats", d)
-		os.Exit(1)
+		return fmt.Errorf("writer '%s' does not support format: %s", writerFlag, formatFlag)
+		// os.Exit(1)
 	}
 
 	slog.Debug("writer supports format", "writer", writerFlag, "format", formatFlag)
 
 	fmtFunc, ok := tools.InequalFindInMap(plugin.OutputFormatters, formatFlag)
 	if !ok {
-		slog.Error("failed to find formatter", "as", formatFlag)
-		os.Exit(1)
+		return fmt.Errorf("formatter not found: %s", formatFlag)
+		// slog.Error("failed to find formatter", "as", formatFlag)
+		// os.Exit(1)
 	}
 
 	formatter := fmtFunc()
@@ -103,14 +107,17 @@ func ExportEnv(cmd *cobra.Command, args []string) {
 	//format output
 	formatted, err := formatter.OutputFormat(list)
 	if err != nil {
-		slog.Error("failed to format output", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to format output: %w", err)
+		// slog.Error("failed to format output", "error", err)
+		// os.Exit(1)
 	}
 
 	//write output
 	err = writer.Write(formatted)
 	if err != nil {
-		slog.Error("failed to write output", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to write output: %w", err)
+		// slog.Error("failed to write output", "error", err)
+		// os.Exit(1)
 	}
+	return nil
 }

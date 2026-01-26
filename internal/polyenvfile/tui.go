@@ -21,7 +21,7 @@ import (
 //region Vault
 
 // TuiAddVault adds a new vault to the polyenv file via the tui
-func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) {
+func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any) error {
 	// var vaultType vaults.VaultType
 	if vaultTypeStr == "" {
 		form := huh.NewForm(
@@ -31,6 +31,7 @@ func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any)
 						for _, k := range vaults.List() {
 							v, e := vaults.NewVaultInstance(k)
 							if e != nil {
+								// return fmt.Errorf("failed to get vault: %w", e)
 								slog.Error("failed to get vault", "error", e)
 								os.Exit(1)
 							}
@@ -46,21 +47,24 @@ func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any)
 
 	vault, err := vaults.NewVaultInstance(vaultTypeStr)
 	if err != nil {
-		slog.Error("failed to start vault: " + err.Error())
-		os.Exit(1)
+		return fmt.Errorf("failed to start vault: %w", err)
+		// slog.Error("failed to start vault: " + err.Error())
+		// os.Exit(1)
 	}
 
 	//warm up the vault wizard
 	e := vault.WizWarmup(vaultInitArgs)
 	if e != nil {
-		slog.Error("failed to start vault wizard", "error", e)
+		// slog.Error("failed to start vault wizard", "error", e)
+		return fmt.Errorf("failed to start vault wizard: %w", e)
 	}
 
 	for {
 		f, e := vault.WizNext()
 		if e != nil {
-			slog.Error("failed to get next form", "error", e)
-			os.Exit(1)
+			return fmt.Errorf("failed to get next form: %w", e)
+			// slog.Error("failed to get next form", "error", e)
+			// os.Exit(1)
 		}
 		if f == nil {
 			break
@@ -124,6 +128,8 @@ func (file *File) TuiAddVault(vaultTypeStr string, vaultInitArgs map[string]any)
 	if addSecret {
 		file.TuiAddSecret(vaultDisplayName)
 	}
+
+	return nil
 }
 
 // Tui Select vault from list
