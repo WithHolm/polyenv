@@ -5,35 +5,33 @@ on:
     types: [opened, synchronize, reopened]
     branches: [dev]
 
-env:
-  author: ${{ github.event.pull_request.user.login }}
-  title : ${{ github.event.pull_request.title }}
-  header: "## Changes"
-
-  
 jobs:
   create-changelog-fragment:
     runs-on: ubuntu-latest
-    # needs: check_if_changelog_exists
-    # if: needs.check_if_changelog_exists.outputs.changelog_exists == 'false'
+    # Reject PRs from forks — pull_request_target runs with repo secrets,
+    # so we must never checkout or trust fork-controlled content here.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
+    env:
+      PR_BODY: ${{ github.event.pull_request.body }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
     steps:
       - name: Extract changelog from PR body
         id: extract-changelog
         run: |
-          # Use awk to extract content between "${{ github.event.pull_request.body}}" and the next "##" heading. remove multiline comments
-          content_body=$(echo "${{ github.event.pull_request.body}}" | awk '/^${{env.header}}/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
+          # PR_BODY passed via env var — never interpolate untrusted input directly into shell
+          content_body=$(printf '%s' "$PR_BODY" | awk '/^## Changes/{flag=1; next} /^##/{flag=0} flag' | perl -0777 -pe 's/<!--.*?-->//sg' | xargs)
 
-          if [ -n "$content" ]; then
-            content="- @${{ env.author }}  -> ${{ env.title }} \n $content_body"
+          if [ -n "$content_body" ]; then
+            content="- @${PR_AUTHOR}  -> ${PR_TITLE} \n $content_body"
             echo "Changelog content found:"
             echo "$content"
-            
             echo "content=$content" >> $GITHUB_OUTPUT
             echo "content_found=true" >> $GITHUB_OUTPUT
           else
-            echo "No changelog content found under ## Description."
+            echo "No changelog content found under ## Changes."
             echo "content_found=false" >> $GITHUB_OUTPUT
           fi
       - name: push changelog fragment
@@ -42,6 +40,6 @@ jobs:
         uses: ./.github/workflows/shared/generate-changelog-file.yaml
         with:
           changelog_text: ${{ steps.extract-changelog.outputs.content }}
-          repo: ${{ github.event.pull_request.head.repo.full_name }}
+          repo: ${{ github.repository }}
           pr_number: ${{ github.event.pull_request.number }}
           commit_ref: ${{ github.event.pull_request.head.ref }}
