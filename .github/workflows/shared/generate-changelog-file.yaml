@@ -30,61 +30,60 @@ on:
 jobs:
   check_file:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       file_exists: ${{ steps.check_file.outputs.file_exists }}
+      changelog_path: ${{ steps.generate_file_name.outputs.changelog_path }}
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v5
+      - name: Checkout base repo only (never fork)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.commit_ref }}
-      - name: generate file name
+      - name: Generate file name
         id: generate_file_name
         run: |
-          CHANGELOG_PATH=""
-          # Correctly check the boolean input
           if [[ "${{ inputs.dependabot_pr }}" == "true" ]]; then
-            # Note: No spaces around the '=' for variable assignment
             CHANGELOG_PATH="changelog/current/bump/${{ inputs.pr_number }}.md"
           else
             CHANGELOG_PATH="changelog/current/${{ inputs.pr_number }}.md"
           fi
-
-          # Set the path as an output for later steps
-          echo "file_exists=$CHANGELOG_PATH" >> $GITHUB_OUTPUT
-      - name: Check if bump file exists
+          echo "changelog_path=$CHANGELOG_PATH" >> $GITHUB_OUTPUT
+      - name: Check if changelog file exists
         id: check_file
         run: |
-          # Check if the changelog fragment file exists
-          if [ -f "${{ steps.generate_file_name.outputs.changePath }}" ]; then
+          if [ -f "${{ steps.generate_file_name.outputs.changelog_path }}" ]; then
             echo "file_exists=true" >> $GITHUB_OUTPUT
           else
             echo "file_exists=false" >> $GITHUB_OUTPUT
           fi
   write-and-commit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: check_file
     if: needs.check_file.outputs.file_exists == 'false' && !inputs.check_changelog_exist
+    env:
+      CHANGELOG_TEXT: ${{ inputs.changelog_text }}
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v5
+      - name: Checkout base repo only (never fork)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.commit_ref }}
       - name: Create changelog
         run: |
-          DIR_PATH=$(dirname "${{ needs.check_file.outputs.file_exists }}")
-          mkdir -p "$DIR_PATH"
-          
-          # Create the file
-          echo "${{ inputs.changelog_text }}" > "${{ needs.check_file.outputs.file_exists }}"
+          CHANGELOG_PATH="${{ needs.check_file.outputs.changelog_path }}"
+          mkdir -p "$(dirname "$CHANGELOG_PATH")"
+          # Write via env var — never interpolate untrusted input directly into shell
+          printf '%s\n' "$CHANGELOG_TEXT" > "$CHANGELOG_PATH"
       - name: Commit and push changelog fragment
         id: commit-changelog
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add "${{ needs.check_file.outputs.file_exists}}"
-          # Check if there are any changes to commit before committing
+          git add "${{ needs.check_file.outputs.changelog_path }}"
           if ! git diff --staged --quiet; then
             git commit -m "docs(changelog): create/update fragment for PR #${{ inputs.pr_number }}"
             git push
