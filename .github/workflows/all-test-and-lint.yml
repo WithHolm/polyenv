@@ -44,7 +44,7 @@ jobs:
 
       - name: Changed mod files
         id: changed_mod_files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             go.mod
@@ -52,7 +52,7 @@ jobs:
 
       - name: Changed go files
         id: changed_go_files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             **/*_test.go
